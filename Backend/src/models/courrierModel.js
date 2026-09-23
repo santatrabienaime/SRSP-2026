@@ -34,20 +34,27 @@ export async function findCourriers(filters = {}) {
 
 export async function findCourrierById(id) {
   const rows = await db.query(
-    `SELECT c.*, t.libelle AS type_libelle FROM courriers c
-     LEFT JOIN types_courriers t ON c.type_id = t.id WHERE c.id = ?`,
+    `SELECT c.*, t.libelle AS type_libelle, dv.nom AS division_nom FROM courriers c
+     LEFT JOIN types_courriers t ON c.type_id = t.id
+     LEFT JOIN divisions dv ON c.division_id = dv.id
+     WHERE c.id = ?`,
     [id]
   );
   return rows[0];
 }
 
 export async function createCourrier(data) {
-  const { type_id, sens, expediteur, destinataire, objet, division_id, dossier_id, created_by } = data;
+  const { type_id, sens, objet, created_by } = data;
+  // Champs optionnels : jamais undefined (mysql2 l'interdit), null sinon.
+  const expediteur = data.expediteur ?? null;
+  const destinataire = data.destinataire ?? null;
+  const division_id = data.division_id ?? null;
+  const dossier_id = data.dossier_id ?? null;
   const numero = await generateNumeroCourrier(sens);
   const result = await db.query(
     `INSERT INTO courriers (numero, type_id, sens, expediteur, destinataire, objet, division_id, dossier_id, created_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [numero, type_id, sens, expediteur, destinataire, objet, division_id || null, dossier_id || null, created_by]
+    [numero, type_id, sens, expediteur, destinataire, objet, division_id, dossier_id, created_by]
   );
   return { id: result.insertId, numero };
 }

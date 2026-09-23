@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { dossierService } from '../services/dossierService.js';
 
 /** Chargement d'un dossier + actions workflow courantes (orienter, affecter, ...). */
@@ -21,6 +21,12 @@ export function useDossier(id) {
       setLoading(false);
     }
   }, [id]);
+
+  // Chargement initial : sans cet effet, la page détail reste bloquée sur
+  // « Chargement du dossier… » (default export toujours appellable).
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const refresh = useCallback(async () => {
     await load();
