@@ -40,6 +40,21 @@ numérotation automatique, historique complet, notifications et rapports.
 
 ## 🚀 Démarrage rapide
 
+### ⚡ En une commande (recommandé)
+
+```bash
+./start.sh        # démarre backend + frontend (détecte automatiquement le port MariaDB)
+./start.sh status   # état des services
+./start.sh restart  # redémarre les deux
+./start.sh stop     # arrête les deux
+./start.sh init     # réinitialise la base (idempotent) puis démarre
+```
+
+- Backend → `http://localhost:5000` · Frontend → `http://localhost:5173`
+- Logs : `tail -f /tmp/srsp-backend.log` et `tail -f /tmp/srsp-frontend.log`
+
+### Manuel (première installation)
+
 Prérequis : **Node.js ≥ 20** et **MariaDB/MySQL** en local.
 
 ```bash

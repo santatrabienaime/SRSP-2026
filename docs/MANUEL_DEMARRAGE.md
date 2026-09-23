@@ -5,6 +5,28 @@ données), puis la remettre en marche après un arrêt.
 
 ---
 
+## 0. Démarrage en une commande ⚡
+
+Une fois l'installation effectuée (§ 1 à 3), lancer **tout** (backend + frontend + détection
+automatique du port MariaDB) d'un seul coup :
+
+```bash
+./start.sh        # démarre (ou réutilise) backend + frontend — idempotent
+./start.sh restart  # redémarre les deux
+./start.sh stop     # arrête les deux
+./start.sh status   # état des services
+./start.sh init     # réinitialise la base (idempotent) puis démarre
+```
+
+- Backend → `http://localhost:5000` (`/api/health`)
+- Frontend → `http://localhost:5173`
+- Logs → `/tmp/srsp-backend.log` et `/tmp/srsp-frontend.log`
+
+> Le script détecte le port MariaDB en sondant `3307` puis `3306`, en vérifiant que
+> `srsp_db` contient bien la table `roles` ; il retombe sinon sur `DB_PORT` du `.env`.
+
+---
+
 ## 1. Prérequis
 
 | Outil | Version minimale | Vérification |
