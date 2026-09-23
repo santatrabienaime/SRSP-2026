@@ -7,14 +7,14 @@ données), puis la remettre en marche après un arrêt.
 
 ## 0. Démarrage en une commande ⚡
 
-Une fois l'installation effectuée (§ 1 à 3), lancer **tout** (backend + frontend + détection
-automatique du port MariaDB) d'un seul coup :
+Une fois l'installation effectuée (§ 1 à 3), lancer **tout** (MariaDB + backend +
+frontend) d'un seul coup :
 
 ```bash
-./start.sh        # démarre (ou réutilise) backend + frontend — idempotent
-./start.sh restart  # redémarre les deux
-./start.sh stop     # arrête les deux
-./start.sh status   # état des services
+./start.sh        # lance MariaDB si à l'arrêt, puis backend + frontend — idempotent
+./start.sh restart  # redémarre backend + frontend (la base reste active)
+./start.sh stop     # arrête backend + frontend
+./start.sh status   # état des services (MariaDB, backend, frontend)
 ./start.sh init     # réinitialise la base (idempotent) puis démarre
 ```
 
@@ -22,8 +22,12 @@ automatique du port MariaDB) d'un seul coup :
 - Frontend → `http://localhost:5173`
 - Logs → `/tmp/srsp-backend.log` et `/tmp/srsp-frontend.log`
 
-> Le script détecte le port MariaDB en sondant `3307` puis `3306`, en vérifiant que
-> `srsp_db` contient bien la table `roles` ; il retombe sinon sur `DB_PORT` du `.env`.
+> **Base de données** : le script lance au besoin l'instance MariaDB du projet
+> (datadir `~/.local/share/mariadb-srsp`, port `3307`, log
+> `~/.local/run/mariadb-srsp.err`), puis détecte le port en sondant `3307` puis
+> `3306` — en vérifiant que `srsp_db` contient bien la table `roles` ; il retombe
+> sinon sur `DB_PORT` du `.env`. Sans cette instance, une autre MariaDB (3306)
+> répondrait avec « Access denied for user 'root' ».
 
 ---
 

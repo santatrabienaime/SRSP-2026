@@ -55,6 +55,47 @@ detect_db_port() {
   echo "$(env_val DB_PORT)"; return 1   # repli sur .env (vérif au prochain démarrage)
 }
 
+# Lance l'instance MariaDB locale du projet (3307) si elle est à l'arrêt.
+# Sans elle, detect_db_port retombe sur 3306 (autre instance → accès refusé).
+DB_DATADIR="$HOME/.local/share/mariadb-srsp"
+DB_SOCKET="$HOME/.local/run/mariadb-srsp.sock"
+DB_PIDFILE="$HOME/.local/run/mariadb-srsp.pid"
+DB_ERRLOG="$HOME/.local/run/mariadb-srsp.err"
+
+start_db() {
+  if [[ -n "$(pid_on_port 3307)" ]]; then
+    info "  • MariaDB déjà actif sur :3307"
+    return 0
+  fi
+  if [[ ! -d "$DB_DATADIR" ]]; then
+    warn "  • Pas de datadir local ($DB_DATADIR) — MariaDB non géré par ce script."
+    return 0
+  fi
+  if ! command -v mariadbd >/dev/null 2>&1; then
+    warn "  • mariadbd introuvable — MariaDB non géré par ce script."
+    return 0
+  fi
+  step "Démarrage de MariaDB (instance projet, port 3307)"
+  mkdir -p "$(dirname "$DB_SOCKET")"
+  (setsid mariadbd \
+      --datadir="$DB_DATADIR" \
+      --port=3307 --bind-address=127.0.0.1 \
+      --socket="$DB_SOCKET" --pid-file="$DB_PIDFILE" \
+      --log-error="$DB_ERRLOG" \
+      < /dev/null > /dev/null 2>&1 &)
+  for _ in $(seq 1 30); do
+    [[ -n "$(pid_on_port 3307)" ]] && break
+    sleep 1
+  done
+  if [[ -n "$(pid_on_port 3307)" ]]; then
+    info "  ✅ MariaDB : 127.0.0.1:3307 (log : $DB_ERRLOG)"
+  else
+    err "  ❌ MariaDB non démarré sur :3307. Log ($DB_ERRLOG) :"
+    tail -8 "$DB_ERRLOG" 2>/dev/null | sed 's/^/     /'
+    return 1
+  fi
+}
+
 # ---- Actions -------------------------------------------------------------------
 start_backend() {
   local dbp; dbp="$(detect_db_port)"
@@ -95,8 +136,9 @@ stop_all() {
 
 show_status() {
   step "État des services SRSP"
-  local bpid fpid
-  bpid="$(pid_on_port 5000)"; fpid="$(pid_on_port 5173)"
+  local bpid fpid dbpid
+  bpid="$(pid_on_port 5000)"; fpid="$(pid_on_port 5173)"; dbpid="$(pid_on_port 3307)"
+  [[ -n "$dbpid" ]] && info "  ✅ MariaDB   :3307 (PID $dbpid) — instance projet" || warn "  ❌ MariaDB   :3307 — arrêté (start_db le relancera)"
   [[ -n "$bpid" ]] && is_up 5000 && info "  ✅ Backend  :5000 (PID $bpid) — /api/health OK" || err "  ❌ Backend  :5000 — arrêté"
   [[ -n "$fpid" ]] && is_up 5173 && info "  ✅ Frontend :5173 (PID $fpid) — HTTP OK"        || err "  ❌ Frontend :5173 — arrêté"
   local dbp; dbp="$(detect_db_port)"
@@ -114,6 +156,7 @@ init_db() {
 case "${1:-start}" in
   start)
     step "SRSP Fitovinany — démarrage rapide"
+    start_db || exit 1
     start_backend || exit 1
     start_frontend || exit 1
     show_status
