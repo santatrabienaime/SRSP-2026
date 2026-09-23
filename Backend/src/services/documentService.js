@@ -1,12 +1,13 @@
 import * as documentModel from '../models/documentModel.js';
 import * as historiqueModel from '../models/historiqueModel.js';
+import { httpError } from '../utils/httpError.js';
 
 export async function getDocuments(filters) {
   return documentModel.findDocuments(filters);
 }
 
 export async function uploadDocument({ file, body, userId }) {
-  if (!file) throw new Error('Aucun fichier fourni.');
+  if (!file) throw httpError(400, 'Aucun fichier fourni.');
   const doc = await documentModel.createDocument({
     dossier_id: body.dossier_id ? parseInt(body.dossier_id) : null,
     courrier_id: body.courrier_id ? parseInt(body.courrier_id) : null,

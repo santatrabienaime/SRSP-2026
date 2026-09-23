@@ -3,6 +3,7 @@ import * as dossierModel from '../models/dossierModel.js';
 import * as historiqueModel from '../models/historiqueModel.js';
 import * as notificationModel from '../models/notificationModel.js';
 import { DIVISION_CHEF_ROLE } from '../utils/constants.js';
+import { httpError } from '../utils/httpError.js';
 
 /**
  * Transitions autorisées conformes au cahier des charges v2.0 (§10.2).
@@ -88,9 +89,9 @@ async function getDossierNumero(dossierId) {
 
 export async function transition(dossierId, toStatus, userId, details = '') {
   const current = await getCurrentStatus(dossierId);
-  if (!current) throw new Error('Dossier introuvable.');
+  if (!current) throw httpError(404, 'Dossier introuvable.');
   if (!canTransition(current, toStatus)) {
-    throw new Error(
+    throw httpError(409,
       `Transition invalide : ${current} → ${toStatus}. Transitions autorisées : ${TRANSITIONS[current].join(', ') || 'aucune'}`
     );
   }

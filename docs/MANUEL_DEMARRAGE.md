@@ -62,6 +62,9 @@ Puis éditer `.env` :
 | `JWT_SECRET` | *(à changer en prod)* | Secret de signature des jetons |
 | `JWT_EXPIRES_IN` | `1d` | Durée de validité des jetons |
 | `MAX_FILE_SIZE` | `10485760` (10 Mo) | Taille max des uploads |
+| `RATE_LIMIT_ENABLED` | activé hors développement | `true`/`false` — **désactivé par défaut en dev** (le message « Trop de requêtes » n'apparaît plus) |
+| `RATE_LIMIT_MAX` | `200` | Requêtes autorisées par fenêtre |
+| `RATE_LIMIT_WINDOW_MS` | `900000` (15 min) | Fenêtre de limitation |
 | `FRONTEND_URL` | `http://localhost:5173` | Origine autorisée en CORS |
 
 ### 2.2 Initialisation de la base (création + seeds)

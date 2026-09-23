@@ -4,6 +4,7 @@ import * as historiqueModel from '../models/historiqueModel.js';
 import * as notificationModel from '../models/notificationModel.js';
 import * as workflowService from './workflowService.js';
 import { STATUTS, STATUTS_PROTEGES } from '../utils/constants.js';
+import { httpError } from '../utils/httpError.js';
 
 const { ENREGISTRE, ORIENTE, AFFECTE, EN_TRAITEMENT, SOUMIS_A_VERIFICATION,
         CORRECTION_DEMANDEE, VALIDE, SIGNE, CLOTURE, ARCHIVE } = STATUTS;
@@ -50,7 +51,7 @@ export async function createDossier(data, userId) {
 export async function updateDossier(id, data, userId) {
   const currentStatut = await workflowService.getCurrentStatus(id);
   if (STATUTS_PROTEGES.includes(currentStatut)) {
-    throw new Error('Ce dossier est clôturé ou archivé : modification interdite.');
+    throw httpError(409, 'Ce dossier est clôturé ou archivé : modification interdite.');
   }
   const dossier = await dossierModel.updateDossier(id, data);
   await historiqueModel.log({
@@ -66,7 +67,7 @@ export async function updateDossier(id, data, userId) {
 export async function orienter(id, { division_id }, userId) {
   const current = await workflowService.getCurrentStatus(id);
   if (current !== ENREGISTRE && current !== ORIENTE) {
-    throw new Error(`Orientation impossible depuis le statut ${current}.`);
+    throw httpError(409, `Orientation impossible depuis le statut ${current}.`);
   }
   await dossierModel.setDivision(id, division_id);
   if (current === ENREGISTRE) {
@@ -84,7 +85,7 @@ export async function orienter(id, { division_id }, userId) {
 export async function affecter(id, { division_id, agent_id }, userId) {
   const current = await workflowService.getCurrentStatus(id);
   if (![ENREGISTRE, ORIENTE, AFFECTE, CORRECTION_DEMANDEE].includes(current)) {
-    throw new Error(`Affectation impossible depuis le statut ${current}.`);
+    throw httpError(409, `Affectation impossible depuis le statut ${current}.`);
   }
   if (division_id) await dossierModel.setDivision(id, division_id);
   await dossierModel.setAgentResponsable(id, agent_id);
@@ -112,7 +113,7 @@ export async function traiter(id, { observation } = {}, userId) {
     return;
   }
   if (![AFFECTE, CORRECTION_DEMANDEE].includes(current)) {
-    throw new Error(`Traitement impossible depuis le statut ${current}.`);
+    throw httpError(409, `Traitement impossible depuis le statut ${current}.`);
   }
   await workflowService.transition(id, EN_TRAITEMENT, userId, observation);
 }
@@ -122,12 +123,12 @@ export async function verifier(id, { resultat, observation }, userId) {
   const current = await workflowService.getCurrentStatus(id);
   if (resultat === 'OK') {
     if (current !== EN_TRAITEMENT) {
-      throw new Error(`Soumission à vérification impossible depuis le statut ${current}.`);
+      throw httpError(409, `Soumission à vérification impossible depuis le statut ${current}.`);
     }
     await workflowService.transition(id, SOUMIS_A_VERIFICATION, userId, observation || 'Soumis à vérification.');
   } else {
     if (![EN_TRAITEMENT, SOUMIS_A_VERIFICATION].includes(current)) {
-      throw new Error(`Demande de correction impossible depuis le statut ${current}.`);
+      throw httpError(409, `Demande de correction impossible depuis le statut ${current}.`);
     }
     await workflowService.transition(id, CORRECTION_DEMANDEE, userId, observation);
   }
@@ -143,7 +144,7 @@ export async function verifier(id, { resultat, observation }, userId) {
 export async function valider(id, { decision, commentaire }, userId) {
   const current = await workflowService.getCurrentStatus(id);
   if (current !== SOUMIS_A_VERIFICATION) {
-    throw new Error(`Validation impossible depuis le statut ${current}.`);
+    throw httpError(409, `Validation impossible depuis le statut ${current}.`);
   }
   if (decision === 'VALIDE') {
     await workflowService.transition(id, VALIDE, userId, commentaire);
@@ -163,7 +164,7 @@ export async function valider(id, { decision, commentaire }, userId) {
 export async function signer(id, { reference, observation }, userId) {
   const current = await workflowService.getCurrentStatus(id);
   if (current !== VALIDE) {
-    throw new Error(`Signature impossible : le dossier doit être validé (statut actuel : ${current}).`);
+    throw httpError(409, `Signature impossible : le dossier doit être validé (statut actuel : ${current}).`);
   }
   await workflowService.transition(id, SIGNE, userId, observation);
   await historiqueModel.log({
@@ -177,7 +178,7 @@ export async function signer(id, { reference, observation }, userId) {
 export async function cloturer(id, userId) {
   const current = await workflowService.getCurrentStatus(id);
   if (current !== SIGNE) {
-    throw new Error(`Clôture impossible : le dossier doit être signé (statut actuel : ${current}).`);
+    throw httpError(409, `Clôture impossible : le dossier doit être signé (statut actuel : ${current}).`);
   }
   await workflowService.transition(id, CLOTURE, userId, 'Clôture du dossier.');
   await dossierModel.cloturer(id);
@@ -187,7 +188,7 @@ export async function cloturer(id, userId) {
 export async function archiver(id, userId) {
   const current = await workflowService.getCurrentStatus(id);
   if (current !== CLOTURE) {
-    throw new Error(`Archivage impossible : le dossier doit être clôturé (statut actuel : ${current}).`);
+    throw httpError(409, `Archivage impossible : le dossier doit être clôturé (statut actuel : ${current}).`);
   }
   await workflowService.transition(id, ARCHIVE, userId, 'Archivage du dossier.');
   await dossierModel.archiver(id);

@@ -62,7 +62,8 @@ start_backend() {
     warn "• Backend déjà démarré sur :5000 (PID $(pid_on_port 5000)) — réutilisé."
   else
     step "Démarrage du backend sur :5000 (DB port $dbp)"
-    (cd "$BACKEND_DIR" && DB_PORT="$dbp" nohup node src/server.js > "$BACK_LOG" 2>&1 &)
+    # setsid : nouvelle session → le service survit à la fin du terminal/script
+    (cd "$BACKEND_DIR" && setsid env DB_PORT="$dbp" node src/server.js > "$BACK_LOG" 2>&1 < /dev/null &)
     for _ in $(seq 1 30); do is_up 5000 && break; sleep 1; done
     if is_up 5000; then info "  ✅ Backend : http://localhost:5000  → /api/health OK"
     else err "  ❌ Backend KO. Dernières lignes du log ($BACK_LOG) :"; tail -15 "$BACK_LOG" 2>/dev/null | sed 's/^/     /'; return 1; fi
@@ -74,7 +75,7 @@ start_frontend() {
     warn "• Frontend déjà démarré sur :5173 (PID $(pid_on_port 5173)) — réutilisé."
   else
     step "Démarrage du frontend sur :5173"
-    (cd "$FRONTEND_DIR" && nohup npm run dev > "$FRONT_LOG" 2>&1 &)
+    (cd "$FRONTEND_DIR" && setsid npm run dev > "$FRONT_LOG" 2>&1 < /dev/null &)
     for _ in $(seq 1 40); do is_up 5173 && break; sleep 1; done
     if is_up 5173; then info "  ✅ Frontend : http://localhost:5173"
     else err "  ❌ Frontend KO. Dernières lignes du log ($FRONT_LOG) :"; tail -15 "$FRONT_LOG" 2>/dev/null | sed 's/^/     /'; return 1; fi
