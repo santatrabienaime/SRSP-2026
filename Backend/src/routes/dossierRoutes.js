@@ -11,16 +11,20 @@ router.use(authMiddleware);
 router.get('/', ctrl.list);
 router.get('/:id', ctrl.getOne);
 router.get('/:id/statut', ctrl.statut);
-router.post('/', rbacMiddleware('dossier.creer'), validateMiddleware(createDossierSchema), ctrl.create);
-router.put('/:id', rbacMiddleware('dossier.modifier'), validateMiddleware(updateDossierSchema), ctrl.update);
+router.post('/', rbacMiddleware('create_dossier'), validateMiddleware(createDossierSchema), ctrl.create);
+router.put('/:id', rbacMiddleware('edit_dossier'), validateMiddleware(updateDossierSchema), ctrl.update);
 
-router.post('/:id/orienter', rbacMiddleware('dossier.affecter'), ctrl.orienter);
-router.post('/:id/affecter', rbacMiddleware('dossier.affecter'), ctrl.affecter);
-router.post('/:id/traiter', rbacMiddleware('dossier.traiter'), ctrl.traiter);
-router.post('/:id/verifier', rbacMiddleware('dossier.verifier'), ctrl.verifier);
-router.post('/:id/valider', rbacMiddleware('dossier.valider'), ctrl.valider);
-router.post('/:id/signer', rbacMiddleware('dossier.valider'), ctrl.signer);
-router.post('/:id/cloturer', rbacMiddleware('dossier.cloturer'), ctrl.cloturer);
-router.post('/:id/archiver', rbacMiddleware('dossier.archiver'), ctrl.archiver);
+// §14.2 : orienter = Secrétaire ; affecter = Chef de Division
+router.post('/:id/orienter', rbacMiddleware('orienter_dossier'), ctrl.orienter);
+router.post('/:id/affecter', rbacMiddleware('affecter_dossier'), ctrl.affecter);
+// §14.2 : traiter/soumettre = Vérificateur / Liquidateur / Chargé
+router.post('/:id/traiter', rbacMiddleware('traiter_dossier'), ctrl.traiter);
+router.post('/:id/verifier', rbacMiddleware('soumettre_verification'), ctrl.verifier);
+// §14.2 : décision sur dossier soumis = Chef de Division (vérifier | valider)
+router.post('/:id/valider', rbacMiddleware(['verifier_dossier', 'valider_dossier']), ctrl.valider);
+// §14.2 : signer / clôturer / archiver = Chef de Service (et Admin)
+router.post('/:id/signer', rbacMiddleware('signer_dossier'), ctrl.signer);
+router.post('/:id/cloturer', rbacMiddleware('cloturer_dossier'), ctrl.cloturer);
+router.post('/:id/archiver', rbacMiddleware('archiver_dossier'), ctrl.archiver);
 
 export default router;

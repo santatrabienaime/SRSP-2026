@@ -72,7 +72,7 @@ export function AppRouter() {
           <Route
             path="/dossiers/nouveau"
             element={
-              <RoleRoute permissions={['dossier.creer']}>
+              <RoleRoute permissions={['create_dossier']}>
                 <DossierCreatePage />
               </RoleRoute>
             }
@@ -81,7 +81,7 @@ export function AppRouter() {
           <Route
             path="/dossiers/:id/modifier"
             element={
-              <RoleRoute permissions={['dossier.modifier']}>
+              <RoleRoute permissions={['edit_dossier']}>
                 <DossierEditPage />
               </RoleRoute>
             }
@@ -92,24 +92,59 @@ export function AppRouter() {
           <Route path="/documents" element={<DocumentListPage />} />
           <Route path="/documents/upload" element={<DocumentUploadPage />} />
 
-          {/* Courriers */}
-          <Route path="/courriers" element={<CourrierListPage />} />
+          {/* Courriers : Admin, Chef Service, Chef BAAF, Secrétaire (§14.1) */}
+          <Route
+            path="/courriers"
+            element={
+              <RoleRoute permissions={['manage_courriers']}>
+                <CourrierListPage />
+              </RoleRoute>
+            }
+          />
           <Route
             path="/courriers/nouveau"
             element={
-              <RoleRoute permissions={['courrier.gerer']}>
+              <RoleRoute permissions={['manage_courriers']}>
                 <CourrierCreatePage />
               </RoleRoute>
             }
           />
-          <Route path="/courriers/:id" element={<CourrierDetailPage />} />
+          <Route
+            path="/courriers/:id"
+            element={
+              <RoleRoute permissions={['manage_courriers']}>
+                <CourrierDetailPage />
+              </RoleRoute>
+            }
+          />
 
           {/* Suivi */}
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/historique" element={<HistoriquePage />} />
-          <Route path="/archives" element={<ArchivesPage />} />
-          <Route path="/statistiques" element={<StatistiquesPage />} />
-          <Route path="/rapports" element={<RapportsPage />} />
+          <Route
+            path="/archives"
+            element={
+              <RoleRoute roles={[ROLES.ADMIN, ROLES.CHEF_SERVICE]} permissions={['archiver_dossier']}>
+                <ArchivesPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/statistiques"
+            element={
+              <RoleRoute permissions={['view_stats']}>
+                <StatistiquesPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/rapports"
+            element={
+              <RoleRoute permissions={['view_stats', 'consolidate_reports', 'export_data']}>
+                <RapportsPage />
+              </RoleRoute>
+            }
+          />
           <Route path="/profil" element={<ProfilePage />} />
 
           {/* Administration */}
@@ -127,6 +162,14 @@ export function AppRouter() {
             element={
               <RoleRoute roles={[ROLES.ADMIN]}>
                 <RolesAdminPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/administration/audit"
+            element={
+              <RoleRoute roles={[ROLES.ADMIN]}>
+                <HistoriquePage />
               </RoleRoute>
             }
           />

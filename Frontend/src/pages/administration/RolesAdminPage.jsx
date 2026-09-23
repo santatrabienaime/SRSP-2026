@@ -10,9 +10,42 @@ import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 
 const PERMISSION_GROUPS = [
-  { label: 'Dossiers', perms: ['dossier.creer', 'dossier.modifier', 'dossier.supprimer'] },
-  { label: 'Workflow', perms: ['dossier.affecter', 'dossier.traiter', 'dossier.verifier', 'dossier.valider', 'dossier.cloturer', 'dossier.archiver'] },
-  { label: 'Administration', perms: ['user.gerer', 'role.gerer', 'division.gerer', 'agent.gerer', 'courrier.gerer'] },
+  {
+    label: 'Dossiers',
+    perms: ['create_dossier', 'edit_dossier', 'delete_dossier', 'view_all_dossiers', 'view_assigned_dossiers'],
+  },
+  {
+    label: 'Workflow',
+    perms: ['orienter_dossier', 'affecter_dossier', 'traiter_dossier', 'soumettre_verification', 'verifier_dossier', 'valider_dossier', 'signer_dossier', 'cloturer_dossier', 'archiver_dossier'],
+  },
+  {
+    label: 'Courriers & documents',
+    perms: ['manage_courriers', 'manage_documents', 'upload_document'],
+  },
+  {
+    label: 'Administration',
+    perms: ['manage_users', 'manage_roles', 'manage_divisions', 'manage_personnel', 'view_audit', 'system_config'],
+  },
+  {
+    label: 'Statistiques & rapports',
+    perms: ['view_stats', 'export_data', 'consolidate_reports'],
+  },
+  {
+    label: 'Division Solde',
+    perms: ['controler_decomptes', 'approuver_bons', 'calculer_avances'],
+  },
+  {
+    label: 'Division Pension',
+    perms: ['gerer_correspondances', 'suivre_oppositions', 'liquider_pension', 'gerer_dossiers_meres'],
+  },
+  {
+    label: 'Division Secours',
+    perms: ['preparer_mandatement', 'gerer_ordonnancement', 'suivre_signature', 'depouiller_pieces', 'archiver_pieces'],
+  },
+  {
+    label: 'Coordonnatrice',
+    perms: ['gerer_immatriculations', 'gerer_augure', 'gerer_paiements'],
+  },
 ];
 
 /** Gestion des rôles et de la matrice RBAC par rôle. */

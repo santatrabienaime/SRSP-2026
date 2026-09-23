@@ -51,6 +51,19 @@ export async function updatePassword(id, password_hash) {
   await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, id]);
 }
 
+export async function toggleUser(id) {
+  await db.query('UPDATE users SET actif = NOT actif WHERE id = ?', [id]);
+  return findUserById(id);
+}
+
+export async function setActif(id, actif) {
+  await db.query('UPDATE users SET actif = ? WHERE id = ?', [actif ? 1 : 0, id]);
+}
+
+export async function deleteUser(id) {
+  await db.query('DELETE FROM users WHERE id = ?', [id]);
+}
+
 export async function updateLastConnection(id) {
   await db.query('UPDATE users SET derniere_connexion = NOW() WHERE id = ?', [id]);
 }

@@ -7,7 +7,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.get('/', ctrl.list);
-router.post('/', rbacMiddleware('agent.gerer'), ctrl.create);
-router.put('/:id', rbacMiddleware('agent.gerer'), ctrl.update);
+router.post('/', rbacMiddleware('manage_personnel'), ctrl.create);
+router.put('/:id', rbacMiddleware('manage_personnel'), ctrl.update);
 
 export default router;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Mail } from 'lucide-react';
 import { courrierService } from '../../services/courrierService.js';
@@ -55,7 +55,7 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
   }, [load]);
 
   const pagination = usePagination(data, 10);
-  const canCreate = hasPermission('courrier.gerer');
+  const canCreate = hasPermission('manage_courriers');
 
   const columns = [
     {

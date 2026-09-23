@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderKanban, FileText, Mail, History, Archive,
   BarChart3, FileBarChart2, Settings, Users, Shield, Bell, LogOut,
+  UserCog, Building2, ScrollText,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 
@@ -18,13 +19,26 @@ const ICONS = {
   users: Users,
   roles: Shield,
   settings: Settings,
+  personnel: UserCog,
+  divisions: Building2,
+  audit: ScrollText,
 };
 
+/**
+ * Barre latérale conforme à la matrice d'accès §14.1 :
+ * chaque entrée est masquée si l'utilisateur n'a pas (au moins) une
+ * permission requise — ou un rôle autorisé.
+ */
 export function Sidebar() {
   const { user, logout, hasAnyPermission, isRole } = useAuth();
   const navigate = useNavigate();
 
   const adminOnly = isRole('ADMIN');
+  const show = (opts = {}) => {
+    if (opts.roles && !isRole(...opts.roles)) return false;
+    if (opts.perms && !hasAnyPermission(opts.perms)) return false;
+    return true;
+  };
 
   const sections = [
     {
@@ -32,7 +46,7 @@ export function Sidebar() {
       items: [
         { to: '/', label: 'Tableau de bord', icon: 'dashboard', end: true },
         { to: '/dossiers', label: 'Dossiers', icon: 'dossiers' },
-        { to: '/courriers', label: 'Courriers', icon: 'courriers' },
+        { to: '/courriers', label: 'Courriers', icon: 'courriers', perms: ['manage_courriers'] },
       ],
     },
     {
@@ -40,24 +54,35 @@ export function Sidebar() {
       items: [
         { to: '/notifications', label: 'Notifications', icon: 'notifications' },
         { to: '/historique', label: 'Historique', icon: 'historique' },
-        { to: '/archives', label: 'Archives', icon: 'archives' },
-        { to: '/statistiques', label: 'Statistiques', icon: 'statistiques' },
-        { to: '/rapports', label: 'Rapports', icon: 'rapports' },
+        { to: '/archives', label: 'Archives', icon: 'archives', roles: ['ADMIN', 'CHEF_SERVICE'], perms: ['archiver_dossier'] },
+        { to: '/statistiques', label: 'Statistiques', icon: 'statistiques', perms: ['view_stats'] },
+        { to: '/rapports', label: 'Rapports', icon: 'rapports', perms: ['view_stats', 'consolidate_reports', 'export_data'] },
       ],
     },
   ];
 
-  if (adminOnly || hasAnyPermission(['user.gerer', 'role.gerer', 'division.gerer', 'agent.gerer'])) {
+  if (adminOnly || hasAnyPermission(['manage_users', 'manage_roles', 'view_audit', 'manage_personnel', 'manage_divisions'])) {
     sections.push({
       label: 'Administration',
       items: [
-        ...(adminOnly || hasAnyPermission(['user.gerer'])
+        ...(show({ perms: ['manage_users'] })
           ? [{ to: '/administration/utilisateurs', label: 'Utilisateurs', icon: 'users' }]
           : []),
-        ...(adminOnly || hasAnyPermission(['role.gerer'])
+        ...(show({ perms: ['manage_roles'] })
           ? [{ to: '/administration/roles', label: 'Rôles & permissions', icon: 'roles' }]
           : []),
-        { to: '/administration/parametres', label: 'Paramètres', icon: 'settings' },
+        ...(show({ perms: ['view_audit'] })
+          ? [{ to: '/administration/audit', label: "Journal d'audit", icon: 'audit' }]
+          : []),
+        ...(show({ perms: ['manage_personnel'] })
+          ? [{ to: '/agents', label: 'Personnel (agents)', icon: 'personnel' }]
+          : []),
+        ...(show({ perms: ['manage_divisions'] })
+          ? [{ to: '/divisions', label: 'Divisions', icon: 'divisions' }]
+          : []),
+        ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
+          ? [{ to: '/administration/parametres', label: 'Paramètres', icon: 'settings' }]
+          : []),
       ],
     });
   }
@@ -87,6 +112,7 @@ export function Sidebar() {
             </p>
             <ul className="space-y-1">
               {section.items.map((item) => {
+                if (!show(item)) return null;
                 const Icon = ICONS[item.icon] || LayoutDashboard;
                 return (
                   <li key={item.to}>

@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth.js';
  * (ou aux utilisateurs disposant d'au moins une permission donnée).
  *
  * Utilisation comme wrapper :
- *  <RoleRoute roles={['ADMIN']} permissions={['user.gerer']}>
+ *  <RoleRoute roles={['ADMIN']} permissions={['manage_users']}>
  *    <Composant />
  *  </RoleRoute>
  */

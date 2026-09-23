@@ -19,7 +19,7 @@ import { STATUTS } from '../../config/constants.js';
  * de l'utilisateur connecté (workflow v2.0).
  */
 export function DossierActions({ dossier, onDone }) {
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasAnyPermission } = useAuth();
   const { toastSuccess, toastError } = useNotification();
 
   const [divisions, setDivisions] = useState([]);
@@ -63,10 +63,10 @@ export function DossierActions({ dossier, onDone }) {
 
   const actions = [];
   const can = (p) => hasPermission(p);
-  const canEdit = can('dossier.modifier') && !['CLOTURE', 'ARCHIVE'].includes(statut);
+  const canEdit = can('edit_dossier') && !['CLOTURE', 'ARCHIVE'].includes(statut);
 
-  // Orientation
-  if ((statut === STATUTS.ENREGISTRE || statut === STATUTS.ORIENTE) && can('dossier.affecter')) {
+  // Orientation (§14.2 : Secrétaire — ENREGISTRE/ORIENTE → division)
+  if ((statut === STATUTS.ENREGISTRE || statut === STATUTS.ORIENTE) && can('orienter_dossier')) {
     actions.push({
       key: 'orienter',
       label: 'Orienter vers une division',
@@ -74,8 +74,8 @@ export function DossierActions({ dossier, onDone }) {
       variant: 'secondary',
     });
   }
-  // Affectation
-  if ([STATUTS.ENREGISTRE, STATUTS.ORIENTE, STATUTS.AFFECTE, STATUTS.CORRECTION_DEMANDEE].includes(statut) && can('dossier.affecter')) {
+  // Affectation (§14.2 : Chef de Division — → AFFECTE)
+  if ([STATUTS.ENREGISTRE, STATUTS.ORIENTE, STATUTS.AFFECTE, STATUTS.CORRECTION_DEMANDEE].includes(statut) && can('affecter_dossier')) {
     actions.push({
       key: 'affecter',
       label: 'Affecter à un agent',
@@ -83,28 +83,28 @@ export function DossierActions({ dossier, onDone }) {
       variant: 'secondary',
     });
   }
-  // Traitement
-  if ([STATUTS.AFFECTE, STATUTS.CORRECTION_DEMANDEE].includes(statut) && can('dossier.traiter')) {
+  // Traitement (§14.2 : Vérificateur / Liquidateur / Chargé)
+  if ([STATUTS.AFFECTE, STATUTS.CORRECTION_DEMANDEE].includes(statut) && can('traiter_dossier')) {
     actions.push({ key: 'traiter', label: 'Prendre en charge', icon: ClipboardCheck, variant: 'primary' });
   }
-  // Vérification
-  if (statut === STATUTS.EN_TRAITEMENT && can('dossier.verifier')) {
+  // Soumission à vérification (§14.2 : agent)
+  if (statut === STATUTS.EN_TRAITEMENT && can('soumettre_verification')) {
     actions.push({ key: 'verifier', label: 'Soumettre à vérification', icon: ShieldCheck, variant: 'secondary' });
   }
-  // Validation
-  if (statut === STATUTS.SOUMIS_A_VERIFICATION && can('dossier.valider')) {
+  // Décision (SOUMIS → VALIDE | CORRECTION) — Chef de Division / Chef de Service
+  if (statut === STATUTS.SOUMIS_A_VERIFICATION && hasAnyPermission(['verifier_dossier', 'valider_dossier'])) {
     actions.push({ key: 'valider', label: 'Décider (valider / corriger)', icon: CheckCircle2, variant: 'primary' });
   }
-  // Signature
-  if (statut === STATUTS.VALIDE && can('dossier.valider')) {
+  // Signature (§14.2 : Chef de Service / Admin)
+  if (statut === STATUTS.VALIDE && can('signer_dossier')) {
     actions.push({ key: 'signer', label: 'Signer le dossier', icon: PenLine, variant: 'secondary' });
   }
   // Clôture
-  if (statut === STATUTS.SIGNE && can('dossier.cloturer')) {
+  if (statut === STATUTS.SIGNE && can('cloturer_dossier')) {
     actions.push({ key: 'cloturer', label: 'Clôturer', icon: Lock, variant: 'secondary' });
   }
   // Archivage
-  if (statut === STATUTS.CLOTURE && can('dossier.archiver')) {
+  if (statut === STATUTS.CLOTURE && can('archiver_dossier')) {
     actions.push({ key: 'archiver', label: 'Archiver', icon: Archive, variant: 'secondary' });
   }
 

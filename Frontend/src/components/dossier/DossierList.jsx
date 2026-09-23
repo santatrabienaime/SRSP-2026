@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, FolderKanban } from 'lucide-react';
 import { dossierService } from '../../services/dossierService.js';
@@ -38,12 +38,18 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
   const [typeFilter, setTypeFilter] = useState('');
   const debouncedSearch = useDebounce(search, 350);
 
+  // baseFilters est souvent un objet recréé à chaque rendu du parent (ou défaut {} )
+  // → le garder en ref évite que l'identité change et fasse re-feuiller load (clignotement).
+  const baseFiltersRef = useRef(baseFilters);
+  useEffect(() => { baseFiltersRef.current = baseFilters; }, [baseFilters]);
+  const filterKey = JSON.stringify(baseFilters);
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const params = {
-        ...baseFilters,
+        ...baseFiltersRef.current,
         search: debouncedSearch || undefined,
         statut: statut || undefined,
         type: typeFilter || undefined,
@@ -62,7 +68,7 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
   }, [load]);
 
   const pagination = usePagination(data, 10);
-  const canCreate = hasPermission('dossier.creer');
+  const canCreate = hasPermission('create_dossier');
 
   const columns = [
     {
