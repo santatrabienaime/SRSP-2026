@@ -1,0 +1,32 @@
+# Dépendances
+node_modules/
+
+# Builds
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Environnement / secrets
+.env
+.env.*
+!.env.example
+
+# Journaux
+logs/
+*.log
+npm-debug.log*
+
+# Fichiers uploadés
+Backend/src/uploads/documents/*
+Backend/src/uploads/courriers/*
+Backend/src/uploads/temp/*
+!Backend/src/uploads/documents/.gitkeep
+!Backend/src/uploads/courriers/.gitkeep
+!Backend/src/uploads/temp/.gitkeep
+
+# OS / éditeurs
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp

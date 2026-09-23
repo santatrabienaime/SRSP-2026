@@ -1,0 +1,76 @@
+/**
+ * Constantes métier du SRSP Fitovinany
+ * Conformes au cahier des charges v2.0 (§10, §7)
+ */
+
+export const STATUTS = {
+  RECU: 'RECU',
+  ENREGISTRE: 'ENREGISTRE',
+  ORIENTE: 'ORIENTE',
+  AFFECTE: 'AFFECTE',
+  EN_TRAITEMENT: 'EN_TRAITEMENT',
+  SOUMIS_A_VERIFICATION: 'SOUMIS_A_VERIFICATION',
+  CORRECTION_DEMANDEE: 'CORRECTION_DEMANDEE',
+  VALIDE: 'VALIDE',
+  SIGNE: 'SIGNE',
+  CLOTURE: 'CLOTURE',
+  ARCHIVE: 'ARCHIVE',
+};
+
+export const STATUTS_LIST = Object.values(STATUTS);
+
+export const STATUTS_LABELS = {
+  RECU: 'Reçu',
+  ENREGISTRE: 'Enregistré',
+  ORIENTE: 'Orienté',
+  AFFECTE: 'Affecté',
+  EN_TRAITEMENT: 'En traitement',
+  SOUMIS_A_VERIFICATION: 'Soumis à vérification',
+  CORRECTION_DEMANDEE: 'Correction demandée',
+  VALIDE: 'Validé',
+  SIGNE: 'Signé',
+  CLOTURE: 'Clôturé',
+  ARCHIVE: 'Archivé',
+};
+
+export const TYPES_DOSSIERS = {
+  VISA: 'VISA',
+  SOLDE: 'SOLDE',
+  PENSION: 'PENSION',
+  SECOURS: 'SECOURS',
+};
+
+export const PRIORITES = {
+  URGENTE: 'URGENTE',
+  HAUTE: 'HAUTE',
+  NORMALE: 'NORMALE',
+  BASSE: 'BASSE',
+};
+
+/** Rôles (postes) du SRSP */
+export const ROLES = {
+  ADMIN: 'ADMIN',
+  CHEF_SERVICE: 'CHEF_SERVICE',
+  CHEF_BAAF: 'CHEF_BAAF',
+  COORDINATRICE: 'COORDINATRICE',
+  SECRETAIRE: 'SECRETAIRE',
+  CHEF_DIVISION_VISA: 'CHEF_DIVISION_VISA',
+  VERIFICATEUR_VISA: 'VERIFICATEUR_VISA',
+  CHEF_DIVISION_SOLDE: 'CHEF_DIVISION_SOLDE',
+  VERIFICATEUR_SOLDE: 'VERIFICATEUR_SOLDE',
+  CHEF_DIVISION_PENSION: 'CHEF_DIVISION_PENSION',
+  LIQUIDATEUR_PENSION: 'LIQUIDATEUR_PENSION',
+  CHEF_DIVISION_SECOURS: 'CHEF_DIVISION_SECOURS',
+  CHARGE_SECOURS: 'CHARGE_SECOURS',
+};
+
+/** Correspondance division -> rôle du chef de division */
+export const DIVISION_CHEF_ROLE = {
+  VISAS: 'CHEF_DIVISION_VISA',
+  SOLDE: 'CHEF_DIVISION_SOLDE',
+  PENSIONS: 'CHEF_DIVISION_PENSION',
+  SECOURS: 'CHEF_DIVISION_SECOURS',
+};
+
+/** Statuts protégés (aucune modification ordinaire) */
+export const STATUTS_PROTEGES = ['CLOTURE', 'ARCHIVE'];

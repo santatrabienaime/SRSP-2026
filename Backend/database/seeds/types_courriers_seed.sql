@@ -1,0 +1,10 @@
+USE srsp_db;
+
+INSERT INTO types_courriers (libelle) VALUES
+('DEMANDE'),
+('INFORMATION'),
+('NOTIFICATION'),
+('RAPPORT'),
+('CIRCULAIRE'),
+('DECISION')
+ON DUPLICATE KEY UPDATE libelle = VALUES(libelle);
