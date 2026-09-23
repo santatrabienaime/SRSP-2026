@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.get('/', ctrl.list);
+router.get('/:id/download', ctrl.download);
 router.post('/', uploadSingle('fichier'), ctrl.upload);
 router.put('/:id/valider', ctrl.valider);
 router.delete('/:id', ctrl.remove);

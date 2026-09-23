@@ -20,6 +20,7 @@ import historiqueRoutes from './routes/historiqueRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import statistiqueRoutes from './routes/statistiqueRoutes.js';
 import rapportRoutes from './routes/rapportRoutes.js';
+import referentielRoutes from './routes/referentielRoutes.js';
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use('/api/historique', historiqueRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/statistiques', statistiqueRoutes);
 app.use('/api/rapports', rapportRoutes);
+app.use('/api/referentiel', referentielRoutes);
 
 app.use(errorMiddleware);
 

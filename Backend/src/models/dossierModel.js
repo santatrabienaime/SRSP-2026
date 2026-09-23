@@ -29,6 +29,10 @@ export async function findDossiers(filters = {}) {
     query += ' AND d.type_id = ?';
     params.push(filters.type_id);
   }
+  if (filters.type) {
+    query += ' AND t.code = ?';
+    params.push(filters.type);
+  }
   if (filters.priorite_id) {
     query += ' AND d.priorite_id = ?';
     params.push(filters.priorite_id);

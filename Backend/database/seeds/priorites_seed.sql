@@ -1,8 +1,8 @@
 USE srsp_db;
 
-INSERT INTO priorites (libelle, niveau) VALUES
-('URGENTE', 4),
-('HAUTE', 3),
-('NORMALE', 2),
-('BASSE', 1)
-ON DUPLICATE KEY UPDATE niveau = VALUES(niveau);
+INSERT INTO priorites (id, libelle, niveau) VALUES
+(1, 'URGENTE', 4),
+(2, 'HAUTE', 3),
+(3, 'NORMALE', 2),
+(4, 'BASSE', 1)
+ON DUPLICATE KEY UPDATE libelle = VALUES(libelle), niveau = VALUES(niveau);

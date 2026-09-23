@@ -2,10 +2,12 @@ import db from '../config/db.js';
 
 export async function findDocuments(filters = {}) {
   let query = `
-    SELECT doc.*, d.numero AS dossier_numero, u.username AS upload_par_nom
+    SELECT doc.*, d.numero AS dossier_numero, u.username AS upload_par_nom,
+           t.libelle AS type_libelle
     FROM documents doc
     LEFT JOIN dossiers d ON doc.dossier_id = d.id
     LEFT JOIN users u ON doc.upload_par = u.id
+    LEFT JOIN types_documents t ON doc.type_id = t.id
     WHERE 1=1
   `;
   const params = [];

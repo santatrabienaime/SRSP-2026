@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS fonctions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   libelle VARCHAR(100) NOT NULL,
-  description TEXT
+  description TEXT,
+  UNIQUE KEY uq_fonctions_libelle (libelle)
 ) ENGINE=InnoDB;
 
 -- Table divisions
@@ -108,7 +109,8 @@ CREATE TABLE IF NOT EXISTS statuts_dossiers (
 CREATE TABLE IF NOT EXISTS priorites (
   id INT AUTO_INCREMENT PRIMARY KEY,
   libelle VARCHAR(50) NOT NULL,
-  niveau INT DEFAULT 1
+  niveau INT DEFAULT 1,
+  UNIQUE KEY uq_priorites_libelle (libelle)
 ) ENGINE=InnoDB;
 
 -- Table dossiers
@@ -143,7 +145,8 @@ CREATE TABLE IF NOT EXISTS types_documents (
   id INT AUTO_INCREMENT PRIMARY KEY,
   libelle VARCHAR(100) NOT NULL,
   extensions_autorisees VARCHAR(255) DEFAULT 'pdf,jpg,jpeg,png,docx,xlsx',
-  taille_max INT DEFAULT 10485760
+  taille_max INT DEFAULT 10485760,
+  UNIQUE KEY uq_types_documents_libelle (libelle)
 ) ENGINE=InnoDB;
 
 -- Table documents
@@ -166,7 +169,8 @@ CREATE TABLE IF NOT EXISTS documents (
 -- Table types_courriers
 CREATE TABLE IF NOT EXISTS types_courriers (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  libelle VARCHAR(100) NOT NULL
+  libelle VARCHAR(100) NOT NULL,
+  UNIQUE KEY uq_types_courriers_libelle (libelle)
 ) ENGINE=InnoDB;
 
 -- Table courriers
@@ -190,6 +194,32 @@ CREATE TABLE IF NOT EXISTS courriers (
   FOREIGN KEY (dossier_id) REFERENCES dossiers(id) ON DELETE SET NULL,
   FOREIGN KEY (created_by) REFERENCES users(id)
 ) ENGINE=InnoDB;
+
+-- Migration idempotente : index uniques sur les tables de référence
+-- (évite les doublons lors des ré-initialisations répétées)
+SET @idx_priorites = (SELECT COUNT(*) FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'priorites' AND INDEX_NAME = 'uq_priorites_libelle');
+SET @sql_priorites = IF(@idx_priorites = 0,
+  'ALTER TABLE priorites ADD UNIQUE KEY uq_priorites_libelle (libelle)', 'SELECT 1');
+PREPARE stmt FROM @sql_priorites; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx_fonctions = (SELECT COUNT(*) FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'fonctions' AND INDEX_NAME = 'uq_fonctions_libelle');
+SET @sql_fonctions = IF(@idx_fonctions = 0,
+  'ALTER TABLE fonctions ADD UNIQUE KEY uq_fonctions_libelle (libelle)', 'SELECT 1');
+PREPARE stmt FROM @sql_fonctions; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx_tc = (SELECT COUNT(*) FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'types_courriers' AND INDEX_NAME = 'uq_types_courriers_libelle');
+SET @sql_tc = IF(@idx_tc = 0,
+  'ALTER TABLE types_courriers ADD UNIQUE KEY uq_types_courriers_libelle (libelle)', 'SELECT 1');
+PREPARE stmt FROM @sql_tc; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @idx_td = (SELECT COUNT(*) FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'types_documents' AND INDEX_NAME = 'uq_types_documents_libelle');
+SET @sql_td = IF(@idx_td = 0,
+  'ALTER TABLE types_documents ADD UNIQUE KEY uq_types_documents_libelle (libelle)', 'SELECT 1');
+PREPARE stmt FROM @sql_td; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Table affectations
 CREATE TABLE IF NOT EXISTS affectations (

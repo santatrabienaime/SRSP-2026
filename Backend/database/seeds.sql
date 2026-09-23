@@ -5,7 +5,7 @@
 -- documents, matrice RBAC
 -- =============================================
 
--- >>> seeds/permissions_seed.sql
+-- >>> seeds/permissions_seed.sql (permissions)
 USE srsp_db;
 
 INSERT INTO permissions (nom, description) VALUES
@@ -24,7 +24,8 @@ INSERT INTO permissions (nom, description) VALUES
 ('agent.gerer', 'Gérer les agents'),
 ('courrier.gerer', 'Gérer les courriers')
 ON DUPLICATE KEY UPDATE description = VALUES(description);
--- >>> seeds/roles_seed.sql
+
+-- >>> seeds/roles_seed.sql (rôles)
 USE srsp_db;
 
 INSERT INTO roles (nom, description) VALUES
@@ -42,7 +43,8 @@ INSERT INTO roles (nom, description) VALUES
 ('CHEF_DIVISION_SECOURS', 'Chef Division Secours – réception, préparation, mandatement, ordonnancement'),
 ('CHARGE_SECOURS', 'Chargé de la Division Secours – traitement, dépouillement, archivage des pièces')
 ON DUPLICATE KEY UPDATE description = VALUES(description);
--- >>> seeds/statuts_seed.sql
+
+-- >>> seeds/statuts_seed.sql (statuts)
 USE srsp_db;
 
 INSERT INTO statuts_dossiers (code, libelle, ordre) VALUES
@@ -58,7 +60,8 @@ INSERT INTO statuts_dossiers (code, libelle, ordre) VALUES
 ('CLOTURE', 'Clôturé', 10),
 ('ARCHIVE', 'Archivé', 11)
 ON DUPLICATE KEY UPDATE libelle = VALUES(libelle), ordre = VALUES(ordre);
--- >>> seeds/types_dossiers_seed.sql
+
+-- >>> seeds/types_dossiers_seed.sql (types de dossiers)
 USE srsp_db;
 
 INSERT INTO types_dossiers (code, libelle, description, actif) VALUES
@@ -67,16 +70,18 @@ INSERT INTO types_dossiers (code, libelle, description, actif) VALUES
 ('PENSION', 'Division Pension', 'Dossiers de liquidation de pension et secours au décès', TRUE),
 ('SECOURS', 'Division Secours', 'Dossiers de secours de décès', TRUE)
 ON DUPLICATE KEY UPDATE libelle = VALUES(libelle), description = VALUES(description), actif = VALUES(actif);
--- >>> seeds/priorites_seed.sql
+
+-- >>> seeds/priorites_seed.sql (priorités)
 USE srsp_db;
 
-INSERT INTO priorites (libelle, niveau) VALUES
-('URGENTE', 4),
-('HAUTE', 3),
-('NORMALE', 2),
-('BASSE', 1)
-ON DUPLICATE KEY UPDATE niveau = VALUES(niveau);
--- >>> seeds/divisions_seed.sql
+INSERT INTO priorites (id, libelle, niveau) VALUES
+(1, 'URGENTE', 4),
+(2, 'HAUTE', 3),
+(3, 'NORMALE', 2),
+(4, 'BASSE', 1)
+ON DUPLICATE KEY UPDATE libelle = VALUES(libelle), niveau = VALUES(niveau);
+
+-- >>> seeds/divisions_seed.sql (divisions)
 USE srsp_db;
 
 INSERT INTO divisions (code, nom) VALUES
@@ -85,43 +90,47 @@ INSERT INTO divisions (code, nom) VALUES
 ('PENSIONS', 'Division Pensions'),
 ('SECOURS', 'Division Secours')
 ON DUPLICATE KEY UPDATE nom = VALUES(nom);
--- >>> seeds/fonctions_seed.sql
+
+-- >>> seeds/fonctions_seed.sql (fonctions)
 USE srsp_db;
 
-INSERT INTO fonctions (libelle, description) VALUES
-('Chef de Service', 'Supervision générale du SRSP'),
-('Chef BAAF', 'Gestion comptable et administrative'),
-('Coordonnatrice', 'Immatriculation et suivi des insertions'),
-('Secrétaire', 'Réception, enregistrement et distribution'),
-('Chef de Division', 'Supervision d''une division'),
-('Vérificateur', 'Exploitation et vérification des dossiers'),
-('Liquidateur', 'Liquidation des pensions'),
-('Chargé de Secours', 'Traitement des dossiers de secours')
-ON DUPLICATE KEY UPDATE description = VALUES(description);
--- >>> seeds/types_courriers_seed.sql
+INSERT INTO fonctions (id, libelle, description) VALUES
+(1, 'Chef de Service', 'Supervision générale du SRSP'),
+(2, 'Chef BAAF', 'Gestion comptable et administrative'),
+(3, 'Coordonnatrice', 'Immatriculation et suivi des insertions'),
+(4, 'Secrétaire', 'Réception, enregistrement et distribution'),
+(5, 'Chef de Division', 'Supervision d''une division'),
+(6, 'Vérificateur', 'Exploitation et vérification des dossiers'),
+(7, 'Liquidateur', 'Liquidation des pensions'),
+(8, 'Chargé de Secours', 'Traitement des dossiers de secours')
+ON DUPLICATE KEY UPDATE libelle = VALUES(libelle), description = VALUES(description);
+
+-- >>> seeds/types_courriers_seed.sql (types courriers)
 USE srsp_db;
 
-INSERT INTO types_courriers (libelle) VALUES
-('DEMANDE'),
-('INFORMATION'),
-('NOTIFICATION'),
-('RAPPORT'),
-('CIRCULAIRE'),
-('DECISION')
+INSERT INTO types_courriers (id, libelle) VALUES
+(1, 'DEMANDE'),
+(2, 'INFORMATION'),
+(3, 'NOTIFICATION'),
+(4, 'RAPPORT'),
+(5, 'CIRCULAIRE'),
+(6, 'DECISION')
 ON DUPLICATE KEY UPDATE libelle = VALUES(libelle);
--- >>> seeds/types_documents_seed.sql
+
+-- >>> seeds/types_documents_seed.sql (types documents)
 USE srsp_db;
 
-INSERT INTO types_documents (libelle, extensions_autorisees, taille_max) VALUES
-('PIECE_IDENTITE', 'pdf,jpg,jpeg,png', 5242880),
-('ACTE_DECES', 'pdf,jpg,jpeg,png', 5242880),
-('CERTIFICAT', 'pdf,jpg,jpeg,png', 5242880),
-('RAPPORT', 'pdf,docx,doc', 5242880),
-('DECOMPTE', 'xlsx,xls,pdf', 5242880),
-('BON_CAISSE', 'pdf,xlsx', 5242880),
-('AUTRE', 'pdf,docx,xlsx,jpg,jpeg,png', 5242880)
+INSERT INTO types_documents (id, libelle, extensions_autorisees, taille_max) VALUES
+(1, 'PIECE_IDENTITE', 'pdf,jpg,jpeg,png', 5242880),
+(2, 'ACTE_DECES', 'pdf,jpg,jpeg,png', 5242880),
+(3, 'CERTIFICAT', 'pdf,jpg,jpeg,png', 5242880),
+(4, 'RAPPORT', 'pdf,docx,doc', 5242880),
+(5, 'DECOMPTE', 'xlsx,xls,pdf', 5242880),
+(6, 'BON_CAISSE', 'pdf,xlsx', 5242880),
+(7, 'AUTRE', 'pdf,docx,xlsx,jpg,jpeg,png', 5242880)
 ON DUPLICATE KEY UPDATE extensions_autorisees = VALUES(extensions_autorisees), taille_max = VALUES(taille_max);
--- >>> seeds/role_permissions_seed.sql
+
+-- >>> seeds/role_permissions_seed.sql (matrice RBAC)
 USE srsp_db;
 
 -- ADMIN : toutes les permissions
