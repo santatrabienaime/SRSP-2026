@@ -64,8 +64,9 @@ export async function findDossiers(filters = {}) {
 
 export async function findDossierById(id) {
   const rows = await db.query(
-    `SELECT d.*, t.libelle AS type_libelle, s.libelle AS statut_libelle, s.code AS statut_code,
-            dv.nom AS division_nom, p.libelle AS priorite_libelle
+    `SELECT d.*, t.code AS type_code, t.libelle AS type_libelle,
+            s.libelle AS statut_libelle, s.code AS statut_code,
+            dv.nom AS division_nom, dv.code AS division_code, p.libelle AS priorite_libelle
      FROM dossiers d
      JOIN types_dossiers t ON d.type_id = t.id
      JOIN statuts_dossiers s ON d.statut_id = s.id

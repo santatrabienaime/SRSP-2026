@@ -10,6 +10,7 @@ import { Button } from '../ui/Button.jsx';
 import { DossierActions } from './DossierActions.jsx';
 import { WorkflowTimeline } from './WorkflowTimeline.jsx';
 import { TracabiliteTimeline } from './TracabiliteTimeline.jsx';
+import { DepouillementChecklist } from './DepouillementChecklist.jsx';
 import { dossierService } from '../../services/dossierService.js';
 import { DocumentList } from '../document/DocumentList.jsx';
 import { DocumentUpload } from '../document/DocumentUpload.jsx';
@@ -119,6 +120,11 @@ export function DossierDetail({ id }) {
           </p>
         </Card>
       </div>
+
+      {/* Dépouillement des pièces — dossiers de Secours uniquement */}
+      {dossier.type_code === 'SECOURS' && (
+        <DepouillementChecklist dossierId={dossier.id} />
+      )}
 
       {/* Traçabilité des actes métier */}
       <Card

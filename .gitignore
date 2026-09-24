@@ -32,3 +32,6 @@ Backend/src/uploads/temp/*
 *.swp
 # Sauvegardes base de données
 Backend/backups/
+
+# Worktrees / environnements de developpement tiers
+.kilo/

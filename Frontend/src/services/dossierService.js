@@ -5,6 +5,9 @@ export const dossierService = {
   get: (id) => apiClient.get(`/dossiers/${id}`).then((r) => r.data),
   getStatut: (id) => apiClient.get(`/dossiers/${id}/statut`).then((r) => r.data),
   getTracabilite: (id) => apiClient.get(`/dossiers/${id}/tracabilite`).then((r) => r.data),
+  getDepouillement: (id) => apiClient.get(`/dossiers/${id}/depouillement`).then((r) => r.data),
+  saveDepouillement: (id, data) =>
+    apiClient.post(`/dossiers/${id}/depouillement`, data).then((r) => r.data),
   create: (data) => apiClient.post('/dossiers', data).then((r) => r.data),
   update: (id, data) => apiClient.put(`/dossiers/${id}`, data).then((r) => r.data),
   orienter: (id, data) => apiClient.post(`/dossiers/${id}/orienter`, data).then((r) => r.data),
