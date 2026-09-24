@@ -39,6 +39,7 @@ import { AgentCreatePage } from '../pages/agents/AgentCreatePage.jsx';
 import { AgentDetailPage } from '../pages/agents/AgentDetailPage.jsx';
 
 import { DivisionListPage } from '../pages/divisions/DivisionListPage.jsx';
+import { DivisionDossiersPage } from '../pages/divisions/DivisionDossiersPage.jsx';
 import { DivisionDetailPage } from '../pages/divisions/DivisionDetailPage.jsx';
 import { DivisionDashboardPage } from '../pages/divisions/DivisionDashboardPage.jsx';
 
@@ -69,6 +70,11 @@ export function AppRouter() {
 
           {/* Dossiers */}
           <Route path="/dossiers" element={<DossierListPage />} />
+          {/* Dossiers d'une division : n'affiche que le type qui la concerne */}
+          <Route
+            path="/divisions/:code/dossiers"
+            element={<DivisionDossiersPage />}
+          />
           <Route
             path="/dossiers/nouveau"
             element={

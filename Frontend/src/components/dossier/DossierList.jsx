@@ -29,11 +29,15 @@ const STATUT_FILTERS = [
  * Liste des dossiers avec filtres côté serveur (statut, type, recherche).
  */
 export function DossierList({ baseFilters = {}, showCreate = true }) {
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   // Un agent est automatiquement restreint à SES dossiers par le serveur
   // (permission view_assigned_dossiers sans view_all_dossiers).
   const agentScoped =
     hasPermission('view_assigned_dossiers') && !hasPermission('view_all_dossiers');
+  // Si la liste est verrouillée sur un type (page d'une division), le
+  // sélecteur de type n'a pas lieu d'être et la barre est allégée.
+  const lockedType = baseFilters.type || null;
+  const showTypeFilter = !lockedType;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,7 +60,9 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
         ...baseFiltersRef.current,
         search: debouncedSearch || undefined,
         statut: statut || undefined,
-        type: typeFilter || undefined,
+        // Le type vient du selecteur, sauf si la liste est verrouillee sur un
+        // type (page d'une division) : dans ce cas baseFilters fait foi.
+        ...(lockedType ? {} : { type: typeFilter || undefined }),
       };
       const rows = await dossierService.list(params);
       setData(Array.isArray(rows) ? rows : []);
@@ -162,20 +168,29 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
             ))}
           </Select>
         </div>
-        <div className="w-full sm:w-48">
-          <Select
-            label="Type"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="">Tous les types</option>
-            {Object.entries(TYPES_DOSSIERS).map(([code, t]) => (
-              <option key={code} value={code}>
-                {t.label}
-              </option>
-            ))}
-          </Select>
-        </div>
+        {showTypeFilter ? (
+          <div className="w-full sm:w-48">
+            <Select
+              label="Type"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="">Tous les types</option>
+              {Object.entries(TYPES_DOSSIERS).map(([code, t]) => (
+                <option key={code} value={code}>
+                  {t.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        ) : (
+          <div className="w-full sm:w-48">
+            <p className="text-xs font-medium text-slate-500">Type de dossier</p>
+            <p className="mt-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              {TYPES_DOSSIERS[lockedType]?.label || lockedType}
+            </p>
+          </div>
+        )}
         {canCreate && showCreate && (
           <Link to="/dossiers/nouveau">
             <Button className="w-full sm:w-auto">

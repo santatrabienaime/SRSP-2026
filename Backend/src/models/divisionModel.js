@@ -2,8 +2,10 @@ import db from '../config/db.js';
 
 export async function findAll() {
   return db.query(
-    `SELECT d.*, a.nom AS responsable_nom, a.prenom AS responsable_prenom
+    `SELECT d.*, td.code AS type_dossier_code, td.libelle AS type_dossier_libelle,
+            a.nom AS responsable_nom, a.prenom AS responsable_prenom
      FROM divisions d
+     LEFT JOIN types_dossiers td ON td.id = d.type_dossier_id
      LEFT JOIN agents a ON d.responsable_id = a.id
      ORDER BY d.nom`
   );

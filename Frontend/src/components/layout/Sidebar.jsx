@@ -34,6 +34,9 @@ export function Sidebar() {
   const navigate = useNavigate();
 
   const adminOnly = isRole('ADMIN');
+  // Un utilisateur rattaché à une division (chef de division, agent) dispose
+  // d'un accès direct à SA division, qui ne montre que les dossiers de ce type.
+  const myDivision = user?.division_code || null;
   const show = (opts = {}) => {
     if (opts.roles && !isRole(...opts.roles)) return false;
     if (opts.perms && !hasAnyPermission(opts.perms)) return false;
@@ -45,7 +48,13 @@ export function Sidebar() {
       label: 'Pilotage',
       items: [
         { to: '/', label: 'Tableau de bord', icon: 'dashboard', end: true },
-        { to: '/dossiers', label: 'Dossiers', icon: 'dossiers' },
+        myDivision
+          ? {
+              to: `/divisions/${myDivision}/dossiers`,
+              label: 'Ma division',
+              icon: 'dossiers',
+            }
+          : { to: '/dossiers', label: 'Dossiers', icon: 'dossiers' },
         { to: '/courriers', label: 'Courriers', icon: 'courriers', perms: ['manage_courriers'] },
       ],
     },

@@ -2,8 +2,15 @@ import db from '../config/db.js';
 
 export async function findUserById(id) {
   const rows = await db.query(
-    `SELECT u.id, u.username, u.email, u.role_id, r.nom AS role_nom, u.actif
-     FROM users u LEFT JOIN roles r ON u.role_id = r.id
+    `SELECT u.id, u.username, u.email, u.role_id, r.nom AS role_nom, u.actif,
+            a.id AS agent_id, a.division_id,
+            dv.code AS division_code, dv.nom AS division_nom,
+            td.code AS type_code
+     FROM users u
+     LEFT JOIN roles r ON u.role_id = r.id
+     LEFT JOIN agents a ON a.user_id = u.id
+     LEFT JOIN divisions dv ON dv.id = a.division_id
+     LEFT JOIN types_dossiers td ON td.id = dv.type_dossier_id
      WHERE u.id = ?`,
     [id]
   );

@@ -79,10 +79,21 @@ export function AuthProvider({ children }) {
   const login = useCallback(
     async (identifiant, password) => {
       const { user: u, token: t } = await authService.login(identifiant, password);
+      // Le login renvoie un profil minimal : on recharge /auth/me (l'apiClient
+      // lit le token dans le localStorage) pour disposer aussi de la division,
+      // du type de dossier et du rôle complet, nécessaires à l'interface dès
+      // le premier rendu (tableau de bord, filtres par périmètre).
       persist(t, u);
+      let profil = u;
+      try {
+        profil = await authService.me();
+        persist(t, profil);
+      } catch {
+        /* on conserve le profil minimal */
+      }
       await loadPermissions();
       setLoading(false);
-      return u;
+      return profil;
     },
     [persist, loadPermissions]
   );
