@@ -67,3 +67,42 @@ export async function deleteUser(id) {
 export async function updateLastConnection(id) {
   await db.query('UPDATE users SET derniere_connexion = NOW() WHERE id = ?', [id]);
 }
+
+/* ------------------------------------------------------------------ */
+/* Verrouillage de compte après échecs de connexion                    */
+/* ------------------------------------------------------------------ */
+
+/** Incrémente le compteur d'échecs et verrouille si le seuil est atteint. */
+export async function registerFailedAttempt(id, maxAttempts, lockMinutes) {
+  await db.query(
+    `UPDATE users
+     SET tentatives_echouees = tentatives_echouees + 1,
+         verrouille_jusqua = CASE
+           WHEN tentatives_echouees >= ? THEN DATE_ADD(NOW(), INTERVAL ? MINUTE)
+           ELSE verrouille_jusqua
+         END
+     WHERE id = ?`,
+    [maxAttempts, lockMinutes, id]
+  );
+  const rows = await db.query(
+    'SELECT tentatives_echouees, verrouille_jusqua FROM users WHERE id = ?',
+    [id]
+  );
+  return rows[0] || null;
+}
+
+/** Remet le compteur à zéro après une connexion réussie. */
+export async function resetFailedAttempts(id) {
+  await db.query(
+    'UPDATE users SET tentatives_echouees = 0, verrouille_jusqua = NULL WHERE id = ?',
+    [id]
+  );
+}
+
+/** Remet le compteur à zéro lorsqu'un administrateur réinitialise un mot de passe. */
+export async function unlockUser(id) {
+  await db.query(
+    'UPDATE users SET tentatives_echouees = 0, verrouille_jusqua = NULL WHERE id = ?',
+    [id]
+  );
+}

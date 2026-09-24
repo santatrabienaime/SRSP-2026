@@ -39,4 +39,6 @@ export async function remove(id) {
 export async function resetPassword(id, newPassword) {
   const password_hash = await bcrypt.hash(newPassword, 10);
   await userModel.updatePassword(id, password_hash);
+  // Une réinitialisation par un administrateur déverrouille le compte.
+  await userModel.unlockUser(id);
 }

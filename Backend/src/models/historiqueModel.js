@@ -1,10 +1,11 @@
 import db from '../config/db.js';
 
-export async function log({ user_id, action, dossier_id, ancienne_valeur, nouvelle_valeur, details }) {
+export async function log({ user_id, action, dossier_id, ancienne_valeur, nouvelle_valeur, details, ip_address }) {
   await db.query(
-    `INSERT INTO historique_actions (user_id, action, dossier_id, ancienne_valeur, nouvelle_valeur, details)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [user_id, action, dossier_id || null, ancienne_valeur || null, nouvelle_valeur || null, details || null]
+    `INSERT INTO historique_actions (user_id, action, dossier_id, ancienne_valeur, nouvelle_valeur, details, ip_address)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [user_id, action, dossier_id || null, ancienne_valeur || null, nouvelle_valeur || null,
+     details || null, ip_address || null]
   );
 }
 

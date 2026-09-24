@@ -66,7 +66,7 @@ export function HistoriquePage() {
   const filtered = rows.filter(
     (r) =>
       !debouncedSearch ||
-      `${r.username || ''} ${r.dossier_numero || ''} ${r.action || ''} ${r.details || ''}`
+      `${r.username || ''} ${r.dossier_numero || ''} ${r.action || ''} ${r.details || ''} ${r.ip_address || ''}`
         .toLowerCase()
         .includes(debouncedSearch.toLowerCase())
   );
@@ -101,6 +101,13 @@ export function HistoriquePage() {
         ),
     },
     { key: 'username', label: 'Utilisateur', render: (r) => r.username || '—' },
+    {
+      key: 'ip_address',
+      label: 'IP',
+      render: (r) => (
+        <span className="font-mono text-xs text-slate-500">{r.ip_address || '—'}</span>
+      ),
+    },
     { key: 'details', label: 'Détails', render: (r) => <p className="max-w-md truncate text-slate-600">{r.details || '—'}</p> },
     {
       key: 'valeurs',

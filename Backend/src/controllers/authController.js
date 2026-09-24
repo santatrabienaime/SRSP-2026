@@ -1,11 +1,38 @@
 import * as authService from '../services/authService.js';
+import * as historiqueModel from '../models/historiqueModel.js';
+
+/** Adresse IP du client (gère le reverse-proxy via x-forwarded-for). */
+function clientIp(req) {
+  const fwd = req.headers?.['x-forwarded-for'];
+  if (fwd) return String(fwd).split(',')[0].trim();
+  return req.ip || req.socket?.remoteAddress || null;
+}
 
 export async function login(req, res, next) {
+  const ip = clientIp(req);
   try {
     const { identifiant, password } = req.body;
     const { user, token } = await authService.authenticateUser(identifiant, password);
+    await historiqueModel.log({
+      user_id: user.id,
+      action: 'CONNEXION',
+      details: `Connexion réussie (${user.email}).`,
+      ip_address: ip,
+    });
     res.json({ user, token });
   } catch (error) {
+    // Journalisation des échecs (utilisateur inconnu ou mauvais mot de passe)
+    try {
+      const auth = await authService.findUserIdByIdentifiant(req.body?.identifiant);
+      await historiqueModel.log({
+        user_id: auth?.id || null,
+        action: 'CONNEXION_ECHOUEE',
+        details: `Échec de connexion (${error.message}).`,
+        ip_address: ip,
+      });
+    } catch {
+      /* la journalisation ne doit jamais masquer l'erreur d'authentification */
+    }
     next(error);
   }
 }
