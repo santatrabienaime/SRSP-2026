@@ -92,3 +92,12 @@ export async function statut(req, res, next) {
     res.json({ statut: statut || null, transitions_autorisees: transitions });
   } catch (error) { next(error); }
 }
+
+export async function tracabilite(req, res, next) {
+  try {
+    const dossier = await dossierService.getDossierById(req.params.id);
+    if (!dossier) return res.status(404).json({ message: 'Dossier introuvable.' });
+    const timeline = await dossierService.getTracabilite(req.params.id);
+    res.json(timeline);
+  } catch (error) { next(error); }
+}

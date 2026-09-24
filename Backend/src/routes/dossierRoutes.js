@@ -9,6 +9,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.get('/', ctrl.list);
+router.get('/:id/tracabilite', ctrl.tracabilite);
 router.get('/:id', ctrl.getOne);
 router.get('/:id/statut', ctrl.statut);
 router.post('/', rbacMiddleware('create_dossier'), validateMiddleware(createDossierSchema), ctrl.create);

@@ -92,8 +92,8 @@ export async function createDossier(data) {
      (numero, type_id, objet, demandeur, matricule, date_reception,
       division_id, priorite_id, statut_id, observation, created_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [numero, type_id, objet, demandeur, matricule, date_reception,
-     division_id, priorite_id, statutNouveau, observation, created_by]
+    [numero, type_id, objet, demandeur, matricule ?? null, date_reception,
+     division_id, priorite_id, statutNouveau, observation ?? null, created_by]
   );
   return { id: result.insertId, numero };
 }

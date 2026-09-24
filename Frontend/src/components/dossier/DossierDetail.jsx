@@ -9,6 +9,8 @@ import { Alert } from '../ui/Alert.jsx';
 import { Button } from '../ui/Button.jsx';
 import { DossierActions } from './DossierActions.jsx';
 import { WorkflowTimeline } from './WorkflowTimeline.jsx';
+import { TracabiliteTimeline } from './TracabiliteTimeline.jsx';
+import { dossierService } from '../../services/dossierService.js';
 import { DocumentList } from '../document/DocumentList.jsx';
 import { DocumentUpload } from '../document/DocumentUpload.jsx';
 import { formatDateString, formatDateTime } from '../../utils/formatDate.js';
@@ -34,6 +36,12 @@ export function DossierDetail({ id }) {
 
   const historique = useApi(
     () => (id ? historiqueService.list({ dossier_id: id }) : Promise.resolve([])),
+    [id, refreshKey]
+  );
+
+  // Traçabilité fine : actes métier (affectations, traitements, vérifications…)
+  const tracabilite = useApi(
+    () => (id ? dossierService.getTracabilite(id) : Promise.resolve([])),
     [id, refreshKey]
   );
 
@@ -111,6 +119,22 @@ export function DossierDetail({ id }) {
           </p>
         </Card>
       </div>
+
+      {/* Traçabilité des actes métier */}
+      <Card
+        title="Traçabilité des actes"
+        subtitle="Qui a affecté, traité, vérifié ou validé ce dossier"
+      >
+        {tracabilite.loading ? (
+          <Spinner className="py-6" />
+        ) : tracabilite.error ? (
+          <Alert type="warning" title="Traçabilité indisponible">
+            {tracabilite.error.message}
+          </Alert>
+        ) : (
+          <TracabiliteTimeline actes={tracabilite.data || []} />
+        )}
+      </Card>
 
       {/* Documents */}
       <Card

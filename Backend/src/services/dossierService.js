@@ -3,6 +3,7 @@ import { createArchive } from '../models/archiveModel.js';
 import * as historiqueModel from '../models/historiqueModel.js';
 import * as notificationModel from '../models/notificationModel.js';
 import * as workflowService from './workflowService.js';
+import * as tracabiliteService from './tracabiliteService.js';
 import { STATUTS, STATUTS_PROTEGES } from '../utils/constants.js';
 import { httpError } from '../utils/httpError.js';
 
@@ -82,7 +83,7 @@ export async function orienter(id, { division_id }, userId) {
 }
 
 /** Affectation à un agent (ORIENTE → AFFECTE). */
-export async function affecter(id, { division_id, agent_id }, userId) {
+export async function affecter(id, { division_id, agent_id, motif }, userId) {
   const current = await workflowService.getCurrentStatus(id);
   if (![ENREGISTRE, ORIENTE, AFFECTE, CORRECTION_DEMANDEE].includes(current)) {
     throw httpError(409, `Affectation impossible depuis le statut ${current}.`);
@@ -95,6 +96,10 @@ export async function affecter(id, { division_id, agent_id }, userId) {
     }
     await workflowService.transition(id, AFFECTE, userId, `Affectation à l'agent ${agent_id}.`);
   }
+  // Traçabilité fine : affectation (+ transfert si le dossier change d'agent)
+  await tracabiliteService.tracerAffectation(id, {
+    division_id, agent_id, motif, userId,
+  });
   await historiqueModel.log({
     user_id: userId,
     action: 'AFFECTATION',
@@ -116,6 +121,8 @@ export async function traiter(id, { observation } = {}, userId) {
     throw httpError(409, `Traitement impossible depuis le statut ${current}.`);
   }
   await workflowService.transition(id, EN_TRAITEMENT, userId, observation);
+  // Traçabilité fine : ouverture d'un traitement par l'agent qui prend en charge
+  await tracabiliteService.tracerDebutTraitement(id, userId, observation);
 }
 
 /** Soumission à vérification ou demande de correction. */
@@ -132,6 +139,9 @@ export async function verifier(id, { resultat, observation }, userId) {
     }
     await workflowService.transition(id, CORRECTION_DEMANDEE, userId, observation);
   }
+  // Traçabilité fine : fermeture du traitement + trace du contrôle
+  await tracabiliteService.tracerFinTraitement(id);
+  await tracabiliteService.tracerVerification(id, userId, { resultat, observation });
   await historiqueModel.log({
     user_id: userId,
     action: 'VERIFICATION',
@@ -151,6 +161,8 @@ export async function valider(id, { decision, commentaire }, userId) {
   } else {
     await workflowService.transition(id, CORRECTION_DEMANDEE, userId, commentaire);
   }
+  // Traçabilité fine : décision de validation
+  await tracabiliteService.tracerValidation(id, userId, { decision, commentaire });
   await historiqueModel.log({
     user_id: userId,
     action: 'VALIDATION',
@@ -167,6 +179,10 @@ export async function signer(id, { reference, observation }, userId) {
     throw httpError(409, `Signature impossible : le dossier doit être validé (statut actuel : ${current}).`);
   }
   await workflowService.transition(id, SIGNE, userId, observation);
+  // Traçabilité fine : signature (décision validée par l'autorité signataire)
+  await tracabiliteService.tracerValidation(id, userId, {
+    decision: 'SIGNE', commentaire: reference || observation || null,
+  });
   await historiqueModel.log({
     user_id: userId,
     action: 'SIGNATURE',
@@ -203,4 +219,9 @@ export async function getStatutDossier(id) {
 export async function getTransitionsAutorisees(id) {
   const current = await workflowService.getCurrentStatus(id);
   return workflowService.getAllowedTransitions(current);
+}
+
+/** Timeline de traçabilité fine du dossier (affectations, traitements, etc.). */
+export async function getTracabilite(id) {
+  return tracabiliteService.getTimeline(id);
 }
