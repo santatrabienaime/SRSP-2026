@@ -11,6 +11,9 @@ import { DossierActions } from './DossierActions.jsx';
 import { WorkflowTimeline } from './WorkflowTimeline.jsx';
 import { TracabiliteTimeline } from './TracabiliteTimeline.jsx';
 import { DepouillementChecklist } from './DepouillementChecklist.jsx';
+import { LiquidationPension } from './LiquidationPension.jsx';
+import { DecompteAvance } from './DecompteAvance.jsx';
+import { ControleDecompte } from './ControleDecompte.jsx';
 import { dossierService } from '../../services/dossierService.js';
 import { DocumentList } from '../document/DocumentList.jsx';
 import { DocumentUpload } from '../document/DocumentUpload.jsx';
@@ -120,6 +123,17 @@ export function DossierDetail({ id }) {
           </p>
         </Card>
       </div>
+
+      {/* Calculs financiers — par type de dossier */}
+      {dossier.type_code === 'PENSION' && (
+        <LiquidationPension dossierId={dossier.id} />
+      )}
+      {dossier.type_code === 'SOLDE' && (
+        <>
+          <DecompteAvance dossierId={dossier.id} />
+          <ControleDecompte dossierId={dossier.id} />
+        </>
+      )}
 
       {/* Dépouillement des pièces — dossiers de Secours uniquement */}
       {dossier.type_code === 'SECOURS' && (

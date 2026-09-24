@@ -24,6 +24,7 @@ import rapportRoutes from './routes/rapportRoutes.js';
 import referentielRoutes from './routes/referentielRoutes.js';
 import backupRoutes from './routes/backupRoutes.js';
 import depouillementRoutes from './routes/depouillementRoutes.js';
+import calculRoutes from './routes/calculRoutes.js';
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use('/api/rapports', rapportRoutes);
 app.use('/api/referentiel', referentielRoutes);
 app.use('/api/admin/backup', backupRoutes);
 app.use('/api/dossiers', depouillementRoutes);
+app.use('/api/dossiers', calculRoutes);
 
 app.use(errorMiddleware);
 

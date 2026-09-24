@@ -8,6 +8,24 @@ export const dossierService = {
   getDepouillement: (id) => apiClient.get(`/dossiers/${id}/depouillement`).then((r) => r.data),
   saveDepouillement: (id, data) =>
     apiClient.post(`/dossiers/${id}/depouillement`, data).then((r) => r.data),
+
+  // Liquidation de pension (division Pension)
+  getLiquidationPension: (id) =>
+    apiClient.get(`/dossiers/${id}/liquidation-pension`).then((r) => r.data),
+  saveLiquidationPension: (id, data) =>
+    apiClient.post(`/dossiers/${id}/liquidation-pension`, data).then((r) => r.data),
+
+  // Décompte d'avance (division Solde)
+  getDecompteAvance: (id) =>
+    apiClient.get(`/dossiers/${id}/decompte-avance`).then((r) => r.data),
+  saveDecompteAvance: (id, data) =>
+    apiClient.post(`/dossiers/${id}/decompte-avance`, data).then((r) => r.data),
+
+  // Contrôle du décompte (Chef de Division Solde)
+  getControleDecompte: (id) =>
+    apiClient.get(`/dossiers/${id}/controle-decompte`).then((r) => r.data),
+  saveControleDecompte: (id, data) =>
+    apiClient.post(`/dossiers/${id}/controle-decompte`, data).then((r) => r.data),
   create: (data) => apiClient.post('/dossiers', data).then((r) => r.data),
   update: (id, data) => apiClient.put(`/dossiers/${id}`, data).then((r) => r.data),
   orienter: (id, data) => apiClient.post(`/dossiers/${id}/orienter`, data).then((r) => r.data),
