@@ -15,10 +15,11 @@ export function ForgotPasswordPage() {
           La réinitialisation du mot de passe est effectuée par l'administrateur du SRSP.
           Contactez l'administrateur système pour obtenir un nouveau mot de passe.
         </p>
-        <div className="mt-5 rounded-md bg-slate-50 p-3 text-xs text-slate-500">
-          <p><b>Administrateur :</b> admin@srsp.mg</p>
-          <p className="mt-1"><b>Comptes de démonstration :</b> mot de passe par défaut <code>Demo123!</code></p>
-        </div>
+        <p className="mt-3 rounded-md bg-slate-50 p-3 text-xs text-slate-500">
+          Pour votre sécurité, aucun identifiant ni mot de passe n'est affiché sur
+          cette page. En cas de compte verrouillé, contactez l'administrateur : il
+          peut le déverrouiller depuis l'espace d'administration.
+        </p>
         <Link to="/login" className="mt-5 block">
           <Button variant="secondary" className="w-full">
             <ArrowLeft className="h-4 w-4" /> Retour à la connexion
