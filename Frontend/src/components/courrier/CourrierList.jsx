@@ -23,6 +23,11 @@ const SENS_BADGE = {
 const STATUTS_COURRIERS = ['', 'RECU', 'TRANSMIS', 'TRAITE', 'CLASSE'];
 
 export function CourrierList({ baseFilters = {}, showCreate = true }) {
+  // baseFilters est un objet recréé à chaque rendu du parent (ou défaut {})
+  // -> le garder en ref évite que l'identité change fasse re-feuiller load (spinner clignote).
+  const baseFiltersRef = useRef(baseFilters);
+  useEffect(() => { baseFiltersRef.current = baseFilters; }, [baseFilters]);
+  const filterKey = JSON.stringify(baseFilters);
   const { hasPermission } = useAuth();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +42,7 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
       setLoading(true);
       setError(null);
       const rows = await courrierService.list({
-        ...baseFilters,
+        ...baseFiltersRef.current,
         search: debouncedSearch || undefined,
         sens: sens || undefined,
         statut: statut || undefined,
@@ -48,11 +53,17 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
     } finally {
       setLoading(false);
     }
-  }, [baseFilters, debouncedSearch, sens, statut]);
+  }, [filterKey, debouncedSearch, sens, statut]);
 
+  // Chargement UNE SEULE fois au montage — ne re-feuille plus quand load change d'identité
+  // (baseFilters objet recréé → load recréé → effet re-feuille en boucle : spinner clignote).
+  const mountedRef = useRef(false);
   useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
     load();
-  }, [load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const pagination = usePagination(data, 10);
   const canCreate = hasPermission('manage_courriers');

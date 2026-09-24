@@ -32,7 +32,13 @@ export function AuthProvider({ children }) {
   const loadPermissions = useCallback(async () => {
     try {
       const perms = await permissionService.my();
-      setPermissions(Array.isArray(perms) ? perms.map((p) => p.nom) : []);
+      // /permissions/me renvoie un tableau de noms (chaînes). On normalise
+      // pour accepter aussi des objets { nom } sans casser le gating hasPermission.
+      setPermissions(
+        Array.isArray(perms)
+          ? perms.map((p) => (typeof p === 'string' ? p : p?.nom)).filter(Boolean)
+          : []
+      );
     } catch {
       setPermissions([]);
     }

@@ -61,11 +61,17 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
     } finally {
       setLoading(false);
     }
-  }, [baseFilters, debouncedSearch, statut, typeFilter]);
+  }, [filterKey, debouncedSearch, statut, typeFilter]);
 
+  // Chargement UNE SEULE fois au montage — ne re-feuille plus quand load change d'identité
+  // (baseFilters objet recréé → load recréé → effet re-feuille en boucle : spinner clignote).
+  const mountedRef = useRef(false);
   useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
     load();
-  }, [load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const pagination = usePagination(data, 10);
   const canCreate = hasPermission('create_dossier');
