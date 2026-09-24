@@ -5,11 +5,23 @@ import { Spinner } from './Spinner.jsx';
  * columns : [{ key, label, render?, className?, hideOn? }]
  */
 export function Table({ columns = [], data = [], loading = false, emptyLabel = 'Aucune donnée' }) {
-  if (loading) {
+  // Premier chargement sans données : spinner plein (rien à afficher).
+  // Rechargements suivants : on garde les lignes affichées + barre de progression
+  // discrète, sinon le tableau disparaît et revient (effet clignotant).
+  const initialLoading = loading && data.length === 0;
+  if (initialLoading) {
     return <Spinner className="py-10" />;
   }
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200">
+    <div className="relative overflow-x-auto rounded-lg border border-slate-200">
+      {loading && (
+        <div className="absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden bg-primary-100">
+          <div className="h-full w-1/3 animate-pulse bg-primary-500" />
+        </div>
+      )}
+      {loading && (
+        <div className="pointer-events-none absolute inset-0 bg-white/40" aria-busy="true" />
+      )}
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50">
           <tr>

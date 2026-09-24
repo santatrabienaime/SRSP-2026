@@ -63,15 +63,11 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
     }
   }, [filterKey, debouncedSearch, statut, typeFilter]);
 
-  // Chargement UNE SEULE fois au montage — ne re-feuille plus quand load change d'identité
-  // (baseFilters objet recréé → load recréé → effet re-feuille en boucle : spinner clignote).
-  const mountedRef = useRef(false);
+  // load est stable (dépendances primitives : filterKey, debouncedSearch, statut, typeFilter)
+  // → l'effet se déclenche au montage ET à chaque vrai changement de filtre, sans boucle.
   useEffect(() => {
-    if (mountedRef.current) return;
-    mountedRef.current = true;
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [load]);
 
   const pagination = usePagination(data, 10);
   const canCreate = hasPermission('create_dossier');
