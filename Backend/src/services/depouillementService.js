@@ -8,13 +8,21 @@ async function agentIdOf(userId) {
   return rows[0]?.id || null;
 }
 
-/** Checklist complète + résumé d'un dossier. */
+/** Checklist complète + résumé d'un dossier.
+ *  `resume.par_phase` distingue le dépouillement (pièces du contrôle
+ *  financier) et l'archivage (pièces du dossier de décès). */
 export async function getChecklist(dossierId) {
   const [pieces, resume] = await Promise.all([
     model.getChecklist(dossierId),
     model.getResume(dossierId),
   ]);
-  return { dossier_id: Number(dossierId), resume, pieces };
+  return {
+    dossier_id: Number(dossierId),
+    resume,
+    depouillement: pieces.filter((p) => p.phase === 'DEPOUILLEMENT'),
+    archivage: pieces.filter((p) => p.phase === 'ARCHIVAGE'),
+    pieces,
+  };
 }
 
 /**

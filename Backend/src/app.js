@@ -25,6 +25,8 @@ import referentielRoutes from './routes/referentielRoutes.js';
 import backupRoutes from './routes/backupRoutes.js';
 import depouillementRoutes from './routes/depouillementRoutes.js';
 import calculRoutes from './routes/calculRoutes.js';
+import mandatementRoutes from './routes/mandatementRoutes.js';
+import correspondanceRoutes from './routes/correspondanceRoutes.js';
 
 const app = express();
 
@@ -57,6 +59,8 @@ app.use('/api/referentiel', referentielRoutes);
 app.use('/api/admin/backup', backupRoutes);
 app.use('/api/dossiers', depouillementRoutes);
 app.use('/api/dossiers', calculRoutes);
+app.use('/api/dossiers', mandatementRoutes);
+app.use('/api/correspondances', correspondanceRoutes);
 
 app.use(errorMiddleware);
 

@@ -26,6 +26,17 @@ export const dossierService = {
     apiClient.get(`/dossiers/${id}/controle-decompte`).then((r) => r.data),
   saveControleDecompte: (id, data) =>
     apiClient.post(`/dossiers/${id}/controle-decompte`, data).then((r) => r.data),
+
+  // Mandatement (division Secours)
+  getMandatement: (id) => apiClient.get(`/dossiers/${id}/mandatement`).then((r) => r.data),
+  saveMandatement: (id, data) =>
+    apiClient.post(`/dossiers/${id}/mandatement`, data).then((r) => r.data),
+  marquerPieceMandatement: (id, piece) =>
+    apiClient.post(`/dossiers/${id}/mandatement/piece`, { piece }).then((r) => r.data),
+  ordonnancerMandatement: (id) =>
+    apiClient.post(`/dossiers/${id}/mandatement/ordonnancer`, {}).then((r) => r.data),
+  liquiderMandatement: (id) =>
+    apiClient.post(`/dossiers/${id}/mandatement/liquider`, {}).then((r) => r.data),
   create: (data) => apiClient.post('/dossiers', data).then((r) => r.data),
   update: (id, data) => apiClient.put(`/dossiers/${id}`, data).then((r) => r.data),
   orienter: (id, data) => apiClient.post(`/dossiers/${id}/orienter`, data).then((r) => r.data),

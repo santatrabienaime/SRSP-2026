@@ -11,6 +11,7 @@ import { DossierActions } from './DossierActions.jsx';
 import { WorkflowTimeline } from './WorkflowTimeline.jsx';
 import { TracabiliteTimeline } from './TracabiliteTimeline.jsx';
 import { DepouillementChecklist } from './DepouillementChecklist.jsx';
+import { Mandatement } from './Mandatement.jsx';
 import { LiquidationPension } from './LiquidationPension.jsx';
 import { DecompteAvance } from './DecompteAvance.jsx';
 import { ControleDecompte } from './ControleDecompte.jsx';
@@ -135,9 +136,12 @@ export function DossierDetail({ id }) {
         </>
       )}
 
-      {/* Dépouillement des pièces — dossiers de Secours uniquement */}
+      {/* Secours : dépouillement puis mandatement */}
       {dossier.type_code === 'SECOURS' && (
-        <DepouillementChecklist dossierId={dossier.id} />
+        <>
+          <DepouillementChecklist dossierId={dossier.id} />
+          <Mandatement dossierId={dossier.id} />
+        </>
       )}
 
       {/* Traçabilité des actes métier */}

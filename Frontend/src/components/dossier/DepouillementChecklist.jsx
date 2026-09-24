@@ -69,7 +69,7 @@ export function DepouillementChecklist({ dossierId }) {
   return (
     <Card
       title="Dépouillement des pièces"
-      subtitle={`${resume.presentes}/${resume.total} pièces présentes`}
+      subtitle={`${resume.presentes}/${resume.total} pièces contrôlées`}
       actions={
         <Badge className={resume.complet
           ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -84,54 +84,75 @@ export function DepouillementChecklist({ dossierId }) {
         </p>
       )}
 
-      <ul className="space-y-2">
-        {data.pieces.map((piece) => (
-          <li
-            key={piece.code}
-            className="flex items-center gap-3 rounded-md border border-slate-200 px-3 py-2"
-          >
-            {piece.presente ? (
-              <CircleCheck className="h-5 w-5 shrink-0 text-emerald-600" />
-            ) : (
-              <CircleX className="h-5 w-5 shrink-0 text-red-400" />
-            )}
-
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-700">{piece.libelle}</p>
-              {piece.date_controle && (
-                <p className="text-xs text-slate-400">
-                  Contrôlée le {formatDateTime(piece.date_controle)}
-                  {piece.agent ? ` par ${piece.agent}` : ''}
-                </p>
-              )}
-              {piece.observation && (
-                <p className="text-xs text-slate-500">{piece.observation}</p>
-              )}
-            </div>
-
-            {canControl && (
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggle(piece, true)}
-                  disabled={saving === piece.code}
-                  className="rounded-md border border-emerald-300 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
-                >
-                  {saving === piece.code ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Présente'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggle(piece, false)}
-                  disabled={saving === piece.code}
-                  className="rounded-md border border-red-300 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-                >
-                  Manquante
-                </button>
+      <div className="space-y-5">
+        {[
+          { phase: 'DEPOUILLEMENT', titre: 'Pièces du contrôle financier', pieces: data.depouillement },
+          { phase: 'ARCHIVAGE', titre: 'Pièces du dossier de décès (archivage)', pieces: data.archivage },
+        ].map(({ phase, titre, pieces }) => {
+          const r = data.resume?.par_phase?.[phase];
+          if (!pieces?.length) return null;
+          return (
+            <section key={phase}>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {titre}
+                </h4>
+                <span className={`text-xs font-semibold ${r?.complet ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {r?.presentes}/{r?.total}
+                </span>
               </div>
-            )}
-          </li>
-        ))}
-      </ul>
+              <ul className="space-y-2">
+                {pieces.map((piece) => (
+                  <li
+                    key={piece.code}
+                    className="flex items-center gap-3 rounded-md border border-slate-200 px-3 py-2"
+                  >
+                    {piece.presente ? (
+                      <CircleCheck className="h-5 w-5 shrink-0 text-emerald-600" />
+                    ) : (
+                      <CircleX className="h-5 w-5 shrink-0 text-red-400" />
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-700">{piece.libelle}</p>
+                      {piece.date_controle && (
+                        <p className="text-xs text-slate-400">
+                          Contrôlée le {formatDateTime(piece.date_controle)}
+                          {piece.agent ? ` par ${piece.agent}` : ''}
+                        </p>
+                      )}
+                      {piece.observation && (
+                        <p className="text-xs text-slate-500">{piece.observation}</p>
+                      )}
+                    </div>
+
+                    {canControl && (
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggle(piece, true)}
+                          disabled={saving === piece.code}
+                          className="rounded-md border border-emerald-300 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+                        >
+                          {saving === piece.code ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Présente'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggle(piece, false)}
+                          disabled={saving === piece.code}
+                          className="rounded-md border border-red-300 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          Manquante
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
     </Card>
   );
 }
