@@ -6,7 +6,7 @@ import { NotificationBell } from '../notification/NotificationBell.jsx';
 
 /** Barre supérieure : cloche de notifications + menu utilisateur. */
 export function Topbar() {
-  const { user, logout } = useAuth();
+  const { user, logout, hasAnyPermission } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -15,6 +15,21 @@ export function Topbar() {
     await logout();
     navigate('/login');
   };
+
+  // Liens du menu mobile : uniquement ceux cui sont réellement accessibles.
+  // Rien n'est proposé qui mènerait à une page vide ou à une redirection.
+  const dossiersPath = user?.division_code
+    ? `/divisions/${user.division_code}/dossiers`
+    : '/dossiers';
+
+  const liensMobile = [
+    { to: '/', label: 'Tableau de bord' },
+    { to: dossiersPath, label: user?.division_code ? 'Ma division' : 'Dossiers' },
+    { to: '/courriers', label: 'Courriers', perms: ['manage_courriers'] },
+    { to: '/historique', label: 'Historique' },
+    { to: '/archives', label: 'Archives', perms: ['archiver_dossier'] },
+    { to: '/rapports', label: 'Rapports', perms: ['view_stats', 'consolidate_reports', 'export_data'] },
+  ].filter((l) => !l.perms || hasAnyPermission(l.perms));
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -82,12 +97,16 @@ export function Topbar() {
       {sidebarOpen && (
         <div className="border-t border-slate-200 bg-white px-4 py-3 lg:hidden">
           <nav className="grid grid-cols-2 gap-2 text-sm">
-            <Link to="/" className="rounded px-2 py-1.5 text-slate-600 hover:bg-slate-50">Tableau de bord</Link>
-            <Link to="/dossiers" className="rounded px-2 py-1.5 text-slate-600 hover:bg-slate-50">Dossiers</Link>
-            <Link to="/courriers" className="rounded px-2 py-1.5 text-slate-600 hover:bg-slate-50">Courriers</Link>
-            <Link to="/historique" className="rounded px-2 py-1.5 text-slate-600 hover:bg-slate-50">Historique</Link>
-            <Link to="/archives" className="rounded px-2 py-1.5 text-slate-600 hover:bg-slate-50">Archives</Link>
-            <Link to="/rapports" className="rounded px-2 py-1.5 text-slate-600 hover:bg-slate-50">Rapports</Link>
+            {liensMobile.map((l) => (
+              <Link
+                key={l.to + l.label}
+                to={l.to}
+                onClick={() => setSidebarOpen(false)}
+                className="rounded px-2 py-1.5 text-slate-600 hover:bg-slate-50"
+              >
+                {l.label}
+              </Link>
+            ))}
           </nav>
         </div>
       )}

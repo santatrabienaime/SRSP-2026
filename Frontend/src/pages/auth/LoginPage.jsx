@@ -6,6 +6,7 @@ import { useNotification } from '../../hooks/useNotification.js';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
+import { landingPathFor } from '../../utils/landing.js';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -28,9 +29,14 @@ export function LoginPage() {
     }
     setLoading(true);
     try {
-      await login(identifiant, password);
+      const profil = await login(identifiant, password);
       toastSuccess('Connexion réussie.');
-      navigate(from, { replace: true });
+      // On conduit l'utilisateur vers l'interface qui le concerne, et non vers
+      // la page demandée qui pourrait être hors de son périmètre (page vide,
+      // redirection ou erreur).
+      navigate(landingPathFor(profil || { role_nom: profil?.role_nom }), {
+        replace: true,
+      });
     } catch (err) {
       setError(err);
     } finally {
