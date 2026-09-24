@@ -19,30 +19,45 @@ const makeToast = (type, title, message) => ({
 
 /* --------------------------- Contexte ----------------------------- */
 export function NotificationProvider({ children }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [toasts, setToasts] = useState([]);
   const lastFetch = useRef(0);
+  // Chaque utilisateur a SES notifications : le changement de compte doit
+  // vider l'affichage, sinon on verrait celles du compte précédent.
+  const userId = user?.id ?? null;
 
   const refresh = useCallback(async () => {
     if (!token) return;
     try {
-      const list = await notificationService.list();
+      const data = await notificationService.list();
+      // Réponse : { notifications, non_lues }
+      const list = Array.isArray(data) ? data : data?.notifications;
       setNotifications(Array.isArray(list) ? list : []);
-      setUnreadCount(Array.isArray(list) ? list.filter((n) => !n.lu).length : 0);
+      setUnreadCount(
+        Array.isArray(data)
+          ? data.filter((n) => !n.lu).length
+          : data?.non_lues ?? 0
+      );
       lastFetch.current = Date.now();
     } catch {
       /* garde l'état précédent */
     }
   }, [token]);
 
+  // Remise à zéro immédiate lors d'un changement d'utilisateur.
+  useEffect(() => {
+    setNotifications([]);
+    setUnreadCount(0);
+  }, [userId]);
+
   useEffect(() => {
     if (!token) return;
     refresh();
     const timer = setInterval(refresh, POLL_INTERVAL);
     return () => clearInterval(timer);
-  }, [token, refresh]);
+  }, [token, userId, refresh]);
 
   const markRead = useCallback(
     async (id) => {
