@@ -22,8 +22,32 @@ export async function findDossiers(filters = {}) {
     params.push(filters.statut_id);
   }
   if (filters.statut) {
-    query += ' AND s.code = ?';
-    params.push(filters.statut);
+    // Plusieurs statuts possibles : "RECU,ENREGISTRE" ou le nom d'un groupe
+    // ("NOUVEAUX", "EN_COURS", "TERMINES").
+    const codes = Array.isArray(filters.statut)
+      ? filters.statut
+      : String(filters.statut)
+          .split(',')
+          .map((s) => s.trim().toUpperCase())
+          .filter(Boolean);
+
+    const groupes = {
+      NOUVEAUX: ['RECU', 'ENREGISTRE'],
+      EN_COURS: [
+        'ORIENTE', 'AFFECTE', 'EN_TRAITEMENT',
+        'SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE',
+      ],
+      TERMINES: ['VALIDE', 'SIGNE', 'CLOTURE', 'ARCHIVE'],
+    };
+
+    const codesRequis = codes.flatMap((c) => groupes[c] || c);
+    if (codesRequis.length === 1) {
+      query += ' AND s.code = ?';
+      params.push(codesRequis[0]);
+    } else if (codesRequis.length > 1) {
+      query += ` AND s.code IN (${codesRequis.map(() => '?').join(',')})`;
+      params.push(...codesRequis);
+    }
   }
   if (filters.type_id) {
     query += ' AND d.type_id = ?';

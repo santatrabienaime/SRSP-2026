@@ -38,6 +38,11 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
   // sélecteur de type n'a pas lieu d'être et la barre est allégée.
   const lockedType = baseFilters.type || null;
   const showTypeFilter = !lockedType;
+  // La liste peut etre verrouillee sur un groupe d'avancement (Nouveaux,
+  // En cours, Termines) : le selecteur de statut est alors masque, sinon il
+  // viendrait ecraser le groupe choisi.
+  const lockedStatut = baseFilters.statut || null;
+  const showStatutFilter = !lockedStatut;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,7 +64,9 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
       const params = {
         ...baseFiltersRef.current,
         search: debouncedSearch || undefined,
-        statut: statut || undefined,
+        // Le statut vient du selecteur, sauf si la liste est verrouillee sur un
+        // groupe d'avancement : dans ce cas baseFilters fait foi.
+        ...(lockedStatut ? {} : { statut: statut || undefined }),
         // Le type vient du selecteur, sauf si la liste est verrouillee sur un
         // type (page d'une division) : dans ce cas baseFilters fait foi.
         ...(lockedType ? {} : { type: typeFilter || undefined }),
@@ -155,19 +162,21 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
             />
           </div>
         </div>
-        <div className="w-full sm:w-52">
-          <Select
-            label="Statut"
-            value={statut}
-            onChange={(e) => setStatut(e.target.value)}
-          >
-            {STATUT_FILTERS.map((s) => (
-              <option key={s.value || 'all'} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </Select>
-        </div>
+        {showStatutFilter && (
+          <div className="w-full sm:w-52">
+            <Select
+              label="Statut"
+              value={statut}
+              onChange={(e) => setStatut(e.target.value)}
+            >
+              {STATUT_FILTERS.map((s) => (
+                <option key={s.value || 'all'} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
         {showTypeFilter ? (
           <div className="w-full sm:w-48">
             <Select
