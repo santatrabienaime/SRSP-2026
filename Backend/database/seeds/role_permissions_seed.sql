@@ -57,7 +57,7 @@ WHERE r.nom = 'CHEF_DIVISION_VISA' AND p.nom IN (
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p
 WHERE r.nom = 'VERIFICATEUR_VISA' AND p.nom IN (
-  'view_all_dossiers', 'view_assigned_dossiers', 'traiter_dossier',
+  'view_assigned_dossiers', 'traiter_dossier',
   'soumettre_verification', 'upload_document'
 );
 
@@ -73,7 +73,7 @@ WHERE r.nom = 'CHEF_DIVISION_SOLDE' AND p.nom IN (
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p
 WHERE r.nom = 'VERIFICATEUR_SOLDE' AND p.nom IN (
-  'view_all_dossiers', 'view_assigned_dossiers', 'traiter_dossier',
+  'view_assigned_dossiers', 'traiter_dossier',
   'soumettre_verification', 'calculer_avances', 'upload_document'
 );
 
@@ -89,7 +89,7 @@ WHERE r.nom = 'CHEF_DIVISION_PENSION' AND p.nom IN (
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p
 WHERE r.nom = 'LIQUIDATEUR_PENSION' AND p.nom IN (
-  'view_all_dossiers', 'view_assigned_dossiers', 'traiter_dossier',
+  'view_assigned_dossiers', 'traiter_dossier',
   'soumettre_verification', 'liquider_pension', 'gerer_dossiers_meres', 'upload_document'
 );
 
@@ -106,6 +106,6 @@ WHERE r.nom = 'CHEF_DIVISION_SECOURS' AND p.nom IN (
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p
 WHERE r.nom = 'CHARGE_SECOURS' AND p.nom IN (
-  'view_all_dossiers', 'view_assigned_dossiers', 'traiter_dossier',
+  'view_assigned_dossiers', 'traiter_dossier',
   'soumettre_verification', 'depouiller_pieces', 'archiver_pieces', 'upload_document'
 );

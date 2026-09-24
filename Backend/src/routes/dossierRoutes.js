@@ -4,13 +4,14 @@ import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { rbacMiddleware } from '../middlewares/rbacMiddleware.js';
 import { validateMiddleware } from '../middlewares/validateMiddleware.js';
 import { createDossierSchema, updateDossierSchema } from '../validators/dossierValidators.js';
+import { scopeDossiersMiddleware, assertDossierAccessMiddleware } from '../middlewares/scopeDossiersMiddleware.js';
 
 const router = express.Router();
 router.use(authMiddleware);
 
-router.get('/', ctrl.list);
-router.get('/:id/tracabilite', ctrl.tracabilite);
-router.get('/:id', ctrl.getOne);
+router.get('/', scopeDossiersMiddleware, ctrl.list);
+router.get('/:id/tracabilite', assertDossierAccessMiddleware, ctrl.tracabilite);
+router.get('/:id', assertDossierAccessMiddleware, ctrl.getOne);
 router.get('/:id/statut', ctrl.statut);
 router.post('/', rbacMiddleware('create_dossier'), validateMiddleware(createDossierSchema), ctrl.create);
 router.put('/:id', rbacMiddleware('edit_dossier'), validateMiddleware(updateDossierSchema), ctrl.update);

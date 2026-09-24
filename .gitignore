@@ -30,3 +30,5 @@ Backend/src/uploads/temp/*
 .vscode/*
 !.vscode/extensions.json
 *.swp
+# Sauvegardes base de données
+Backend/backups/

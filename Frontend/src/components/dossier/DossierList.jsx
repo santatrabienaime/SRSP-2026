@@ -30,6 +30,10 @@ const STATUT_FILTERS = [
  */
 export function DossierList({ baseFilters = {}, showCreate = true }) {
   const { hasPermission } = useAuth();
+  // Un agent est automatiquement restreint à SES dossiers par le serveur
+  // (permission view_assigned_dossiers sans view_all_dossiers).
+  const agentScoped =
+    hasPermission('view_assigned_dossiers') && !hasPermission('view_all_dossiers');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -126,6 +130,11 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
 
   return (
     <div className="space-y-4">
+      {agentScoped && (
+        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
+          Vous consultez uniquement les dossiers dont vous êtes le responsable.
+        </p>
+      )}
       {/* Filtres */}
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-end">
         <div className="flex-1">
