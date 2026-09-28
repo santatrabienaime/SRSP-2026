@@ -114,10 +114,10 @@ export function DossierListPage() {
               key={g.code}
               type="button"
               onClick={() => setGroupe(g.code)}
-              className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-[transform,box-shadow,background-color,border-color] duration-200 ease-out motion-reduce:transform-none motion-reduce:transition-none hover:-translate-y-0.5 hover:shadow-sm ${
                 actif
                   ? 'border-primary-600 bg-primary-600 text-white'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -151,10 +151,10 @@ export function DossierListPage() {
         <button
           type="button"
           onClick={() => setGroupe('')}
-          className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
+          className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-[transform,box-shadow,background-color,border-color] duration-200 ease-out motion-reduce:transform-none motion-reduce:transition-none hover:-translate-y-0.5 hover:shadow-sm ${
             groupe === ''
               ? 'border-slate-700 bg-slate-700 text-white'
-              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
           }`}
         >
           <Layers className="h-4 w-4" />

@@ -108,16 +108,29 @@ export function Sidebar() {
         transition-[width] duration-300 ease-out motion-reduce:transition-none
         ${barreRepliee ? 'w-[4.5rem]' : 'w-64'}`}
     >
-      <div className={`flex items-center border-b border-slate-200 ${barreRepliee ? 'justify-center px-2 py-4' : 'gap-3 px-5 py-4'}`}>
+      <div className={`flex items-center border-b border-slate-200 ${barreRepliee ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3 pr-2'}`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-lg font-bold text-white">
           S
         </div>
         {!barreRepliee && (
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold text-slate-800">SRSP Fitovinany</p>
             <p className="truncate text-[11px] text-slate-400">Suivi des dossiers</p>
           </div>
         )}
+        {/* Le bouton de repli est en haut de la barre : c'est là que l'on
+            regarde en premier, et il reste atteignable même quand la barre
+            est réduite à son rail d'icônes. */}
+        <button
+          type="button"
+          onClick={basculerBarre}
+          className="shrink-0 rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+          aria-label={barreRepliee ? 'Afficher la barre latérale' : 'Masquer la barre latérale'}
+          aria-expanded={!barreRepliee}
+          title={barreRepliee ? 'Afficher le menu' : 'Masquer le menu'}
+        >
+          {barreRepliee ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+        </button>
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-4">
@@ -165,8 +178,8 @@ export function Sidebar() {
       {/* Rappel du périmètre de l'utilisateur.
           Le profil et la déconnexion sont centralisés dans la barre supérieure
           (Topbar) : pas de doublon d'actions entre les deux barres. */}
-      <div className="border-t border-slate-200 p-3">
-        {!barreRepliee && (
+      {!barreRepliee && (
+        <div className="border-t border-slate-200 p-3">
           <p className="px-2 text-[11px] leading-relaxed text-slate-400">
             {user?.role_nom === 'ADMIN' || user?.role_nom === 'CHEF_SERVICE'
               || user?.role_nom === 'CHEF_BAAF' || user?.role_nom === 'SECRETAIRE'
@@ -176,18 +189,8 @@ export function Sidebar() {
                 ? `Périmètre : ${user.division_nom}`
                 : 'Périmètre : vos dossiers'}
           </p>
-        )}
-        <button
-          type="button"
-          onClick={basculerBarre}
-          className={`mt-1 flex w-full items-center rounded-md py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 ${barreRepliee ? 'justify-center' : 'gap-2 px-2'}`}
-          aria-label={barreRepliee ? 'Afficher la barre latérale' : 'Masquer la barre latérale'}
-          aria-expanded={!barreRepliee}
-        >
-          {barreRepliee ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          {!barreRepliee && <span>Masquer le menu</span>}
-        </button>
-      </div>
+        </div>
+      )}
     </aside>
   );
 }

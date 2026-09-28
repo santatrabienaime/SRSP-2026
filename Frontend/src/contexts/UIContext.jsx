@@ -51,7 +51,34 @@ export function UIProvider({ children }) {
     }
     return themeInitial();
   });
-  const [barreRepliee, setBarreRepliee] = useState(() => lire(CLE_BARRE, '0') === '1');
+
+  /* Réactivité : sur un écran étroit, la barre latérale se replie d'elle-même
+     en rail d'icônes, sans quoi elle laisserait au contenu une largeur
+     inexploitable. Ce comportement automatique ne s'applique QUE si
+     l'utilisateur n'a jamais fait de choix : dès qu'il clique, sa décision
+     fait foi et n'est plus remise en cause par un redimensionnement. */
+  const [choixExplicite, setChoixExplicite] = useState(() => lire(CLE_BARRE, null) !== null);
+  const [barreRepliee, setBarreRepliee] = useState(() => {
+    const memorise = lire(CLE_BARRE, null);
+    if (memorise !== null) return memorise === '1';
+    return typeof window !== 'undefined' && window.innerWidth < 1024;
+  });
+
+  useEffect(() => {
+    if (choixExplicite || typeof window === 'undefined') return undefined;
+    const appliquer = () => setBarreRepliee(window.innerWidth < 1024);
+    appliquer();
+    window.addEventListener('resize', appliquer);
+    return () => window.removeEventListener('resize', appliquer);
+  }, [choixExplicite]);
+
+  // La préférence n'est mémorisée qu'à partir du moment où l'utilisateur a
+  // réellement cliqué : sinon un simple redimensionnement figerait un choix
+  // qu'il n'a jamais fait.
+  useEffect(() => {
+    if (!choixExplicite) return;
+    ecrire(CLE_BARRE, barreRepliee ? '1' : '0');
+  }, [barreRepliee, choixExplicite]);
 
   useEffect(() => {
     const sombre = theme === 'sombre';
@@ -60,13 +87,12 @@ export function UIProvider({ children }) {
     ecrire(CLE_THEME, theme);
   }, [theme]);
 
-  useEffect(() => { ecrire(CLE_BARRE, barreRepliee ? '1' : '0'); }, [barreRepliee]);
-
   const basculerTheme = useCallback(() => {
     setTheme((t) => (t === 'sombre' ? 'clair' : 'sombre'));
   }, []);
 
   const basculerBarre = useCallback(() => {
+    setChoixExplicite(true);
     setBarreRepliee((v) => !v);
   }, []);
 
