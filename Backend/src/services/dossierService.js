@@ -8,6 +8,7 @@ import * as tracabiliteService from './tracabiliteService.js';
 import * as routageService from './routageService.js';
 import { STATUTS, STATUTS_PROTEGES } from '../utils/constants.js';
 import { httpError } from '../utils/httpError.js';
+import { normaliserCIN } from '../validators/dossierValidators.js';
 
 const { ENREGISTRE, ORIENTE, AFFECTE, EN_TRAITEMENT, SOUMIS_A_VERIFICATION,
         CORRECTION_DEMANDEE, VALIDE, SIGNE, CLOTURE, ARCHIVE } = STATUTS;
@@ -18,6 +19,69 @@ export async function getAllDossiers(filters) {
 
 export async function getDossierById(id) {
   return dossierModel.findDossierById(id);
+}
+
+/**
+ * Recherche un CIN déjà connu, pour pré-remplir le formulaire.
+ *
+ * Le document prévoit ce mécanisme : la secrétaire saisit le CIN, et si la
+ * personne est déjà connue, ses coordonnées sont proposées. C'est une aide à
+ * la saisie, PAS un blocage : un client revient légitimement, avec un dossier
+ * de visa puis un de solde, puis une pension.
+ *
+ * La comparaison se fait sur le CIN compacté, car il est saisi tantôt avec
+ * espaces, tantôt sans. Une personne qui resaisit « 101 234 567 890 » doit être
+ * reconnue aussi bien que « 101234567890 ».
+ */
+export async function rechercherParCIN(matricule) {
+  const cin = normaliserCIN(matricule);
+  if (!cin) return { trouve: false, dossiers: [] };
+
+  const dossiers = await dossierModel.findDossiersParCIN(cin);
+  const [plusRecent] = dossiers;
+
+  return {
+    trouve: dossiers.length > 0,
+    // Les dossiers sont classés du plus récent au plus ancien : c'est le
+    // dernier qui porte les coordonnées les plus à jour.
+    identite: plusRecent
+      ? {
+          nom: plusRecent.demandeur_nom || plusRecent.demandeur,
+          prenom: plusRecent.demandeur_prenom || '',
+          telephone: plusRecent.demandeur_tel || '',
+          email: plusRecent.demandeur_email || '',
+          adresse: plusRecent.demandeur_adresse || '',
+        }
+      : null,
+    dossiers: dossiers.map((d) => ({
+      id: d.id,
+      numero: d.numero,
+      type: d.type_libelle,
+      statut: d.statut_libelle,
+      date_reception: d.date_reception,
+      actif: !['CLOTURE', 'ARCHIVE'].includes(d.statut_code),
+    })),
+  };
+}
+
+/**
+ * Complète `demandeur` à partir des colonnes séparées.
+ *
+ * La table porte les deux depuis toujours : `demandeur` pour l'affichage et les
+ * exports, les colonnes détaillées pour le filtrage. Si elles divergeaient, une
+ * recherche sur le nom ne retrouverait pas le dossier listé sous un autre
+ * intitulé. On les synchronise donc à l'écriture, plutôt que de demander à
+ * chaque lecteur de deviner laquelle fait foi.
+ */
+function harmoniserDemandeur(data) {
+  const nom = (data.demandeur_nom || '').trim();
+  const prenom = (data.demandeur_prenom || '').trim();
+  if (!nom && !prenom) return data;
+
+  // Ni l'un ni l'autre : on garde la saisie initiale.
+  if (!nom || !prenom) return { ...data, demandeur: (nom || prenom).slice(0, 150) };
+
+  return { ...data, demandeur: `${nom} ${prenom}`.trim().slice(0, 150) };
 }
 
 export async function createDossier(data, userId) {
@@ -39,7 +103,7 @@ export async function createDossier(data, userId) {
   }
 
   const dossier = await dossierModel.createDossier({
-    ...data,
+    ...harmoniserDemandeur(data),
     division_id: division.id,
     created_by: userId,
   });

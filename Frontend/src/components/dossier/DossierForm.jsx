@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dossierService } from '../../services/dossierService.js';
 import { referentielService } from '../../services/referentielService.js';
@@ -8,14 +8,60 @@ import { Input } from '../ui/Input.jsx';
 import { Select } from '../ui/Select.jsx';
 import { Textarea } from '../ui/Textarea.jsx';
 import { Alert } from '../ui/Alert.jsx';
-import { todayISO } from '../../utils/formatDate.js';
+import { todayISO, pourChampDate } from '../../utils/formatDate.js';
 import { useNotification } from '../../hooks/useNotification.js';
-import { CheckCircle2, Info } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce.js';
+import { CheckCircle2, Info, Search, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 
 /**
- * Formulaire de création / modification d'un dossier.
- *  - initial : dossier existant (mode édition) ou null (mode création)
- *  - onSaved  : callback(createdId) après enregistrement
+ * Formats de CIN acceptés, alignés sur le validateur du serveur.
+ *
+ * 12 chiffres pour le CIN malgache ; une lettre suivie de chiffres pour la carte
+ * de non-inscription. Un motif « 4 à 20 caractères alphanumériques » laisserait
+ * passer un CIN malgache à 11 chiffres : le chiffre manquant serait signalé trop
+ * tard, au moment de l'enregistrement.
+ */
+const CIN_MALGACHE = /^\d{12}$/;
+const CIN_NON_INSCRIPTION = /^[A-Z]{1,4}\d{2,10}$/i;
+const CIN_LONGUEUR = 12;
+
+const cinEstValide = (valeur) => {
+  const compact = (valeur || '').replace(/[\s.-]/g, '');
+  if (!compact) return true;
+  return CIN_MALGACHE.test(compact) || CIN_NON_INSCRIPTION.test(compact);
+};
+
+const vide = (initial) => ({
+  type_id: initial?.type_id ?? '',
+  objet: initial?.objet ?? '',
+  demandeur_nom: initial?.demandeur_nom ?? '',
+  demandeur_prenom: initial?.demandeur_prenom ?? '',
+  demandeur_tel: initial?.demandeur_tel ?? '',
+  demandeur_email: initial?.demandeur_email ?? '',
+  demandeur_adresse: initial?.demandeur_adresse ?? '',
+  demandeur: initial?.demandeur ?? '',
+  matricule: initial?.matricule ?? '',
+  date_reception: initial?.date_reception ? pourChampDate(initial.date_reception) : todayISO(),
+  division_id: initial?.division_id ?? '',
+  priorite_id: initial?.priorite_id ?? '',
+  observation: initial?.observation ?? '',
+  date_limite: initial?.date_limite ? pourChampDate(initial.date_limite) : '',
+});
+
+/**
+ * Formulaire de création / modification d'un dossier, en trois étapes.
+ *
+ * L'étape 1 choisit le type, qui détermine seul la division : la sélectionner
+ * séparément serait une question sans réponse, la division n'étant pas libre.
+ *
+ * L'étape 2 est celle où se joue l'accueil du demandeur : CIN, identité,
+ * coordonnées. Le CIN interroge le système pendant la saisie et propose de
+ * reprendre les informations déjà connues.
+ *
+ * L'étape 3 porte l'objet, la priorité et l'échéance, puis le récapitulatif.
+ *
+ * Le mode édition reste en un seul bloc : les étapes ont un intérêt quand on
+ * part de zéro, et ralentiraient la simple correction d'un champ.
  */
 export function DossierForm({ initial = null, onSaved }) {
   const navigate = useNavigate();
@@ -27,18 +73,14 @@ export function DossierForm({ initial = null, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const [form, setForm] = useState({
-    type_id: initial?.type_id ?? '',
-    objet: initial?.objet ?? '',
-    demandeur: initial?.demandeur ?? '',
-    matricule: initial?.matricule ?? '',
-    date_reception: initial?.date_reception
-      ? String(initial.date_reception).slice(0, 10)
-      : todayISO(),
-    division_id: initial?.division_id ?? '',
-    priorite_id: initial?.priorite_id ?? '',
-    observation: initial?.observation ?? '',
-  });
+  const [form, setForm] = useState(() => vide(initial));
+  const [etape, setEtape] = useState(1);
+
+  // Recherche du demandeur pendant la saisie du CIN.
+  const [recherche, setRecherche] = useState(null);
+  const [verifEnCours, setVerifEnCours] = useState(false);
+  const cinDebounce = useDebounce(form.matricule, 500);
+  const derniereRecherche = useRef('');
 
   // Routage automatique : la division affichée découle du type choisi.
   // L'utilisateur ne la saisit plus (spécification « Routage automatique »).
@@ -60,13 +102,95 @@ export function DossierForm({ initial = null, onSaved }) {
       });
   }, []);
 
+  /* Vérification du CIN pendant la saisie.
+     On n'interroge le serveur que si le CIN est complet, et jamais deux fois
+     pour la même valeur : une saisie caractère par caractère déclencherait
+     autant d'appels que de lettres. */
+  useEffect(() => {
+    if (initial) return undefined; // pas de recherche en modification
+    const cin = (cinDebounce || '').replace(/[\s.-]/g, '');
+    // On n'interroge le serveur qu'un CIN conforme : chercher un dossier à un
+    // numéro tronqué ne peut rien retourner, et afficherait « inconnu » à
+    // chaque frappe.
+    if (!cinEstValide(cin) || !cin) {
+      setRecherche(null);
+      return undefined;
+    }
+    if (cin === derniereRecherche.current) return undefined;
+    derniereRecherche.current = cin;
+
+    let actif = true;
+    setVerifEnCours(true);
+    dossierService.rechercherParCIN(form.matricule)
+      .then((r) => { if (actif) setRecherche(r); })
+      .catch(() => { if (actif) setRecherche(null); })
+      .finally(() => { if (actif) setVerifEnCours(false); });
+    return () => { actif = false; };
+  }, [cinDebounce, form.matricule, initial]);
+
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  /**
+   * Reprend les coordonnées déjà connues.
+   *
+   * On ne remplace que les champs VIDES : une secrétaire qui a rectifié un nom
+   * voit sa correction écrasée si on la remplit intégralement.
+   */
+  const utiliserIdentite = () => {
+    if (!recherche?.identite) return;
+    setForm((f) => ({
+      ...f,
+      demandeur_nom: f.demandeur_nom || recherche.identite.nom || '',
+      demandeur_prenom: f.demandeur_prenom || recherche.identite.prenom || '',
+      demandeur_tel: f.demandeur_tel || recherche.identite.telephone || '',
+      demandeur_email: f.demandeur_email || recherche.identite.email || '',
+      demandeur_adresse: f.demandeur_adresse || recherche.identite.adresse || '',
+    }));
+  };
+
+  /* Le nom affiché est dérivé des deux champs, pas saisi une troisième fois :
+     trois sources pour un seul nom finissent par diverger. */
+  useEffect(() => {
+    if (initial) return;
+    const { demandeur_nom: nom, demandeur_prenom: prenom } = form;
+    if (!nom && !prenom) return;
+    setForm((f) => ({ ...f, demandeur: [nom, prenom].filter(Boolean).join(' ') }));
+  }, [form.demandeur_nom, form.demandeur_prenom, initial]);
+
+  const validation = useMemo(() => {
+    const problemes = [];
+    if (!form.type_id) problemes.push('Le type de dossier est requis.');
+    if (!form.demandeur_nom && !form.demandeur) problemes.push('Le nom du demandeur est requis.');
+    if (!form.demandeur_prenom && !form.demandeur) problemes.push('Le prénom du demandeur est requis.');
+    if (!form.objet.trim()) problemes.push("L'objet est requis.");
+    if (!form.priorite_id) problemes.push('La priorité est requise.');
+    if (!form.date_reception) problemes.push('La date de réception est requise.');
+    if (form.date_limite && form.date_limite < form.date_reception) {
+      problemes.push('La date limite ne peut pas précéder la date de réception.');
+    }
+    if (!cinEstValide(form.matricule)) {
+      problemes.push(`Le CIN doit contenir ${CIN_LONGUEUR} chiffres, ou un matricule de non-inscription (ex. MAT-1234).`);
+    }
+    if (form.demandeur_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.demandeur_email)) {
+      problemes.push('Email invalide.');
+    }
+    return problemes;
+  }, [form]);
+
+  const problemesEtape1 = validation.filter((p) => /type de dossier/.test(p));
+  const problemesEtape2 = validation.filter((p) => /demandeur|CIN|Email/i.test(p));
+  const problemesEtape3 = validation.filter((p) => !/type de dossier|demandeur|CIN|Email/i.test(p));
+
+  const allerA = (n) => {
+    setError(null);
+    setEtape(n);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    if (!form.type_id || !form.objet || !form.demandeur || !form.date_reception || !form.priorite_id) {
-      setError({ message: 'Veuillez remplir tous les champs obligatoires.' });
+    if (validation.length) {
+      setError({ message: 'Veuillez corriger les points suivants :', details: validation });
       return;
     }
     setSaving(true);
@@ -75,6 +199,11 @@ export function DossierForm({ initial = null, onSaved }) {
         type_id: Number(form.type_id),
         objet: form.objet,
         demandeur: form.demandeur,
+        demandeur_nom: form.demandeur_nom || null,
+        demandeur_prenom: form.demandeur_prenom || null,
+        demandeur_tel: form.demandeur_tel || null,
+        demandeur_email: form.demandeur_email || null,
+        demandeur_adresse: form.demandeur_adresse || null,
         matricule: form.matricule || null,
         date_reception: form.date_reception,
         priorite_id: Number(form.priorite_id),
@@ -100,151 +229,328 @@ export function DossierForm({ initial = null, onSaved }) {
 
   if (loading) return <p className="py-10 text-center text-sm text-slate-400">Chargement du formulaire…</p>;
 
+  /* Mode modification : un seul bloc. Les étapes servent l'accueil d'un dossier
+     neuf, et ralentiraient la correction d'un champ sur un dossier existant. */
+  if (initial) {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <Alert type="error" title="Impossible d'enregistrer">
+            {error.message}
+            {error.details && (
+              <ul className="mt-1 list-inside list-disc text-xs">
+                {error.details.map((d) => <li key={d}>{d}</li>)}
+              </ul>
+            )}
+          </Alert>
+        )}
+
+        <fieldset disabled>
+          <legend className="mb-2 block text-sm font-medium text-slate-700">
+            Type de dossier <span className="text-red-500">*</span>
+          </legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {referentiel.types_dossiers.map((t) => (
+              <label
+                key={t.id}
+                className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${
+                  String(form.type_id) === String(t.id)
+                    ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-300'
+                    : 'border-slate-200 bg-white opacity-70'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="type_id_mode"
+                  value={t.id}
+                  checked={String(form.type_id) === String(t.id)}
+                  readOnly
+                  className="mt-0.5 h-4 w-4 accent-emerald-600"
+                />
+                <span className="min-w-0">
+                  <span className="block font-semibold text-slate-800">{t.libelle}</span>
+                  {t.description && (
+                    <span className="block text-[11px] leading-tight text-slate-500">{t.description}</span>
+                  )}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select label="Priorité" required value={form.priorite_id} onChange={set('priorite_id')}>
+            <option value="">Sélectionner…</option>
+            {referentiel.priorites.map((p) => (
+              <option key={p.id} value={p.id}>{p.libelle}</option>
+            ))}
+          </Select>
+          <div>
+            <p className="mb-1 block text-sm font-medium text-slate-700">Division affectée</p>
+            <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span className="font-semibold">{divisionDuType?.nom || '—'}</span>
+            </div>
+          </div>
+        </div>
+
+        <Textarea label="Objet" required rows={3} value={form.objet} onChange={set('objet')} placeholder="Objet de la demande…" />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label="Nom" required value={form.demandeur_nom} onChange={set('demandeur_nom')} placeholder="RAKOTO" />
+          <Input label="Prénom" value={form.demandeur_prenom} onChange={set('demandeur_prenom')} placeholder="Jean" />
+          <Input label="Matricule / CIN" value={form.matricule} onChange={set('matricule')} placeholder="101 234 567 890" />
+          <Input label="Téléphone" value={form.demandeur_tel} onChange={set('demandeur_tel')} placeholder="032 12 345 67" />
+          <Input label="Email" type="email" value={form.demandeur_email} onChange={set('demandeur_email')} placeholder="rakoto.jean@email.mg" />
+          <Input label="Adresse" value={form.demandeur_adresse} onChange={set('demandeur_adresse')} placeholder="Ambadiaplay, Manakara" />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label="Date de réception" required type="date" value={form.date_reception} onChange={set('date_reception')} />
+          <Input label="Date limite (optionnel)" type="date" value={form.date_limite} onChange={set('date_limite')} />
+        </div>
+
+        <Textarea label="Observation" value={form.observation} onChange={set('observation')} placeholder="Observations éventuelles…" />
+
+        <div className="flex justify-end gap-2">
+          <Button type="submit" loading={saving}>Enregistrer les modifications</Button>
+        </div>
+      </form>
+    );
+  }
+
+  const ETAPES = [
+    { n: 1, titre: 'Type de dossier', problemes: problemesEtape1 },
+    { n: 2, titre: 'Demandeur', problemes: problemesEtape2 },
+    { n: 3, titre: 'Dossier', problemes: problemesEtape3 },
+  ];
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <Alert type="error" title="Impossible d'enregistrer">
+        <Alert type="error" title={etape === 3 ? 'Impossible d\'enregistrer' : 'Vérification'}>
           {error.message}
+          {error.details && (
+            <ul className="mt-1 list-inside list-disc text-xs">
+              {error.details.map((d) => <li key={d}>{d}</li>)}
+            </ul>
+          )}
         </Alert>
       )}
 
-      {/* Type de dossier : le seul choix qui determine la division (règle 1). */}
-      <fieldset disabled={Boolean(initial)}>
-        <legend className="mb-2 block text-sm font-medium text-slate-700">
-          Type de dossier <span className="text-red-500">*</span>
-        </legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {referentiel.types_dossiers.map((t) => (
-            <label
-              key={t.id}
-              className={`flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm transition ${
-                String(form.type_id) === String(t.id)
-                  ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-300'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              } ${initial ? 'cursor-not-allowed opacity-70' : ''}`}
-            >
-              <input
-                type="radio"
-                name="type_id"
-                value={t.id}
-                checked={String(form.type_id) === String(t.id)}
-                onChange={set('type_id')}
-                className="mt-0.5 h-4 w-4 accent-emerald-600"
-              />
-              <span className="min-w-0">
-                <span className="block font-semibold text-slate-800">{t.libelle}</span>
-                {t.description && (
-                  <span className="block text-[11px] leading-tight text-slate-500">
-                    {t.description}
-                  </span>
-                )}
-              </span>
-            </label>
-          ))}
-        </div>
-        <p className="mt-2 flex items-center gap-1 text-[11px] text-slate-500">
-          <Info className="h-3 w-3 shrink-0" />
-          La division sera déterminée automatiquement à partir du type choisi.
-        </p>
-      </fieldset>
+      {/* Progression : la secrétaire sait où elle en est dans la procédure. */}
+      <ol className="flex items-center gap-2">
+        {ETAPES.map((e, i) => {
+          const actif = etape === e.n;
+          const fait = etape > e.n;
+          return (
+            <li key={e.n} className="flex flex-1 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => allerA(e.n)}
+                className={`flex min-w-0 flex-1 items-center gap-2 rounded-md border px-2.5 py-2 text-left text-xs transition ${
+                  actif
+                    ? 'border-primary-500 bg-primary-50 text-primary-800'
+                    : fait
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                      : 'border-slate-200 bg-white text-slate-500'
+                }`}
+              >
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                  actif ? 'bg-primary-600 text-white' : fait ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {fait ? <Check className="h-3 w-3" /> : e.n}
+                </span>
+                <span className="truncate font-medium">
+                  Étape {e.n}/3 — {e.titre}
+                </span>
+              </button>
+              {i < ETAPES.length - 1 && <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" aria-hidden="true" />}
+            </li>
+          );
+        })}
+      </ol>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Routage automatique : la division découle du type (règle 1). */}
-        <div>
-          <p className="mb-1 block text-sm font-medium text-slate-700">
+      {/* ── Étape 1 : le type, qui détermine seul la division ── */}
+      {etape === 1 && (
+        <fieldset className="space-y-3">
+          <legend className="block text-sm font-medium text-slate-700">
+            Sélectionnez le type de dossier <span className="text-red-500">*</span>
+          </legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {referentiel.types_dossiers.map((t) => (
+              <label
+                key={t.id}
+                className={`flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm transition ${
+                  String(form.type_id) === String(t.id)
+                    ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-300'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="type_id"
+                  value={t.id}
+                  checked={String(form.type_id) === String(t.id)}
+                  onChange={set('type_id')}
+                  className="mt-0.5 h-4 w-4 accent-emerald-600"
+                />
+                <span className="min-w-0">
+                  <span className="block font-semibold text-slate-800">{t.libelle}</span>
+                  {t.description && (
+                    <span className="block text-[11px] leading-tight text-slate-500">
+                      {t.description}
+                    </span>
+                  )}
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="flex items-center gap-1 text-[11px] text-slate-500">
+            <Info className="h-3 w-3 shrink-0" />
+            La division sera déterminée automatiquement à partir du type choisi.
+          </p>
+          {/* Routage automatique : la division découle du type (règle 1). */}
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
             Division affectée
           </p>
-          <div
-            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
-              divisionDuType
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                : 'border-dashed border-slate-300 bg-slate-50 text-slate-400'
-            }`}
-          >
+          <div className="mt-1 flex items-center gap-2 text-sm">
             {divisionDuType ? (
               <>
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span className="font-semibold">{divisionDuType.nom}</span>
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                <span className="font-semibold text-emerald-900">{divisionDuType.nom}</span>
+                <span className="text-xs text-emerald-700">(automatique)</span>
               </>
             ) : (
-              <span>Choisir un type pour déterminer la division</span>
+              <span className="text-slate-500">Choisir un type pour déterminer la division</span>
             )}
           </div>
-          {divisionDuType && !initial && (
-            <p className="mt-1 text-[11px] text-slate-500">
-              Le dossier sera automatiquement orienté vers cette division.
-            </p>
-          )}
         </div>
 
-        <Select
-          label="Priorité"
-          required
-          value={form.priorite_id}
-          onChange={set('priorite_id')}
-        >
-          <option value="">Sélectionner…</option>
-          {referentiel.priorites.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.libelle}
-            </option>
-          ))}
-        </Select>
-      </div>
+          <div className="flex items-end justify-end">
+            <Button type="button" onClick={() => allerA(2)} disabled={problemesEtape1.length > 0}>
+              Continuer <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </fieldset>
+      )}
 
-      <Textarea
-        label="Objet"
-        required
-        rows={3}
-        value={form.objet}
-        onChange={set('objet')}
-        placeholder="Objet de la demande…"
-      />
+      {/* ── Étape 2 : le demandeur ── */}
+      {etape === 2 && (
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="CIN du demandeur"
+              value={form.matricule}
+              onChange={(e) => { set('matricule')(e); setRecherche(null); }}
+              placeholder="101 234 567 890"
+              hint={verifEnCours ? 'Recherche en cours…' : undefined}
+            />
+            <div className="flex items-end">
+              {/* Résultat de la recherche : une aide, jamais un blocage. */}
+              {recherche?.trouve ? (
+                <div className="w-full rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+                  <p className="flex items-center gap-1.5 font-semibold">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Demandeur déjà connu
+                  </p>
+                  <p className="mt-1">
+                    {recherche.identite?.nom} — {recherche.dossiers.length} dossier(s) existant(s) :
+                    {' '}{recherche.dossiers.slice(0, 3).map((d) => d.numero).join(', ')}
+                  </p>
+                  <Button type="button" size="sm" variant="secondary" className="mt-2" onClick={utiliserIdentite}>
+                    Utiliser ces informations
+                  </Button>
+                </div>
+              ) : recherche && !recherche.trouve ? (
+                <p className="w-full rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                  <Search className="mr-1 inline h-3.5 w-3.5" />
+                  Ce CIN n'est pas encore connu : saisissez les informations.
+                </p>
+              ) : (
+                <p className="w-full text-[11px] text-slate-500">
+                  Saisissez le CIN complet pour retrouver une fiche déjà enregistrée.
+                </p>
+              )}
+            </div>
+          </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input
-          label="Demandeur"
-          required
-          value={form.demandeur}
-          onChange={set('demandeur')}
-          placeholder="Nom et prénom du demandeur"
-        />
-        <Input
-          label="Matricule"
-          value={form.matricule}
-          onChange={set('matricule')}
-          placeholder="Matricule (optionnel)"
-        />
-      </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="Nom" required value={form.demandeur_nom} onChange={set('demandeur_nom')} placeholder="RAKOTO" />
+            <Input label="Prénom" value={form.demandeur_prenom} onChange={set('demandeur_prenom')} placeholder="Jean" />
+            <Input label="Téléphone" value={form.demandeur_tel} onChange={set('demandeur_tel')} placeholder="032 12 345 67" />
+            <Input label="Email" type="email" value={form.demandeur_email} onChange={set('demandeur_email')} placeholder="rakoto.jean@email.mg" />
+          </div>
+          <Input label="Adresse" value={form.demandeur_adresse} onChange={set('demandeur_adresse')} placeholder="Ambadiaplay, Manakara" />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input
-          label="Date de réception"
-          required
-          type="date"
-          value={form.date_reception}
-          onChange={set('date_reception')}
-        />
-        <Input
-          label="Date limite (optionnel)"
-          type="date"
-          value={form.date_limite || ''}
-          onChange={set('date_limite')}
-        />
-      </div>
+          <div className="flex justify-between">
+            <Button type="button" variant="ghost" onClick={() => allerA(1)}>
+              <ArrowLeft className="h-4 w-4" /> Retour
+            </Button>
+            <Button type="button" onClick={() => allerA(3)} disabled={problemesEtape2.length > 0}>
+              Continuer <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
-      <div className="flex justify-end gap-2">
-        <Button type="submit" loading={saving}>
-          {initial ? 'Enregistrer les modifications' : 'Créer le dossier'}
-        </Button>
-      </div>
+      {/* ── Étape 3 : l'objet, la priorité, l'échéance, puis le récapitulatif ── */}
+      {etape === 3 && (
+        <div className="space-y-4">
+          <Textarea label="Objet" required rows={3} value={form.objet} onChange={set('objet')} placeholder="Demande d'intégration" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Select label="Priorité" required value={form.priorite_id} onChange={set('priorite_id')}>
+              <option value="">Sélectionner…</option>
+              {referentiel.priorites.map((p) => (
+                <option key={p.id} value={p.id}>{p.libelle}</option>
+              ))}
+            </Select>
+            <Input label="Date limite (optionnel)" type="date" value={form.date_limite} onChange={set('date_limite')} />
+          </div>
+          <Textarea label="Observations" value={form.observation} onChange={set('observation')} placeholder="Dossier complet, pièces jointes fournies" />
 
-      <Textarea
-        label="Observation"
-        value={form.observation}
-        onChange={set('observation')}
-        placeholder="Observations éventuelles…"
-      />
+          {/* Récapitulatif : la secrétaire vérifie avant de valider. */}
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Récapitulatif
+            </p>
+            <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+              <div className="flex justify-between gap-2">
+                <dt className="text-slate-500">Type</dt>
+                <dd className="font-medium text-slate-800">
+                  {referentiel.types_dossiers.find((t) => String(t.id) === String(form.type_id))?.libelle || '—'}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-slate-500">Division</dt>
+                <dd className="font-medium text-emerald-700">{divisionDuType?.nom || '—'} (automatique)</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-slate-500">Demandeur</dt>
+                <dd className="font-medium text-slate-800">
+                  {form.demandeur || '—'}{form.matricule ? ` (CIN : ${form.matricule})` : ''}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-slate-500">Priorité</dt>
+                <dd className="font-medium text-slate-800">
+                  {referentiel.priorites.find((p) => String(p.id) === String(form.priorite_id))?.libelle || '—'}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="flex justify-between">
+            <Button type="button" variant="ghost" onClick={() => allerA(2)}>
+              <ArrowLeft className="h-4 w-4" /> Retour
+            </Button>
+            <Button type="submit" loading={saving} disabled={validation.length > 0}>
+              <Check className="h-4 w-4" /> Créer le dossier
+            </Button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

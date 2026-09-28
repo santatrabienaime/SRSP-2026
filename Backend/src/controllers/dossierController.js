@@ -15,6 +15,21 @@ export async function getOne(req, res, next) {
   } catch (error) { next(error); }
 }
 
+/**
+ * Recherche d'un demandeur par son CIN.
+ *
+ * Sert au pré-remplissage du formulaire de création. Ce n'est PAS une
+ * vérification d'unicité bloquante : la réponse indique ce qui est connu, et la
+ * secrétaire décide. Bloquer une nouvelle demande parce qu'une personne a déjà
+ * un dossier empêcherait de traiter sa pension après son visa.
+ */
+export async function rechercherParCIN(req, res, next) {
+  try {
+    const resultat = await dossierService.rechercherParCIN(req.query.matricule);
+    res.json(resultat);
+  } catch (error) { next(error); }
+}
+
 export async function create(req, res, next) {
   try {
     const dossier = await dossierService.createDossier(req.body, req.user.id);

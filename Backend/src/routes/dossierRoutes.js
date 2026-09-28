@@ -10,6 +10,12 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.get('/', scopeDossiersMiddleware, ctrl.list);
+
+/* Recherche d'un demandeur par son CIN, pour pré-remplir le formulaire.
+   Cette route est déclarée AVANT `/:id` : sinon Express lirait « verifier-cin »
+   comme un identifiant de dossier et répondrait 404. */
+router.get('/rechercher-par-cin', rbacMiddleware('create_dossier'), ctrl.rechercherParCIN);
+
 router.get('/:id/tracabilite', assertDossierAccessMiddleware, ctrl.tracabilite);
 router.get('/:id', assertDossierAccessMiddleware, ctrl.getOne);
 router.get('/:id/statut', ctrl.statut);

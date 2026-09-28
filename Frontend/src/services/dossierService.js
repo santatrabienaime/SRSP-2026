@@ -46,6 +46,16 @@ export const dossierService = {
   liquiderMandatement: (id) =>
     apiClient.post(`/dossiers/${id}/mandatement/liquider`, {}).then((r) => r.data),
   create: (data) => apiClient.post('/dossiers', data).then((r) => r.data),
+
+  /**
+   * Recherche un demandeur par son CIN, pour pré-remplir le formulaire.
+   *
+   * C'est une aide à la saisie, pas un contrôle bloquant : la réponse indique ce
+   * qui est déjà connu, et la secrétaire décide de l'utiliser ou non. Un client
+   * revient légitimement avec un nouveau dossier.
+   */
+  rechercherParCIN: (matricule) =>
+    apiClient.get('/dossiers/rechercher-par-cin', { params: { matricule } }).then((r) => r.data),
   update: (id, data) => apiClient.put(`/dossiers/${id}`, data).then((r) => r.data),
   orienter: (id, data) => apiClient.post(`/dossiers/${id}/orienter`, data).then((r) => r.data),
   affecter: (id, data) => apiClient.post(`/dossiers/${id}/affecter`, data).then((r) => r.data),
