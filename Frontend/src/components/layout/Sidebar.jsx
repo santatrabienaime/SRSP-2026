@@ -129,9 +129,16 @@ export function Sidebar() {
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-lg font-bold text-white transition-[transform,opacity] duration-200 motion-reduce:transition-none ${
             barreRepliee
-              ? 'absolute left-1/2 -translate-x-1/2 scale-75 opacity-0'
+              /* pointer-events-none est indispensable : positionné en absolu, ce
+                 logo peindrait AU-DESSUS du bouton et, même invisible
+                 (opacity-0), il aurait capté les clics. La barre restait alors
+                 bloquée en mode icônes : on cliquait sur le bouton et rien ne
+                 se passait. Un élément qui n'est plus visible ne doit plus
+                 non plus être cliquable. */
+              ? 'pointer-events-none absolute left-1/2 -translate-x-1/2 scale-75 opacity-0'
               : 'mr-3 opacity-100'
           }`}
+          aria-hidden={barreRepliee || undefined}
         >
           S
         </div>
