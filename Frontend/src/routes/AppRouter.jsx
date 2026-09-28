@@ -127,7 +127,14 @@ export function AppRouter() {
 
           {/* Suivi */}
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/historique" element={<HistoriquePage />} />
+          <Route
+            path="/historique"
+            element={
+              <RoleRoute permissions={['view_journal', 'view_audit']}>
+                <HistoriquePage />
+              </RoleRoute>
+            }
+          />
           <Route
             path="/archives"
             element={

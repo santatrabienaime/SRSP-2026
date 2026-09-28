@@ -83,19 +83,26 @@ export async function accesDossier(userId, dossierId) {
 
   const scope = await getScope(userId);
 
-  // Rôle de pilotage : accès global.
-  if (scope.permissions.includes('view_all_dossiers')) return true;
-
   const [dossier] = await db.query(
     'SELECT division_id, agent_responsable_id FROM dossiers WHERE id = ? LIMIT 1',
     [dossierId]
   );
   if (!dossier) return false;
 
+  /* L'ordre de ces tests est délibéré, et il était inversé.
+     `view_all_dossiers` est détenue par les chefs de division autant que par
+     les rôles de pilotage : tester cette permission EN PREMIER leur ouvrait
+     l'accès à toutes les divisions, et le cloisonnement appliqué plus bas ne
+     s'exécutait jamais. Le chef VISA pouvait ainsi ouvrir un dossier Solde.
+     On teste donc d'abord le périmètre le plus restrictif. */
+
   // Chef de division : sa division uniquement.
   if (scope.divisionScoped && scope.divisionId) {
     return dossier.division_id === scope.divisionId;
   }
+
+  // Rôle de pilotage : accès global.
+  if (scope.permissions.includes('view_all_dossiers')) return true;
 
   // Agent : uniquement les dossiers dont il est responsable.
   if (scope.agentScoped && scope.agentId) {

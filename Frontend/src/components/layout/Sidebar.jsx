@@ -95,7 +95,7 @@ export function Sidebar() {
       label: 'Suivi',
       items: [
         { to: '/notifications', label: 'Notifications', icon: 'notifications' },
-        { to: '/historique', label: 'Historique', icon: 'historique' },
+        { to: '/historique', label: 'Historique', icon: 'historique', perms: ['view_journal', 'view_audit'] },
         { to: '/archives', label: 'Archives', icon: 'archives', perms: ['view_archives'] },
         { to: '/statistiques', label: 'Statistiques', icon: 'statistiques', perms: ['view_stats'] },
         { to: '/rapports', label: 'Rapports', icon: 'rapports', perms: ['view_stats', 'consolidate_reports', 'export_data'] },
