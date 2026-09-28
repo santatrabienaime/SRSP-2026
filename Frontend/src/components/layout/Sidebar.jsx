@@ -96,7 +96,7 @@ export function Sidebar() {
       items: [
         { to: '/notifications', label: 'Notifications', icon: 'notifications' },
         { to: '/historique', label: 'Historique', icon: 'historique' },
-        { to: '/archives', label: 'Archives', icon: 'archives', roles: ['ADMIN', 'CHEF_SERVICE'], perms: ['archiver_dossier'] },
+        { to: '/archives', label: 'Archives', icon: 'archives', perms: ['view_archives'] },
         { to: '/statistiques', label: 'Statistiques', icon: 'statistiques', perms: ['view_stats'] },
         { to: '/rapports', label: 'Rapports', icon: 'rapports', perms: ['view_stats', 'consolidate_reports', 'export_data'] },
       ],

@@ -131,7 +131,7 @@ export function AppRouter() {
           <Route
             path="/archives"
             element={
-              <RoleRoute roles={[ROLES.ADMIN, ROLES.CHEF_SERVICE]} permissions={['archiver_dossier']}>
+              <RoleRoute permissions={['view_archives']}>
                 <ArchivesPage />
               </RoleRoute>
             }
