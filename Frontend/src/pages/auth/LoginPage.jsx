@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { LogIn, ShieldCheck } from 'lucide-react';
+import { LogIn, MapPin, Phone, Mail } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Button } from '../../components/ui/Button.jsx';
@@ -45,53 +45,72 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-slate-900 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-slate-800 via-primary-900 to-slate-900 px-4 py-8">
       <div className="w-full max-w-md">
-        {/* En-tête officiel : l'identité administrative du service, affichée
-            avant l'écran de connexion. Il remplace un ancien bloc qui portait un
-            simple « S » — jamais un logo réel. */}
-        <header className="mb-6 text-center text-white">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em]">
-            République de Madagascar
-          </p>
-          <p className="mt-1 text-[11px] italic text-primary-100">
-            Fitiavana &mdash; Tanindrazana &mdash; Fandrosoana
-          </p>
+        {/* Emplacement réservé au logo officiel (armoiries / ministère).
+            À remplacer par l'image réelle : <img src="/logo-republique.png" … /> */}
+        <div className="mb-5 flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-lg font-bold tracking-wider text-white backdrop-blur">
+            SRSP
+          </div>
+        </div>
 
-          <div className="mx-auto my-3 h-px w-24 bg-white/40" />
+        <div className="overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5">
+          {/* En-tête officiel — sur fond blanc, comme sur un document
+              administratif. Sur le dégradé, ce texte en 11 px aurait eu un
+              contraste insuffisant. */}
+          <header className="px-6 pb-5 pt-6 text-center sm:px-8">
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500 sm:text-[11px]">
+              République de Madagascar
+            </p>
+            <p className="mt-1 text-[11px] italic text-slate-400">
+              Fitiavana &mdash; Tanindrazana &mdash; Fandrosoana
+            </p>
 
-          <p className="text-sm font-bold uppercase tracking-wide">
-            Ministère de l&apos;Économie et des Finances
-          </p>
-          <p className="mt-1 text-sm font-semibold leading-snug">
-            Service Régional de la Solde et des Pensions Fitovinany
-          </p>
-        </header>
+            {/* Double filet, séparateur de l'en-tête administratif */}
+            <div className="mx-auto my-4 max-w-[15rem] border-t border-slate-300" />
+            <div className="mx-auto -mt-3.5 max-w-[15rem] border-t border-slate-300" />
 
-        <div className="rounded-xl bg-white p-6 shadow-xl">
-          {/* Coordonnées du service : sous l'en-tête, comme sur un document
-              administratif. */}
-          <address className="mb-4 border-b border-slate-200 pb-4 text-center text-[11px] not-italic leading-relaxed text-slate-500">
-            Ambodiaplay, Manakara
-            <br />
-            +261 32 11 090 10 / +261 32 25 469 11
-            <br />
-            <a
-              href="mailto:srsp.fitovinany@dgfag.mg"
-              className="text-primary-600 hover:underline"
-            >
-              srsp.fitovinany@dgfag.mg
-            </a>
+            <p className="mt-3 text-[13px] font-bold uppercase tracking-wide text-slate-800">
+              Ministère de l&apos;Économie et des Finances
+            </p>
+            <p className="mx-auto mt-1.5 max-w-xs text-sm font-semibold leading-snug text-primary-700">
+              Service Régional de la Solde et des Pensions Fitovinany
+            </p>
+          </header>
+
+          {/* Coordonnées du service */}
+          <address className="not-italic">
+            <div className="space-y-1.5 border-y border-slate-100 bg-slate-50/80 px-6 py-4 text-[11px] text-slate-600 sm:px-8">
+              <p className="flex items-center justify-center gap-2">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                Ambodiaplay, Manakara
+              </p>
+              <p className="flex items-center justify-center gap-2">
+                <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                +261 32 11 090 10 / +261 32 25 469 11
+              </p>
+              <p className="flex items-center justify-center gap-2">
+                <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                <a
+                  href="mailto:srsp.fitovinany@dgfag.mg"
+                  className="font-medium text-primary-700 hover:underline"
+                >
+                  srsp.fitovinany@dgfag.mg
+                </a>
+              </p>
+            </div>
           </address>
 
-          <p className="mb-4 text-center text-xs text-slate-500">
-            Suivi et traçabilité des dossiers administratifs
-          </p>
-
-          <div className="mb-4 flex items-center gap-2 text-slate-700">
-            <ShieldCheck className="h-5 w-5 text-primary-600" />
-            <h2 className="text-lg font-semibold">Connexion</h2>
-          </div>
+          <div className="px-6 py-6 sm:px-8">
+            <div className="mb-5 text-center">
+              <h1 className="text-base font-semibold text-slate-800">
+                Connexion à la plateforme
+              </h1>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Suivi et traçabilité des dossiers administratifs
+              </p>
+            </div>
 
           {error && (
             <Alert type="error" title="Connexion impossible">
@@ -122,14 +141,18 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-4 text-center">
-            <Link to="/mot-de-passe-oublie" className="text-xs text-primary-600 hover:underline">
-              Mot de passe oublié ?
-            </Link>
+            <div className="mt-5 text-center">
+              <Link
+                to="/mot-de-passe-oublie"
+                className="text-xs font-medium text-primary-700 hover:underline"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
           </div>
         </div>
 
-        <p className="mt-4 text-center text-xs text-primary-100">
+        <p className="mt-6 text-center text-[11px] leading-relaxed text-slate-400">
           Plateforme interne — accès réservé au personnel autorisé du SRSP.
         </p>
       </div>
