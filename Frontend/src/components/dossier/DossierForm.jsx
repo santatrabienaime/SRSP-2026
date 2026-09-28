@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dossierService } from '../../services/dossierService.js';
 import { referentielService } from '../../services/referentielService.js';
@@ -10,6 +10,7 @@ import { Textarea } from '../ui/Textarea.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import { todayISO } from '../../utils/formatDate.js';
 import { useNotification } from '../../hooks/useNotification.js';
+import { CheckCircle2 } from 'lucide-react';
 
 /**
  * Formulaire de création / modification d'un dossier.
@@ -39,6 +40,13 @@ export function DossierForm({ initial = null, onSaved }) {
     observation: initial?.observation ?? '',
   });
 
+  // Routage automatique : la division affichée découle du type choisi.
+  // L'utilisateur ne la saisit plus (spécification « Routage automatique »).
+  const divisionDuType = useMemo(() => {
+    if (!form.type_id || !divisions.length) return null;
+    return divisions.find((d) => d.type_dossier_id === Number(form.type_id)) || null;
+  }, [form.type_id, divisions]);
+
   useEffect(() => {
     Promise.all([referentielService.get(), divisionService.list()])
       .then(([ref, divs]) => {
@@ -57,7 +65,7 @@ export function DossierForm({ initial = null, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    if (!form.type_id || !form.objet || !form.demandeur || !form.date_reception || !form.division_id || !form.priorite_id) {
+    if (!form.type_id || !form.objet || !form.demandeur || !form.date_reception || !form.priorite_id) {
       setError({ message: 'Veuillez remplir tous les champs obligatoires.' });
       return;
     }
@@ -69,9 +77,9 @@ export function DossierForm({ initial = null, onSaved }) {
         demandeur: form.demandeur,
         matricule: form.matricule || null,
         date_reception: form.date_reception,
-        division_id: Number(form.division_id),
         priorite_id: Number(form.priorite_id),
         observation: form.observation || null,
+        date_limite: form.date_limite || null,
       };
       if (initial) {
         await dossierService.update(initial.id, payload);
@@ -115,6 +123,34 @@ export function DossierForm({ initial = null, onSaved }) {
             </option>
           ))}
         </Select>
+
+        {/* Routage automatique : la division découle du type (règle 1). */}
+        <div>
+          <p className="mb-1 block text-sm font-medium text-slate-700">
+            Division affectée
+          </p>
+          <div
+            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+              divisionDuType
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-dashed border-slate-300 bg-slate-50 text-slate-400'
+            }`}
+          >
+            {divisionDuType ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span className="font-semibold">{divisionDuType.nom}</span>
+              </>
+            ) : (
+              <span>Choisir un type pour déterminer la division</span>
+            )}
+          </div>
+          {divisionDuType && !initial && (
+            <p className="mt-1 text-[11px] text-slate-500">
+              Le dossier sera automatiquement orienté vers cette division.
+            </p>
+          )}
+        </div>
 
         <Select
           label="Priorité"
@@ -164,19 +200,12 @@ export function DossierForm({ initial = null, onSaved }) {
           value={form.date_reception}
           onChange={set('date_reception')}
         />
-        <Select
-          label="Division"
-          required
-          value={form.division_id}
-          onChange={set('division_id')}
-        >
-          <option value="">Sélectionner…</option>
-          {divisions.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.nom}
-            </option>
-          ))}
-        </Select>
+        <Input
+          label="Date limite (optionnel)"
+          type="date"
+          value={form.date_limite || ''}
+          onChange={set('date_limite')}
+        />
         <div className="sm:pt-6">
           <Button type="submit" loading={saving} className="w-full">
             {initial ? 'Enregistrer les modifications' : 'Créer le dossier'}

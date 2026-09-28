@@ -122,7 +122,7 @@ export async function findDossierById(id) {
 
 export async function createDossier(data) {
   const {
-    type_id, objet, demandeur, matricule, date_reception,
+    type_id, objet, demandeur, matricule, date_reception, date_limite,
     division_id, priorite_id, observation, created_by,
   } = data;
   const numero = await generateDossierNumber(type_id);
@@ -132,11 +132,12 @@ export async function createDossier(data) {
   const statutNouveau = rows[0].id;
   const result = await db.query(
     `INSERT INTO dossiers
-     (numero, type_id, objet, demandeur, matricule, date_reception,
+     (numero, type_id, objet, demandeur, matricule, date_reception, date_limite,
       division_id, priorite_id, statut_id, observation, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [numero, type_id, objet, demandeur, matricule ?? null, date_reception,
-     division_id, priorite_id, statutNouveau, observation ?? null, created_by]
+     date_limite ?? null, division_id, priorite_id, statutNouveau,
+     observation ?? null, created_by]
   );
   return { id: result.insertId, numero };
 }

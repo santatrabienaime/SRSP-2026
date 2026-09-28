@@ -2,8 +2,10 @@ import * as dossierModel from '../models/dossierModel.js';
 import { createArchive } from '../models/archiveModel.js';
 import * as historiqueModel from '../models/historiqueModel.js';
 import * as notificationModel from '../models/notificationModel.js';
+import db from '../config/db.js';
 import * as workflowService from './workflowService.js';
 import * as tracabiliteService from './tracabiliteService.js';
+import * as routageService from './routageService.js';
 import { STATUTS, STATUTS_PROTEGES } from '../utils/constants.js';
 import { httpError } from '../utils/httpError.js';
 
@@ -19,7 +21,29 @@ export async function getDossierById(id) {
 }
 
 export async function createDossier(data, userId) {
-  const dossier = await dossierModel.createDossier({ ...data, created_by: userId });
+  // Routage automatique : la division découle du type de dossier.
+  // Si l'appelant fournit une division, elle doit correspondre au type.
+  const division = await routageService.divisionPourType(data.type_id);
+  if (!division) {
+    throw httpError(
+      422,
+      "Aucune division n'est rattachée à ce type de dossier. Vérifiez le référentiel."
+    );
+  }
+  if (data.division_id && Number(data.division_id) !== division.id) {
+    throw httpError(
+      422,
+      `Le type de dossier choisi correspond à la division ${division.nom} : ` +
+      "la division n'est pas modifiable à la création."
+    );
+  }
+
+  const dossier = await dossierModel.createDossier({
+    ...data,
+    division_id: division.id,
+    created_by: userId,
+  });
+
   await historiqueModel.log({
     user_id: userId,
     action: 'CREATION_DOSSIER',
@@ -41,12 +65,38 @@ export async function createDossier(data, userId) {
     details: `Dossier ${dossier.numero} enregistré.`,
   });
 
-  await notificationModel.notifyRole('SECRETAIRE', {
+  // Orientation automatique vers la division du type : le dossier arrive
+  // directement dans la file du chef de division, qui en est notifié.
+  try {
+    await workflowService.transition(
+      dossier.id,
+      ORIENTE,
+      userId,
+      `Orientation automatique vers ${division.nom} (routage par type).`
+    );
+    await historiqueModel.log({
+      user_id: userId,
+      action: 'ORIENTATION',
+      dossier_id: dossier.id,
+      nouvelle_valeur: division.nom,
+      details: 'Routage automatique : la division découle du type de dossier.',
+    });
+  } catch (e) {
+    // Si l'orientation échoue, le dossier reste enregistré et sera orientable
+    // manuellement : on ne perd pas la création.
+    console.warn('Orientation automatique impossible :', e.message);
+  }
+
+  // La personne à l'origine est prévenue personnellement.
+  await notificationModel.notifyUser(userId, {
+    dossier_id: dossier.id,
+    action: 'DOSSIER_ENREGISTRE',
     type: 'INFO',
-    message: `Nouveau dossier ${dossier.numero} enregistré.`,
+    message: `Nouveau dossier ${dossier.numero} enregistré et orienté vers ${division.nom}.`,
     lien: `/dossiers/${dossier.id}`,
   });
-  return dossier;
+
+  return { ...dossier, division_nom: division.nom, division_code: division.code };
 }
 
 export async function updateDossier(id, data, userId) {
@@ -54,6 +104,48 @@ export async function updateDossier(id, data, userId) {
   if (STATUTS_PROTEGES.includes(currentStatut)) {
     throw httpError(409, 'Ce dossier est clôturé ou archivé : modification interdite.');
   }
+
+  // Règle 2 du routage automatique : la division découle du type et n'est pas
+  // modifiable. Seul un Chef de Service ou un Administrateur peut le faire à
+  // titre exceptionnel, et seulement avec un motif obligatoire (règle 3).
+  if (data.division_id !== undefined) {
+    const courant = await dossierModel.findDossierById(id);
+    const nouvelleDivision = Number(data.division_id);
+
+    if (courant && nouvelleDivision !== courant.division_id) {
+      // La division cible doit exister et être active : sinon on renvoie un
+      // message clair au lieu de laisser remonter une erreur de contrainte.
+      const cible = await db.query(
+        'SELECT id, nom FROM divisions WHERE id = ? AND actif = 1 LIMIT 1',
+        [nouvelleDivision]
+      );
+      if (!cible[0]) {
+        throw httpError(422, 'Division inconnue ou inactive.');
+      }
+      if (!await peutDeroguer(userId)) {
+        throw httpError(
+          403,
+          'La division est déterminée par le type de dossier et ne peut pas être modifiée. ' +
+          "Seul le Chef de Service ou l'administrateur peut le faire à titre exceptionnel."
+        );
+      }
+      if (!data.motif_changement_division || !String(data.motif_changement_division).trim()) {
+        throw httpError(
+          422,
+          "Un motif est obligatoire pour changer la division d'un dossier."
+        );
+      }
+      await historiqueModel.log({
+        user_id: userId,
+        action: 'CHANGEMENT_DIVISION',
+        dossier_id: id,
+        ancienne_valeur: courant.division_nom,
+        nouvelle_valeur: cible[0].nom,
+        details: `Dérogation : ${data.motif_changement_division}`,
+      });
+    }
+  }
+
   const dossier = await dossierModel.updateDossier(id, data);
   await historiqueModel.log({
     user_id: userId,
@@ -62,6 +154,19 @@ export async function updateDossier(id, data, userId) {
     details: `Modification du dossier ${dossier.numero}`,
   });
   return dossier;
+}
+
+/** Rôles autorisés à changer la division d'un dossier (règle 3). */
+const ROLES_DEROGATION = ['ADMIN', 'CHEF_SERVICE'];
+
+async function peutDeroguer(userId) {
+  const rows = await db.query(
+    `SELECT r.nom FROM roles r
+     JOIN users u ON u.role_id = r.id
+     WHERE u.id = ?`,
+    [userId]
+  );
+  return rows.some((r) => ROLES_DEROGATION.includes(r.nom));
 }
 
 /** Orientation vers une division (ENREGISTRE → ORIENTE). */
