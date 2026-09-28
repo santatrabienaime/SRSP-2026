@@ -9,6 +9,25 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Applique le thème AVANT le premier rendu.
+      // Sans ce script, une personne ayant choisi le mode sombre verrait un
+      // éclair clair à chaque chargement de page, le temps que React démarre.
+      (function () {
+        try {
+          var choix = localStorage.getItem('srsp_theme');
+          if (choix !== 'clair' && choix !== 'sombre') {
+            choix = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'sombre' : 'clair';
+          }
+          if (choix === 'sombre') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          }
+        } catch (e) {
+          /* stockage inaccessible : on garde le thème clair par défaut */
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

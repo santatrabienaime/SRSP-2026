@@ -68,7 +68,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-10 sm:px-6">
+    <div className="palette-nuit relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-10 sm:px-6">
       {/* Décor : fond dégradé, trame technique et halos. aria-hidden : c'est de
           la décoration, elle ne doit pas être lue. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">

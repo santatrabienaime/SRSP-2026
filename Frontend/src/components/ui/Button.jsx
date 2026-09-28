@@ -1,6 +1,10 @@
 const VARIANTS = {
+  // Le survol passe par primary-800 et non primary-700 : en mode sombre,
+  // primary-700 devient un bleu clair (c'est une couleur de texte sur fond
+  // teinté) et conviendrait mal à un fond de bouton sur lequel le texte est
+  // blanc. primary-800 reste assez sombre dans les deux thèmes.
   primary:
-    'bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500 disabled:bg-primary-300',
+    'bg-primary-600 text-white hover:bg-primary-800 focus-visible:ring-primary-500 disabled:bg-primary-300',
   secondary:
     'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus-visible:ring-slate-400',
   danger:

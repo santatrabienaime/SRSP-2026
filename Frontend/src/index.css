@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Mode sombre piloté par la classe « dark » sur <html> : c'est ce qui permet à
+   l'écran de connexion d'appliquer le thème avant le premier rendu, et à
+   l'utilisateur de choisir clair ou sombre indépendamment du système. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary-50: #eff6ff;
   --color-primary-100: #dbeafe;
@@ -96,6 +101,103 @@ html {
 body {
   @apply bg-slate-100 text-slate-800 antialiased;
 }
+
+/* ------------------------------------------------------------------
+   MODE SOMBRE
+   ------------------------------------------------------------------
+   Le projet utilise partout des classes Tailwind figées (bg-white,
+   text-slate-700, border-slate-200…). Ajouter une variante dark: sur
+   chacune des 429 occurrences serait long et fragile.
+
+   En revanche, chaque utilitaire Tailwind v4 résout sa couleur par
+   var(--color-…). Il suffit donc de REDÉFINIR ces variables sous .dark
+   pour que toute l'application bascule, sans toucher à un seul fichier.
+   La rampe slate est inversée : ce qui était clair devient sombre et
+   réciproquement, ce qui préserve la hiérarchie visuelle existante. */
+.dark {
+  color-scheme: dark;
+
+  /* Surfaces : le blanc devient la carte, slate-100 le fond de page. */
+  --color-white: #0f172a;
+  --color-slate-50: #0b1120;
+  --color-slate-100: #080d1a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #7c8ba1;
+  --color-slate-500: #9aa8bd;
+  --color-slate-600: #c3cddc;
+  --color-slate-700: #dde4ee;
+  --color-slate-800: #f1f5f9;
+  --color-slate-900: #f8fafc;
+  --color-slate-950: #ffffff;
+
+  /* Teintes de fond (badges, alertes, en-tête de tableau). */
+  --color-primary-50: #16255a;
+  --color-primary-100: #1d3272;
+  --color-emerald-50: #0c2e23;
+  --color-amber-50: #33260a;
+  --color-sky-50: #0c2740;
+  --color-red-50: #3a1418;
+  --color-violet-50: #241a45;
+  --color-blue-50: #10243f;
+  --color-cyan-50: #0b2f33;
+
+  /* Couleurs de texte sur ces teintes : éclaircies pour rester lisibles.
+     primary-600 et primary-500 ne sont PAS touchés : ils servent aussi de
+     fond de bouton, où le texte est blanc. */
+  --color-primary-700: #93c5fd;
+  --color-primary-800: #1e3a8a;
+  --color-emerald-600: #34d399;
+  --color-emerald-700: #6ee7b7;
+  --color-emerald-800: #a7f3d0;
+  --color-amber-600: #fbbf24;
+  --color-amber-700: #fcd34d;
+  --color-sky-700: #7dd3fc;
+  --color-sky-800: #bae6fd;
+  --color-violet-600: #a78bfa;
+  --color-violet-700: #c4b5fd;
+  --color-blue-700: #93c5fd;
+  --color-red-600: #f87171;
+  --color-cyan-300: #67e8f9;
+}
+
+/* ------------------------------------------------------------------
+   PALETTE FIXÉE POUR L'ÉCRAN DE CONNEXION
+   ------------------------------------------------------------------
+   L'écran de connexion est volontairement sombre dans les DEUX thèmes.
+   Or le mode sombre inverse les variables : son fond (bg-slate-950)
+   deviendrait blanc et son texte (text-white) deviendrait sombre.
+
+   On rétablit donc ici les valeurs d'origine sur ce seul écran, ce qui
+   garantit qu'il reste identique quel que soit le thème choisi. */
+.palette-nuit {
+  --color-white: #ffffff;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-emerald-50: #ecfdf5;
+  --color-amber-50: #fffbeb;
+  --color-sky-50: #f0f9ff;
+  --color-red-50: #fef2f2;
+  --color-cyan-300: #67e8f9;
+  color-scheme: dark;
+}
+
+/* Barre de défilement : suivie du thème, elle était claire sur fond noir. */
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
 /* Barre de défilement discrète */
 ::-webkit-scrollbar { width: 8px; height: 8px; }

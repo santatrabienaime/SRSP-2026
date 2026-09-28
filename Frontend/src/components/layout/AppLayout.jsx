@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar.jsx';
 import { Topbar } from './Topbar.jsx';
 import { Footer } from './Footer.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
+import { useUI } from '../../contexts/UIContext.jsx';
 import { IdleSessionGuard } from '../../hooks/useIdleSession.jsx';
 
 /**
@@ -16,6 +17,7 @@ import { IdleSessionGuard } from '../../hooks/useIdleSession.jsx';
  */
 export function AppLayout() {
   const { user } = useAuth();
+  const { barreRepliee } = useUI();
   const navigate = useNavigate();
   const userId = user?.id ?? 'anon';
 
@@ -29,7 +31,13 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-slate-100">
       <Sidebar />
-      <div className="lg:pl-64">
+      {/* La marge suit la largeur réelle de la barre, repliée ou non. La
+          transition évite que le contenu saute d'un coup. */}
+      <div
+        className={`transition-[padding] duration-300 ease-out motion-reduce:transition-none ${
+          barreRepliee ? 'pl-[4.5rem]' : 'pl-64'
+        }`}
+      >
         <Topbar />
         <main className="px-4 py-6 sm:px-6 lg:px-8">
           <Outlet key={userId} />
