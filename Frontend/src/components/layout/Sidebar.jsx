@@ -50,7 +50,9 @@ export function Sidebar() {
         myDivision
           ? {
               to: `/divisions/${myDivision}/dossiers`,
-              label: 'Ma division',
+              // Le menu nomme la division : un chef de division doit voir en
+              // permanence de quelle division il s'agit, pas « Ma division ».
+              label: `Dossiers ${user?.division_nom?.replace(/^Division /, '') || myDivision}`,
               icon: 'dossiers',
             }
           : { to: '/dossiers', label: 'Dossiers', icon: 'dossiers' },
