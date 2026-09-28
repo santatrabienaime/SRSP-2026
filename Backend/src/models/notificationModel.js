@@ -44,8 +44,20 @@ export async function create({ user_id, type, action, message, lien, dossier_id 
   return res.affectedRows > 0;
 }
 
+/**
+ * Marque une notification comme lue.
+ *
+ * Le filtre `user_id` est ce qui empêche de marquer celle d'autrui : l'UPDATE
+ * ne touche alors aucune ligne. On renvoie TRUE/FALSE pour que le
+ * contrôleur puisse répondre 404 au lieu d'un 200 trompeur — sans fuite de
+ * données, mais un 200 laisse croire à une prise en charge qui n'a pas eu lieu.
+ */
 export async function markAsRead(id, userId) {
-  await db.query('UPDATE notifications SET lu = TRUE WHERE id = ? AND user_id = ?', [id, userId]);
+  const [res] = await db.pool.execute(
+    'UPDATE notifications SET lu = TRUE WHERE id = ? AND user_id = ?',
+    [id, userId]
+  );
+  return res.affectedRows > 0;
 }
 
 export async function markAllAsRead(userId) {
@@ -120,4 +132,30 @@ export async function notifyRole(roleNom, payload) {
     if (await create({ ...payload, user_id: id })) envoyees += 1;
   }
   return envoyees;
+}
+
+/**
+ * Notifie le titulaire UNIQUE d'un rôle, et refuse de diffuser.
+ *
+ * preferred over notifyRole pour les rôles qui doivent n'avoir qu'un
+ * titulaire : c'est le cas du Chef de Service, seul à valider, signer et
+ * clôturer. Si le rôle venait à compter plusieurs titulaires, on n'envoie rien
+ * et on le signale : une diffusion silencieuse ferait recevoir à chaque
+ * titulaire une notification concernant le travail des autres, ce qu'aucun
+ * document ne demande. Le défaut doit être visible, pas toléré en silence.
+ */
+export async function notifyTitulaireRole(roleNom, payload) {
+  const ids = await getUserIdsByRole(roleNom);
+  if (ids.length === 0) {
+    console.warn(`[notifications] aucun titulaire actif pour le rôle ${roleNom} : notification non envoyée.`);
+    return 0;
+  }
+  if (ids.length > 1) {
+    console.warn(
+      `[notifications] le rôle ${roleNom} a ${ids.length} titulaires actifs. ` +
+      'Notification NON diffusée : il faut désigner un titulaire unique.'
+    );
+    return 0;
+  }
+  return (await create({ ...payload, user_id: ids[0] })) ? 1 : 0;
 }

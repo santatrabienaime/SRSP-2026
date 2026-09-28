@@ -68,4 +68,41 @@ export function libellePerimetre(scope) {
   return 'Toutes les divisions';
 }
 
+/**
+ * Un utilisateur a-t-il légitimement accès à CE dossier ?
+ *
+ * Mêmes règles que le cloisonnement des listes, pour qu'une information ne
+ * puisse pas sortir par un autre chemin que la navigation elle-même. C'est
+ * nécessaire pour les notifications : une mention adressée à quelqu'un qui
+ * n'a pas accès au dossier lui révélerait son numéro — une fuite
+ * inter-division, alors que la notification serait le seul endroit où il la
+ * verrait.
+ */
+export async function accesDossier(userId, dossierId) {
+  if (!userId || !dossierId) return false;
+
+  const scope = await getScope(userId);
+
+  // Rôle de pilotage : accès global.
+  if (scope.permissions.includes('view_all_dossiers')) return true;
+
+  const [dossier] = await db.query(
+    'SELECT division_id, agent_responsable_id FROM dossiers WHERE id = ? LIMIT 1',
+    [dossierId]
+  );
+  if (!dossier) return false;
+
+  // Chef de division : sa division uniquement.
+  if (scope.divisionScoped && scope.divisionId) {
+    return dossier.division_id === scope.divisionId;
+  }
+
+  // Agent : uniquement les dossiers dont il est responsable.
+  if (scope.agentScoped && scope.agentId) {
+    return dossier.agent_responsable_id === scope.agentId;
+  }
+
+  return false;
+}
+
 export default getScope;

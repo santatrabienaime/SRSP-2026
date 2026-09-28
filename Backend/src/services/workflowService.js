@@ -44,12 +44,19 @@ export async function getCurrentStatus(dossierId) {
 /**
  * Notifie les acteurs concernés après un changement de statut.
  *
- * Chaque notification est adressee a une personne identifiee :
- *  - le responsable DESIGNE de la division (divisions.responsable_id) pour les
- *    actes de division, plutot que tous les membres du role ;
+ * Chaque notification est adressée à UNE personne identifiée, jamais diffusée :
+ *  - le responsable DÉSIGNÉ de la division (divisions.responsable_id) pour les
+ *    actes de division, plutôt que tous les membres du rôle ;
  *  - l'agent responsable du dossier pour les actes qui le concernent ;
- *  - le titulaire du role (Chef de Service / Secretaire) pour la validation,
- *    la signature et la cloture, qui ne relevent d'aucune division.
+ *  - le CHEF DE SERVICE pour la validation, la signature et la clôture, qui ne
+ *    relèvent d'aucune division. Ce rôle est tenu par une seule personne ; la
+ *    fonction refuse de diffuser si le rôle venait à avoir plusieurs titulaires,
+ *    pour qu'une diffusion ne puisse jamais s'installer en silence.
+ *
+ * La signature ne notifie PAS les secrétaires : la clôture est l'acte suivant
+ * et seule la chef de service peut l'accomplir. Avertir une secrétaire qu'un
+ * dossier « peut être clôturé » lui demandait une action qu'elle n'a pas le
+ * droit de faire, et lui révélait un dossier qui n'est pas le sien.
  */
 async function notifyForTransition(dossierId, toStatus) {
   const info = await dossierModel.findDivisionOfDossier(dossierId); // { division_id, agent_responsable_id }
@@ -75,15 +82,15 @@ async function notifyForTransition(dossierId, toStatus) {
       dossier_id, action: 'CORRECTION_DEMANDEE', type: 'CORRECTION',
       message: `Des corrections sont demandées sur le dossier ${numero}.`, lien,
     }),
-    VALIDE: () => notificationModel.notifyRole('CHEF_SERVICE', {
+    VALIDE: () => notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
       dossier_id, action: 'VALIDE', type: 'VALIDATION',
       message: `Le dossier ${numero} est validé et attend votre signature.`, lien,
     }),
-    SIGNE: () => notificationModel.notifyRole('SECRETAIRE', {
+    SIGNE: () => notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
       dossier_id, action: 'SIGNE', type: 'SIGNATURE',
-      message: `Le dossier ${numero} a été signé et peut être clôturé.`, lien,
+      message: `Le dossier ${numero} a été signé : il peut être clôturé.`, lien,
     }),
-    CLOTURE: () => notificationModel.notifyRole('CHEF_SERVICE', {
+    CLOTURE: () => notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
       dossier_id, action: 'CLOTURE', type: 'CLOTURE',
       message: `Le dossier ${numero} est clôturé et peut être archivé.`, lien,
     }),

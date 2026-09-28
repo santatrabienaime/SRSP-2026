@@ -1,6 +1,7 @@
 import * as model from '../models/commentaireModel.js';
 import * as notificationModel from '../models/notificationModel.js';
 import * as historiqueModel from '../models/historiqueModel.js';
+import * as scopeService from './scopeService.js';
 import db from '../config/db.js';
 import { httpError } from '../utils/httpError.js';
 
@@ -36,6 +37,12 @@ export async function addComment(dossierId, contenu, user) {
       [username]
     );
     if (cible[0]) {
+      /* Une mention ne notifie que si la personne visée a ACCÈS au dossier.
+         Sans ce contrôle, mentionner l'identifiant d'un vérificateur d'une
+         autre division suffisait à lui révéler le numéro d'un dossier auquel
+         il n'a pas le droit d'ouvrir : la notification serait le seul endroit
+         où cette information fuite. */
+      if (!await scopeService.accesDossier(cible[0].id, dossierId)) continue;
       // Le JWT ne contient que l'identifiant : on relit l'email de l'auteur.
       const auteur = await db.query(
         'SELECT email FROM users WHERE id = ? LIMIT 1',
