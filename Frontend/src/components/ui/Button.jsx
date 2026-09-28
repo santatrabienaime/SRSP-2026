@@ -12,13 +12,18 @@ const VARIANTS = {
   outline:
     'bg-white text-primary-600 border border-primary-500 hover:bg-primary-50 focus-visible:ring-primary-400',
   // Écran de connexion : contour clair au repos, qui se REMPLIT d'un dégradé au
-  // survol. Le remplissage est un ::before en z-index négatif : pas de balisage
-  // supplémentaire, et le texte reste au-dessus.
+  // survol, DE GAUCHE À DROITE. Le balayage se fait par clip-path plutôt que par
+  // opacité ou scaleX : le dégradé garde ainsi ses proportions et ne se déforme
+  // pas pendant qu'il entre. 600 ms, easing doux — un fondu de 300 ms était trop
+  // vif pour être lu. En sortant du survol, le remplissage se retracte par le
+  // même chemin.
   accent:
     'relative isolate overflow-hidden border border-cyan-400/45 text-cyan-300 ' +
+    'transition-colors duration-500 ' +
     'before:absolute before:inset-0 before:-z-10 before:bg-gradient-to-r ' +
-    'before:from-primary-500 before:to-cyan-500 before:opacity-0 ' +
-    'before:transition-opacity before:duration-300 hover:before:opacity-100 ' +
+    'before:from-primary-500 before:to-cyan-500 before:[clip-path:inset(0_100%_0_0)] ' +
+    'before:transition-[clip-path] before:duration-[600ms] before:ease-out ' +
+    'hover:before:[clip-path:inset(0_0_0_0)] ' +
     'hover:border-cyan-300/80 hover:text-white hover:shadow-lg hover:shadow-cyan-500/30 ' +
     'active:scale-[.98] focus-visible:ring-cyan-400 focus-visible:ring-offset-slate-950 ' +
     'disabled:border-white/15 disabled:text-white/30',
