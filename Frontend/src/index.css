@@ -117,13 +117,16 @@ body {
 .dark {
   color-scheme: dark;
 
-  /* Surfaces : le blanc devient la carte, slate-100 le fond de page. */
+  /* Surfaces : le blanc devient la carte, slate-100 le fond de page.
+     slate-200 est volontairement plus clair qu'en version inversée simple :
+     avec #1e293b la bordure de carte ne se détachait pas du fond
+     (1,22:1, donc invisible à l'œil). */
   --color-white: #0f172a;
   --color-slate-50: #0b1120;
   --color-slate-100: #080d1a;
-  --color-slate-200: #1e293b;
-  --color-slate-300: #334155;
-  --color-slate-400: #7c8ba1;
+  --color-slate-200: #334155;
+  --color-slate-300: #475569;
+  --color-slate-400: #8b98ad;
   --color-slate-500: #9aa8bd;
   --color-slate-600: #c3cddc;
   --color-slate-700: #dde4ee;
@@ -142,6 +145,29 @@ body {
   --color-blue-50: #10243f;
   --color-cyan-50: #0b2f33;
 
+  /* ----------------------------------------------------------------
+     BADGES DE STATUT
+     ----------------------------------------------------------------
+     Les 11 statuts utilisent le motif bg-<teinte>-100 / text-<teinte>-800
+     / border-<teinte>-300. En mode sombre, le fond -100clair n'était pas
+     inversé : un badge « Validé » gardait donc un fond vert vif sur lequel
+     le texte vert clair n'était plus lisible — le défaut le plus visible du
+     mode sombre.
+
+     Pour chaque teinte : fond sombre teinté, bordure moyenne, texte clair.
+     Ces tons -100 ne servent que dans les badges (vérifié : 19 bg-slate-100
+     mis à part, aucun autre usage). */
+  --color-sky-100: #0c2740;    --color-sky-300: #1e4a6e;    --color-sky-800: #7dd3fc;
+  --color-cyan-100: #0b2f33;   --color-cyan-300: #155e63;   --color-cyan-800: #67e8f9;
+  --color-indigo-100: #1e1b4b; --color-indigo-300: #3730a3; --color-indigo-800: #a5b4fc;
+  --color-amber-100: #33260a;  --color-amber-300: #78350f;  --color-amber-800: #fcd34d;
+  --color-purple-100: #241a45; --color-purple-300: #5b21b6; --color-purple-800: #c4b5fd;
+  --color-rose-100: #3f1220;   --color-rose-300: #9f1239;   --color-rose-800: #fda4af;
+  --color-emerald-100: #0c2e23; --color-emerald-300: #065f46; --color-emerald-800: #6ee7b7;
+  --color-teal-100: #0b2b2b;   --color-teal-300: #115e59;   --color-teal-800: #5eead4;
+  --color-blue-100: #10243f;   --color-blue-300: #1e40af;   --color-blue-800: #93c5fd;
+  --color-gray-100: #1e293b;   --color-gray-300: #475569;   --color-gray-700: #cbd5e1;
+
   /* Couleurs de texte sur ces teintes : éclaircies pour rester lisibles.
      primary-600 et primary-500 ne sont PAS touchés : ils servent aussi de
      fond de bouton, où le texte est blanc. */
@@ -149,11 +175,9 @@ body {
   --color-primary-800: #1e3a8a;
   --color-emerald-600: #34d399;
   --color-emerald-700: #6ee7b7;
-  --color-emerald-800: #a7f3d0;
   --color-amber-600: #fbbf24;
   --color-amber-700: #fcd34d;
   --color-sky-700: #7dd3fc;
-  --color-sky-800: #bae6fd;
   --color-violet-600: #a78bfa;
   --color-violet-700: #c4b5fd;
   --color-blue-700: #93c5fd;

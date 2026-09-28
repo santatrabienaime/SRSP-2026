@@ -47,7 +47,10 @@ export function Table({ columns = [], data = [], loading = false, emptyLabel = '
             </tr>
           ) : (
             data.map((row, i) => (
-              <tr key={row.id ?? i} className="hover:bg-slate-50">
+              <tr
+                key={row.id ?? i}
+                className="transition-colors duration-200 hover:bg-slate-50 motion-reduce:transition-none"
+              >
                 {columns.map((col) => (
                   <td key={col.key} className={`px-4 py-3 ${col.className || ''}`}>
                     {col.render ? col.render(row) : row[col.key]}
