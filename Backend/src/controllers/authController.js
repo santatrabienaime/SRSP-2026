@@ -1,6 +1,23 @@
 import * as authService from '../services/authService.js';
 import * as historiqueModel from '../models/historiqueModel.js';
 
+/** Durée de validité d'un mot de passe avant renouvellement (article 1.5). */
+export const PASSWORD_MAX_AGE_DAYS = Number(process.env.PASSWORD_MAX_AGE_DAYS || 90);
+
+/**
+ * Indique si le mot de passe a dépassé sa durée de validité, et depuis combien
+ * de jours. Un compte cree sans historique est considere valide.
+ */
+export function passwordExpiry(mot_de_passe_change_le) {
+  if (!mot_de_passe_change_le) {
+    return { a_changer: false, jours_restants: PASSWORD_MAX_AGE_DAYS };
+  }
+  const depuis = new Date(mot_de_passe_change_le);
+  const limite = new Date(depuis.getTime() + PASSWORD_MAX_AGE_DAYS * 86400000);
+  const reste = Math.ceil((limite - Date.now()) / 86400000);
+  return { a_changer: reste <= 0, jours_restants: reste };
+}
+
 /** Adresse IP du client (gère le reverse-proxy via x-forwarded-for). */
 function clientIp(req) {
   const fwd = req.headers?.['x-forwarded-for'];
@@ -41,10 +58,9 @@ export async function me(req, res, next) {
   try {
     const user = await authService.getUserById(req.user.id);
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
-    res.json(user);
-  } catch (error) {
-    next(error);
-  }
+    const { password_hash, mot_de_passe_change_le, ...profil } = user;
+    res.json({ ...profil, mot_de_passe: passwordExpiry(mot_de_passe_change_le) });
+  } catch (error) { next(error); }
 }
 
 export async function logout(req, res) {
@@ -56,7 +72,5 @@ export async function changePassword(req, res, next) {
     const { ancien_mot_de_passe, nouveau_mot_de_passe } = req.body;
     const result = await authService.changePassword(req.user.id, ancien_mot_de_passe, nouveau_mot_de_passe);
     res.json(result);
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 }

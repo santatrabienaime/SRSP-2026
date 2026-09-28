@@ -27,6 +27,7 @@ import depouillementRoutes from './routes/depouillementRoutes.js';
 import calculRoutes from './routes/calculRoutes.js';
 import mandatementRoutes from './routes/mandatementRoutes.js';
 import correspondanceRoutes from './routes/correspondanceRoutes.js';
+import commentaireRoutes from './routes/commentaireRoutes.js';
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use('/api/admin/backup', backupRoutes);
 app.use('/api/dossiers', depouillementRoutes);
 app.use('/api/dossiers', calculRoutes);
 app.use('/api/dossiers', mandatementRoutes);
+app.use('/api/dossiers', commentaireRoutes);
 app.use('/api/correspondances', correspondanceRoutes);
 
 app.use(errorMiddleware);

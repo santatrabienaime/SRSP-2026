@@ -3,6 +3,7 @@ import db from '../config/db.js';
 export async function findUserById(id) {
   const rows = await db.query(
     `SELECT u.id, u.username, u.email, u.role_id, r.nom AS role_nom, u.actif,
+            u.derniere_connexion, u.mot_de_passe_change_le,
             a.id AS agent_id, a.division_id,
             dv.code AS division_code, dv.nom AS division_nom,
             td.code AS type_code
@@ -55,7 +56,11 @@ export async function updateUser(id, { email, role_id, actif }) {
 }
 
 export async function updatePassword(id, password_hash) {
-  await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, id]);
+  // Le changement de mot de passe relance le delai de renouvellement (1.5).
+  await db.query(
+    'UPDATE users SET password_hash = ?, mot_de_passe_change_le = NOW() WHERE id = ?',
+    [password_hash, id]
+  );
 }
 
 export async function toggleUser(id) {

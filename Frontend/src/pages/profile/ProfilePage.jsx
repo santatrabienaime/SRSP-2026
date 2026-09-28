@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyRound, UserCircle2, ShieldCheck } from 'lucide-react';
+import { KeyRound, UserCircle2, ShieldCheck, Check, X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { authService } from '../../services/authService.js';
 import { useNotification } from '../../hooks/useNotification.js';
@@ -9,6 +9,9 @@ import { Input } from '../../components/ui/Input.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { formatDateTime } from '../../utils/formatDate.js';
+import {
+  passwordRules, isStrongPassword, PASSWORD_MESSAGE,
+} from '../../utils/password.js';
 
 export function ProfilePage() {
   const { user } = useAuth();
@@ -24,8 +27,12 @@ export function ProfilePage() {
       setError({ message: 'Tous les champs sont obligatoires.' });
       return;
     }
-    if (form.nouveau.length < 8) {
-      setError({ message: 'Le nouveau mot de passe doit contenir au moins 8 caractères.' });
+    if (!isStrongPassword(form.nouveau)) {
+      setError({ message: PASSWORD_MESSAGE });
+      return;
+    }
+    if (form.nouveau === form.ancien) {
+      setError({ message: "Le nouveau mot de passe doit être différent de l'ancien." });
       return;
     }
     if (form.nouveau !== form.confirmation) {
@@ -44,6 +51,9 @@ export function ProfilePage() {
       setSaving(false);
     }
   };
+
+  const motDePasseExpire = user?.mot_de_passe?.a_changer;
+  const joursRestants = user?.mot_de_passe?.jours_restants;
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -75,6 +85,20 @@ export function ProfilePage() {
       </Card>
 
       <Card title="Changer le mot de passe">
+        {motDePasseExpire ? (
+          <Alert type="warning" title="Renouvellement obligatoire">
+            Votre mot de passe a atteint sa durée de validité. Merci de le
+            renouveler pour continuer à travailler en sécurité.
+          </Alert>
+        ) : (
+          joursRestants !== undefined && joursRestants <= 15 && (
+            <Alert type="info" title="Renouvellement à prévoir">
+              Il vous reste {joursRestants} jour(s) avant le renouvellement
+              obligatoire du mot de passe.
+            </Alert>
+          )
+        )}
+
         {error && <Alert type="error" title="Modification impossible">{error.message}</Alert>}
         <form onSubmit={handleChangePassword} className="space-y-4">
           <Input
@@ -91,7 +115,6 @@ export function ProfilePage() {
               required
               value={form.nouveau}
               onChange={(e) => setForm((f) => ({ ...f, nouveau: e.target.value }))}
-              hint="8 caractères minimum"
             />
             <Input
               label="Confirmation"
@@ -101,6 +124,27 @@ export function ProfilePage() {
               onChange={(e) => setForm((f) => ({ ...f, confirmation: e.target.value }))}
             />
           </div>
+
+          {/* Règles de la politique de mot de passe, vérifiées en direct. */}
+          <ul className="space-y-1 rounded-md bg-slate-50 p-3">
+            {passwordRules.map((r) => {
+              const ok = r.test(form.nouveau);
+              return (
+                <li
+                  key={r.label}
+                  className={`flex items-center gap-2 text-xs ${
+                    ok ? 'text-emerald-700' : 'text-slate-500'
+                  }`}
+                >
+                  {ok
+                    ? <Check className="h-3.5 w-3.5" />
+                    : <X className="h-3.5 w-3.5" />}
+                  {r.label}
+                </li>
+              );
+            })}
+          </ul>
+
           <Button type="submit" loading={saving}>
             <KeyRound className="h-4 w-4" /> Mettre à jour le mot de passe
           </Button>

@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar.jsx';
 import { Topbar } from './Topbar.jsx';
 import { Footer } from './Footer.jsx';
-import { Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
+import { IdleSessionGuard } from '../../hooks/useIdleSession.jsx';
 
 /**
  * Gabarit principal des pages authentifiées.
@@ -36,6 +36,8 @@ export function AppLayout() {
         </main>
         <Footer />
       </div>
+      {/* Deconnexion automatique apres inactivite, avec avertissement. */}
+      <IdleSessionGuard />
     </div>
   );
 }

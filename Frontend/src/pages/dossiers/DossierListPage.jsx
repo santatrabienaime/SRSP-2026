@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Inbox, Loader2, CheckCircle2, Layers } from 'lucide-react';
+import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle } from 'lucide-react';
 import { DossierList } from '../../components/dossier/DossierList.jsx';
 import { dashboardService } from '../../services/dashboardService.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -19,12 +19,28 @@ const ROLES_GLOBAUX = [
  * ce qui est affiché.
  */
 const GROUPES = [
-  { code: 'NOUVEAUX', label: 'Nouveaux', icon: Inbox, statuts: ['RECU', 'ENREGISTRE'] },
+  {
+    code: 'NOUVEAUX', label: 'Nouveaux', icon: Inbox,
+    hint: 'Reçus il y a moins de 7 jours',
+    // Article 2.1 : uniquement les dossiers reçus dans les sept derniers jours.
+    filters: { recus_depuis_jours: 7, statut: 'RECU,ENREGISTRE' },
+    statuts: ['RECU', 'ENREGISTRE'],
+  },
   {
     code: 'EN_COURS', label: 'En cours', icon: Loader2,
+    hint: 'Non terminés',
+    filters: { statut: 'EN_COURS' },
     statuts: ['ORIENTE', 'AFFECTE', 'EN_TRAITEMENT', 'SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE'],
   },
-  { code: 'TERMINES', label: 'Terminés', icon: CheckCircle2, statuts: ['VALIDE', 'SIGNE', 'CLOTURE', 'ARCHIVE'] },
+  {
+    code: 'URGENTS', label: 'Urgents', icon: AlertTriangle,
+    hint: 'Priorité haute/urgente ou échéance dépassée',
+    // Article 2.4
+    filters: { priorite_haute: 1 },
+    statuts: null,
+  },
+  { code: 'TERMINES', label: 'Terminés', icon: CheckCircle2, filters: { statut: 'TERMINES' },
+    statuts: ['VALIDE', 'SIGNE', 'CLOTURE', 'ARCHIVE'] },
 ];
 
 export function DossierListPage() {
@@ -53,11 +69,11 @@ export function DossierListPage() {
   useEffect(() => { chargerCompteurs(); }, [chargerCompteurs]);
 
   const compte = (statuts) =>
-    (compteurs && statuts.reduce((n, c) => n + (compteurs[c] || 0), 0)) ?? null;
+    (compteurs && statuts && statuts.reduce((n, c) => n + (compteurs[c] || 0), 0)) ?? null;
 
   const baseFilters = {
     ...(typeFiltre ? { type: typeFiltre } : {}),
-    statut: groupe,
+    ...(GROUPES.find((g) => g.code === groupe)?.filters || {}),
   };
 
   return (
@@ -89,7 +105,18 @@ export function DossierListPage() {
               }`}
             >
               <Icon className="h-4 w-4" />
-              {g.label}
+              <span className="flex flex-col items-start leading-tight">
+                {g.label}
+                {g.hint && (
+                  <span
+                    className={`text-[10px] font-normal ${
+                      actif ? 'text-white/80' : 'text-slate-400'
+                    }`}
+                  >
+                    {g.hint}
+                  </span>
+                )}
+              </span>
               {chargement ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : n !== null ? (

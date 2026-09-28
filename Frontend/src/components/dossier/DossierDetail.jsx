@@ -15,6 +15,7 @@ import { Mandatement } from './Mandatement.jsx';
 import { LiquidationPension } from './LiquidationPension.jsx';
 import { DecompteAvance } from './DecompteAvance.jsx';
 import { ControleDecompte } from './ControleDecompte.jsx';
+import { CommentairesDossier } from './CommentairesDossier.jsx';
 import { dossierService } from '../../services/dossierService.js';
 import { DocumentList } from '../document/DocumentList.jsx';
 import { DocumentUpload } from '../document/DocumentUpload.jsx';
@@ -159,6 +160,9 @@ export function DossierDetail({ id }) {
           <TracabiliteTimeline actes={tracabilite.data || []} />
         )}
       </Card>
+
+      {/* Commentaires internes entre agents (article 2.8) */}
+      <CommentairesDossier dossierId={dossier.id} />
 
       {/* Documents */}
       <Card

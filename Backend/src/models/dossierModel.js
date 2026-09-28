@@ -74,6 +74,24 @@ export async function findDossiers(filters = {}) {
     const s = `%${filters.search}%`;
     params.push(s, s, s);
   }
+  // Article 2.1 : dossiers recus dans les N derniers jours.
+  if (filters.recus_depuis_jours) {
+    const jours = Number(filters.recus_depuis_jours);
+    if (Number.isInteger(jours) && jours > 0) {
+      query += ' AND d.date_reception >= DATE_SUB(CURDATE(), INTERVAL ? DAY)';
+      params.push(jours);
+    }
+  }
+  // Article 2.4 : priorites haute ou urgente.
+  // priorites est indexee par niveau : 1 BASSE, 2 NORMALE, 3 HAUTE, 4 URGENTE.
+  if (filters.priorite_haute) {
+    query += ' AND p.niveau >= 3';
+  }
+  // Article 2.4 : echeance depassee.
+  if (filters.echeance === 'depassee') {
+    query += ` AND d.date_limite IS NOT NULL AND d.date_limite < CURDATE()
+               AND s.code NOT IN ('CLOTURE', 'ARCHIVE')`;
+  }
   if (filters.date_debut) {
     query += ' AND d.date_reception >= ?';
     params.push(filters.date_debut);

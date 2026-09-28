@@ -27,6 +27,14 @@ export const dossierService = {
   saveControleDecompte: (id, data) =>
     apiClient.post(`/dossiers/${id}/controle-decompte`, data).then((r) => r.data),
 
+  // Commentaires internes
+  getCommentaires: (id) =>
+    apiClient.get(`/dossiers/${id}/commentaires`).then((r) => r.data),
+  addCommentaire: (id, contenu) =>
+    apiClient.post(`/dossiers/${id}/commentaires`, { contenu }).then((r) => r.data),
+  deleteCommentaire: (id, cid) =>
+    apiClient.delete(`/dossiers/${id}/commentaires/${cid}`).then((r) => r.data),
+
   // Mandatement (division Secours)
   getMandatement: (id) => apiClient.get(`/dossiers/${id}/mandatement`).then((r) => r.data),
   saveMandatement: (id, data) =>
