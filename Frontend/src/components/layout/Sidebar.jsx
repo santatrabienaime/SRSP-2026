@@ -102,22 +102,33 @@ export function Sidebar() {
   return (
     /* La barre reste à gauche sur TOUTE largeur d'écran : elle n'est plus
        masquée sous lg. Repliée, elle devient un rail d'icônes, ce qui laisse
-       de la place au contenu sur un petit écran sans jamais le recouvrir. */
+       de la place au contenu sur un petit écran sans jamais le recouvrir.
+
+       Fluidité : les libellés ne sont jamais démontés. Ils s'effacent et se
+       replient sur place, pendant que la largeur de la barre s'anime. Si on
+       les retirait du DOM, le contenu disparaîtrait d'un coup à la première
+       image, alors que la largeur met 300 ms à se réduire : c'est exactement
+       ce qui donne une animation saccadée. */
     <aside
-      className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200 bg-white
-        transition-[width] duration-300 ease-out motion-reduce:transition-none
+      className={`fixed inset-y-0 left-0 z-40 flex flex-col overflow-hidden border-r border-slate-200 bg-white
+        transition-[width] duration-[350ms] ease-[cubic-bezier(.4,0,.2,1)]
+        will-change-[width] motion-reduce:transition-none
         ${barreRepliee ? 'w-[4.5rem]' : 'w-64'}`}
     >
-      <div className={`flex items-center border-b border-slate-200 ${barreRepliee ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3 pr-2'}`}>
+      <div className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-3 pr-2">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-lg font-bold text-white">
           S
         </div>
-        {!barreRepliee && (
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-slate-800">SRSP Fitovinany</p>
-            <p className="truncate text-[11px] text-slate-400">Suivi des dossiers</p>
-          </div>
-        )}
+        <div
+          className={`min-w-0 flex-1 transition-[opacity,transform,max-width] duration-200 motion-reduce:transition-none ${
+            barreRepliee
+              ? 'pointer-events-none max-w-0 -translate-x-2 opacity-0'
+              : 'max-w-[12rem] translate-x-0 opacity-100'
+          }`}
+        >
+          <p className="truncate text-sm font-bold text-slate-800">SRSP Fitovinany</p>
+          <p className="truncate text-[11px] text-slate-400">Suivi des dossiers</p>
+        </div>
         {/* Le bouton de repli est en haut de la barre : c'est là que l'on
             regarde en premier, et il reste atteignable même quand la barre
             est réduite à son rail d'icônes. */}
@@ -136,13 +147,27 @@ export function Sidebar() {
       <nav className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-4">
         {sections.map((section) => (
           <div key={section.label}>
-            {barreRepliee ? (
-              <div className="mx-auto my-2 h-px w-6 bg-slate-200" aria-hidden="true" />
-            ) : (
+            {/* Le titre de section se replie sur un filet : un simple
+                changement d'élément, mais chacun apparaît et disparaît en
+                fondu, donc rien ne « saute ». */}
+            <div
+              className={`overflow-hidden transition-[max-height,opacity] duration-200 motion-reduce:transition-none ${
+                barreRepliee ? 'max-h-0 opacity-0' : 'max-h-8 opacity-100'
+              }`}
+              aria-hidden={barreRepliee}
+            >
               <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 {section.label}
               </p>
-            )}
+            </div>
+            <div
+              aria-hidden="true"
+              className={`overflow-hidden transition-[max-height,opacity] duration-200 motion-reduce:transition-none ${
+                barreRepliee ? 'my-2 max-h-px opacity-100' : 'my-0 max-h-0 opacity-0'
+              }`}
+            >
+              <div className="mx-auto h-px w-6 bg-slate-200" />
+            </div>
             <ul className="space-y-1">
               {section.items.map((item) => {
                 if (!show(item)) return null;
@@ -156,8 +181,12 @@ export function Sidebar() {
                          la seule icône ne dit pas où mène le lien. */
                       title={barreRepliee ? item.label : undefined}
                       className={({ isActive }) =>
-                        `flex items-center rounded-md text-sm font-medium transition-colors
-                          ${barreRepliee ? 'justify-center px-2 py-2' : 'gap-3 px-3 py-2'}
+                        /* L'icône glisse avec la marge : transitioned, elle ne
+                           saute pas d'un coup au centre du rail. */
+                        `flex items-center rounded-md py-2 text-sm font-medium
+                          transition-[padding,gap,background-color,color] duration-200
+                          ease-[cubic-bezier(.4,0,.2,1)] motion-reduce:transition-none
+                          ${barreRepliee ? 'gap-0 pl-[1.75rem] pr-0' : 'gap-3 pl-3 pr-3'}
                           ${isActive
                             ? 'bg-primary-50 text-primary-700'
                             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
@@ -165,7 +194,15 @@ export function Sidebar() {
                       }
                     >
                       <Icon className="h-4 w-4 shrink-0" />
-                      {!barreRepliee && <span className="truncate">{item.label}</span>}
+                      <span
+                        className={`truncate transition-[opacity,transform,max-width] duration-200 motion-reduce:transition-none ${
+                          barreRepliee
+                            ? 'pointer-events-none max-w-0 -translate-x-1 opacity-0'
+                            : 'max-w-[13rem] translate-x-0 opacity-100'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
                     </NavLink>
                   </li>
                 );
@@ -175,11 +212,16 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Rappel du périmètre de l'utilisateur.
-          Le profil et la déconnexion sont centralisés dans la barre supérieure
-          (Topbar) : pas de doublon d'actions entre les deux barres. */}
-      {!barreRepliee && (
-        <div className="border-t border-slate-200 p-3">
+      {/* Rappel du périmètre de l'utilisateur. Le repli se fait sur la
+          hauteur (grid-rows 1fr -> 0fr) et non sur un démontage, pour que le
+          bloc ne disparaisse pas d'un coup. */}
+      <div
+        className={`shrink-0 overflow-hidden border-t border-slate-200 transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(.4,0,.2,1)] motion-reduce:transition-none ${
+          barreRepliee ? 'grid grid-rows-[0fr] opacity-0' : 'grid grid-rows-[1fr] opacity-100'
+        }`}
+        aria-hidden={barreRepliee}
+      >
+        <div className="min-h-0 p-3">
           <p className="px-2 text-[11px] leading-relaxed text-slate-400">
             {user?.role_nom === 'ADMIN' || user?.role_nom === 'CHEF_SERVICE'
               || user?.role_nom === 'CHEF_BAAF' || user?.role_nom === 'SECRETAIRE'
@@ -190,7 +232,7 @@ export function Sidebar() {
                 : 'Périmètre : vos dossiers'}
           </p>
         </div>
-      )}
+      </div>
     </aside>
   );
 }

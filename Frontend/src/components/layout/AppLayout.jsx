@@ -31,10 +31,11 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-slate-100">
       <Sidebar />
-      {/* La marge suit la largeur réelle de la barre, repliée ou non. La
-          transition évite que le contenu saute d'un coup. */}
+      {/* La marge suit la largeur réelle de la barre, repliée ou non. Même
+          durée et même easing que la barre elle-même : si les deux.divergaient,
+          le contenu accompagnerait la barre avec un décalage visible. */}
       <div
-        className={`transition-[padding] duration-300 ease-out motion-reduce:transition-none ${
+        className={`transition-[padding] duration-[350ms] ease-[cubic-bezier(.4,0,.2,1)] will-change-[padding] motion-reduce:transition-none ${
           barreRepliee ? 'pl-[4.5rem]' : 'pl-64'
         }`}
       >
