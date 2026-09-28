@@ -1,12 +1,12 @@
 import { UserCircle2 } from 'lucide-react';
 import { Badge } from '../ui/Badge.jsx';
 
-/** Carte d'un agent (grille). */
+/** Carte d'un agent (grille). Aucun effet de survol : elle reste immobile. */
 export function AgentCard({ agent }) {
   return (
-    <div className="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none">
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-700 transition-transform duration-300 ease-out group-hover:scale-110 motion-reduce:transform-none motion-reduce:transition-none">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-700">
           <UserCircle2 className="h-6 w-6" />
         </span>
         <div className="min-w-0">

@@ -55,10 +55,9 @@ export function Table({ columns = [], data = [], loading = false, emptyLabel = '
             </tr>
           ) : (
             data.map((row, i) => (
-              <tr
-                key={row.id ?? i}
-                className="transition-colors duration-200 hover:bg-slate-50 motion-reduce:transition-none"
-              >
+              /* Aucun surlignage au survol : la ligne reste fixe, comme le reste
+                 de l'interface. */
+              <tr key={row.id ?? i}>
                 {columns.map((col, j) => (
                   <td
                     key={col.key}
