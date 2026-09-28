@@ -126,14 +126,24 @@ export function DossierDetail({ id }) {
         </Card>
       </div>
 
-      {/* Calculs financiers — par type de dossier */}
+      {/* Calculs financiers — par type de dossier.
+          Les identifiants servent d'ancre : une notification de contrôle du
+          décompte ramène directement au panneau concerné au lieu d'ouvrir la
+          fiche en haut. scroll-mt-20 compense la barre supérieure collante,
+          sinon la zone visée passe dessous. */}
       {dossier.type_code === 'PENSION' && (
-        <LiquidationPension dossierId={dossier.id} />
+        <div id="liquidation-pension" className="scroll-mt-20">
+          <LiquidationPension dossierId={dossier.id} />
+        </div>
       )}
       {dossier.type_code === 'SOLDE' && (
         <>
-          <DecompteAvance dossierId={dossier.id} />
-          <ControleDecompte dossierId={dossier.id} />
+          <div id="decompte-avance" className="scroll-mt-20">
+            <DecompteAvance dossierId={dossier.id} />
+          </div>
+          <div id="controle-decompte" className="scroll-mt-20">
+            <ControleDecompte dossierId={dossier.id} />
+          </div>
         </>
       )}
 
@@ -162,9 +172,12 @@ export function DossierDetail({ id }) {
       </Card>
 
       {/* Commentaires internes entre agents (article 2.8) */}
-      <CommentairesDossier dossierId={dossier.id} />
+      <div id="commentaires" className="scroll-mt-20">
+        <CommentairesDossier dossierId={dossier.id} />
+      </div>
 
       {/* Documents */}
+      <div id="documents" className="scroll-mt-20">
       <Card
         title="Documents"
         subtitle="Pièces jointes et justificatifs du dossier"
@@ -178,6 +191,7 @@ export function DossierDetail({ id }) {
       >
         <DocumentList key={refreshKey} dossierId={dossier.id} />
       </Card>
+      </div>
 
       {/* Historique */}
       <Card title="Historique des actions">

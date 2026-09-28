@@ -33,11 +33,17 @@ export function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-80 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+        /* Sur un écran étroit, le panneau ne peut pas être plus large que la
+           fenêtre, sinon il déborde et le clic « ouvrir le dossier » part hors
+           de l'écran. */
+        <div className="absolute right-0 z-30 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
           <div className="border-b border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
             Notifications
           </div>
-          <NotificationList compact />
+          {/* onNavigate ferme le panneau au clic sur une notification : le
+              panneau ne doit pas rester ouvert par-dessus la fiche qui
+              s'ouvre. */}
+          <NotificationList compact onNavigate={() => setOpen(false)} />
           <div className="border-t border-slate-200 p-2">
             <button
               onClick={() => setOpen(false)}

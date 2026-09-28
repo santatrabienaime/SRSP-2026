@@ -12,13 +12,17 @@ DELETE FROM role_permissions;
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p WHERE r.nom = 'ADMIN';
 
--- CHEF_SERVICE : supervision, workflow complet final, contrôle du décompte
--- (contrôle AVANT validation, donc lui revient), rapports, courriers
+-- CHEF_SERVICE : supervision, workflow final, contrôle du décompte
+-- (contrôle AVANT validation, donc lui revient), rapports, courriers.
+-- Volontairement SANS traiter_dossier, affecter_dossier ni verifier_dossier :
+-- le document lui retireexpressément ces travaux, qui sont ceux des agents et
+-- des chefs de division. Il garde view_all_dossiers : il supervise les quatre
+-- divisions sans agir à leur place. Voir migration 029.
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p
 WHERE r.nom = 'CHEF_SERVICE' AND p.nom IN (
-  'view_all_dossiers', 'affecter_dossier', 'traiter_dossier', 'verifier_dossier',
-  'valider_dossier', 'signer_dossier', 'cloturer_dossier', 'archiver_dossier',
+  'view_all_dossiers', 'valider_dossier', 'signer_dossier',
+  'cloturer_dossier', 'archiver_dossier',
   'controler_decomptes',
   'manage_courriers', 'upload_document', 'view_stats', 'export_data'
 );
@@ -85,7 +89,7 @@ WHERE r.nom = 'VERIFICATEUR_SOLDE' AND p.nom IN (
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p
 WHERE r.nom = 'CHEF_DIVISION_PENSION' AND p.nom IN (
-  'view_all_dossiers', 'affecter_dossier', 'verifier_dossier',
+  'view_all_dossiers', 'affecter_dossier', 'verifier_dossier', 'valider_dossier',
   'gerer_correspondances', 'suivre_oppositions', 'view_stats', 'upload_document'
 );
 
@@ -101,7 +105,7 @@ WHERE r.nom = 'LIQUIDATEUR_PENSION' AND p.nom IN (
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p
 WHERE r.nom = 'CHEF_DIVISION_SECOURS' AND p.nom IN (
-  'view_all_dossiers', 'affecter_dossier', 'verifier_dossier',
+  'view_all_dossiers', 'affecter_dossier', 'verifier_dossier', 'valider_dossier',
   'preparer_mandatement', 'gerer_ordonnancement', 'suivre_signature',
   'view_stats', 'upload_document'
 );
