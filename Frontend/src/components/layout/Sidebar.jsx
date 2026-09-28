@@ -26,6 +26,36 @@ const ICONS = {
 };
 
 /**
+ * Cascades d'ouverture.
+ *
+ * À l'ouverture, les éléments du menu arrivent l'un après l'autre : le
+ * mouvement donne l'impression que le menu se charge, au lieu d'apparaître
+ * d'un bloc. Les délais sont plafonnés, sinon la quatorzième entrée
+ * n'arriverait qu'après un tiers de seconde et l'animation semblerait lente —
+ * ce que l'on cherche précisément à éviter.
+ *
+ * À la fermeture, aucun délai : tout part d'un coup. Une cascade à la
+ * fermeture ferait traîner le repli.
+ */
+const MAX_CASCADE = 6; // au-delà, plus d'escalade
+/* 15 ms entre deux entrées : le dernier intitulé est donc complet à
+   90 + 150 = 240 ms, soit AVANT la fin du mouvement de la barre (250 ms).
+   Le menu est ainsi lisible au moment exact où la barre se pose. */
+const ECART = 15;
+
+/** Délai d'un intitulé de lien. Repliée : aucun délai (fermeture immediate). */
+function delaiLabel(index, repliee) {
+  if (repliee) return 0;
+  return Math.min(index, MAX_CASCADE) * ECART;
+}
+
+/** Délai d'un titre de section. */
+function delaiSection(position, repliee) {
+  if (repliee) return 0;
+  return Math.min(position, MAX_CASCADE) * ECART;
+}
+
+/**
  * Barre latérale conforme à la matrice d'accès §14.1 :
  * chaque entrée est masquée si l'utilisateur n'a pas (au moins) une
  * permission requise — ou un rôle autorisé.
@@ -111,7 +141,7 @@ export function Sidebar() {
        ce qui donne une animation saccadée. */
     <aside
       className={`fixed inset-y-0 left-0 z-40 flex flex-col overflow-hidden border-r border-slate-200 bg-white
-        transition-[width] duration-[350ms] ease-[cubic-bezier(.4,0,.2,1)]
+        transition-[width] duration-[250ms] ease-[cubic-bezier(.32,.72,0,1)]
         will-change-[width] motion-reduce:transition-none
         ${barreRepliee ? 'w-[4.5rem]' : 'w-64'}`}
     >
@@ -127,7 +157,7 @@ export function Sidebar() {
           barre supérieure l'affiche sur les écrans étroits. */}
       <div className="relative flex shrink-0 items-center border-b border-slate-200 px-4 py-3 pr-2">
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-lg font-bold text-white transition-[transform,opacity] duration-200 motion-reduce:transition-none ${
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-lg font-bold text-white transition-[transform,opacity] duration-150 ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
             barreRepliee
               /* pointer-events-none est indispensable : positionné en absolu, ce
                  logo peindrait AU-DESSUS du bouton et, même invisible
@@ -143,7 +173,7 @@ export function Sidebar() {
           S
         </div>
         <div
-          className={`min-w-0 flex-1 transition-[opacity,transform,max-width] duration-200 motion-reduce:transition-none ${
+          className={`min-w-0 flex-1 transition-[opacity,transform,max-width] duration-150 ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
             barreRepliee
               ? 'pointer-events-none max-w-0 -translate-x-2 opacity-0'
               : 'max-w-[12rem] translate-x-0 opacity-100'
@@ -175,9 +205,10 @@ export function Sidebar() {
                 changement d'élément, mais chacun apparaît et disparaît en
                 fondu, donc rien ne « saute ». */}
             <div
-              className={`overflow-hidden transition-[max-height,opacity] duration-200 motion-reduce:transition-none ${
+              className={`overflow-hidden transition-[max-height,opacity] duration-150 ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
                 barreRepliee ? 'max-h-0 opacity-0' : 'max-h-8 opacity-100'
               }`}
+              style={{ transitionDelay: `${delaiSection(sections.indexOf(section), barreRepliee)}ms` }}
               aria-hidden={barreRepliee}
             >
               <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
@@ -186,14 +217,14 @@ export function Sidebar() {
             </div>
             <div
               aria-hidden="true"
-              className={`overflow-hidden transition-[max-height,opacity] duration-200 motion-reduce:transition-none ${
+              className={`overflow-hidden transition-[max-height,opacity] duration-150 ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
                 barreRepliee ? 'my-2 max-h-px opacity-100' : 'my-0 max-h-0 opacity-0'
               }`}
             >
               <div className="mx-auto h-px w-6 bg-slate-200" />
             </div>
             <ul className="space-y-1">
-              {section.items.map((item) => {
+              {section.items.map((item, index) => {
                 if (!show(item)) return null;
                 const Icon = ICONS[item.icon] || LayoutDashboard;
                 return (
@@ -208,8 +239,8 @@ export function Sidebar() {
                         /* L'icône glisse avec la marge : transitioned, elle ne
                            saute pas d'un coup au centre du rail. */
                         `flex items-center rounded-md py-2 text-sm font-medium
-                          transition-[padding,gap,background-color,color] duration-200
-                          ease-[cubic-bezier(.4,0,.2,1)] motion-reduce:transition-none
+                          transition-[padding,gap,background-color,color] duration-150
+                          ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none
                           ${barreRepliee ? 'gap-0 pl-[1.75rem] pr-0' : 'gap-3 pl-3 pr-3'}
                           ${isActive
                             ? 'bg-primary-50 text-primary-700'
@@ -219,11 +250,18 @@ export function Sidebar() {
                     >
                       <Icon className="h-4 w-4 shrink-0" />
                       <span
-                        className={`truncate transition-[opacity,transform,max-width] duration-200 motion-reduce:transition-none ${
+                        className={`truncate transition-[opacity,transform,max-width] duration-150 ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
                           barreRepliee
                             ? 'pointer-events-none max-w-0 -translate-x-1 opacity-0'
                             : 'max-w-[13rem] translate-x-0 opacity-100'
                         }`}
+                        /* Cascade à l'ouverture : les intitulés arrivent l'un
+                           après l'autre, ce qui donne l'impression que le menu
+                           se charge. Lacascade est plafonnée, sinon les
+                           derniers liens arriveraient trop tard. À la fermeture
+                           aucun délai : tout part d'un coup, sinon le repli
+                           traînerait. */
+                        style={{ transitionDelay: `${delaiLabel(index, barreRepliee)}ms` }}
                       >
                         {item.label}
                       </span>
@@ -240,7 +278,7 @@ export function Sidebar() {
           hauteur (grid-rows 1fr -> 0fr) et non sur un démontage, pour que le
           bloc ne disparaisse pas d'un coup. */}
       <div
-        className={`shrink-0 overflow-hidden border-t border-slate-200 transition-[grid-template-rows,opacity] duration-[350ms] ease-[cubic-bezier(.4,0,.2,1)] motion-reduce:transition-none ${
+        className={`shrink-0 overflow-hidden border-t border-slate-200 transition-[grid-template-rows,opacity] duration-[250ms] ease-[cubic-bezier(.32,.72,0,1)] motion-reduce:transition-none ${
           barreRepliee ? 'grid grid-rows-[0fr] opacity-0' : 'grid grid-rows-[1fr] opacity-100'
         }`}
         aria-hidden={barreRepliee}
