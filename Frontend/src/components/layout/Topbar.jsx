@@ -25,13 +25,19 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="flex h-14 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="text-sm font-semibold text-slate-700 lg:hidden">
+      {/* La barre latérale occupe une partie de la largeur même repliée : le
+          titre doit donc pouvoir se réduire, sinon il chasse les boutons hors
+          de l'écran sur un téléphone. gap-1 et px-2 resserrent la barre. */}
+      <div className="flex h-14 items-center justify-between gap-1.5 px-2 sm:gap-3 sm:px-6 lg:px-8">
+        <Link
+          to="/"
+          className="min-w-0 truncate text-sm font-semibold text-slate-700 lg:hidden"
+        >
           SRSP Fitovinany
         </Link>
         <span className="hidden lg:block" />
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
           <button
             type="button"
             onClick={basculerTheme}

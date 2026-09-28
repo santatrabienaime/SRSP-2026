@@ -29,7 +29,12 @@ export function AppLayout() {
   }, [userId]);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    /* overflow-x-hidden : filet de sécurité. Un tableau trop large ou un mot
+       trop long ferait défiler toute l'application horizontalement, et
+       l'utilisateur perdrait la barre latérale — qui doit rester à gauche sur
+       toute largeur. Les tableaux, eux, défilent dans leur propre
+       conteneur. */
+    <div className="min-h-screen overflow-x-hidden bg-slate-100">
       <Sidebar />
       {/* La marge suit la largeur réelle de la barre, repliée ou non. Même
           durée et même easing que la barre elle-même : si les deux.divergaient,
@@ -40,7 +45,7 @@ export function AppLayout() {
         }`}
       >
         <Topbar />
-        <main className="px-4 py-6 sm:px-6 lg:px-8">
+        <main className="px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
           <Outlet key={userId} />
         </main>
         <Footer />

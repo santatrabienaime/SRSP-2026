@@ -25,10 +25,18 @@ export function Table({ columns = [], data = [], loading = false, emptyLabel = '
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50">
           <tr>
-            {columns.map((col) => (
+            {columns.map((col, i) => (
               <th
                 key={col.key}
-                className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 ${col.className || ''}`}
+                className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 ${col.className || ''} ${
+                  /* Première colonne collante : sur un téléphone, un tableau
+                     à six colonnes se parcourt en faisant défiler
+                     horizontalement. Sans cela on perd la ligne en cours de
+                     lecture — on ne voit plus à quel dossier la ligne
+                     appartient. Elle reste donc visible, avec une ombre
+                     discrète qui marque le bord. */
+                  i === 0 ? 'sticky left-0 z-10 bg-slate-50 shadow-[1px_0_0_0_var(--color-slate-200)]' : ''
+                }`}
               >
                 {col.label}
               </th>
@@ -51,8 +59,16 @@ export function Table({ columns = [], data = [], loading = false, emptyLabel = '
                 key={row.id ?? i}
                 className="transition-colors duration-200 hover:bg-slate-50 motion-reduce:transition-none"
               >
-                {columns.map((col) => (
-                  <td key={col.key} className={`px-4 py-3 ${col.className || ''}`}>
+                {columns.map((col, j) => (
+                  <td
+                    key={col.key}
+                    className={`px-4 py-3 ${col.className || ''} ${
+                      /* bg-white explicite : sans elle, la cellule collante
+                         laisserait voir le fond de la ligne au survol, et
+                         le texte passerait les autres colonnes par-dessus. */
+                      j === 0 ? 'sticky left-0 z-0 bg-white shadow-[1px_0_0_0_var(--color-slate-200)]' : ''
+                    }`}
+                  >
                     {col.render ? col.render(row) : row[col.key]}
                   </td>
                 ))}

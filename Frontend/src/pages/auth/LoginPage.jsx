@@ -68,7 +68,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="palette-nuit relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-10 sm:px-6">
+    <div className="palette-nuit relative flex min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-slate-950 px-4 py-8 sm:px-6 sm:py-10">
       {/* Décor : fond dégradé, trame technique et halos. aria-hidden : c'est de
           la décoration, elle ne doit pas être lue. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
@@ -87,7 +87,10 @@ export function LoginPage() {
         {/* Les deux panneaux sont superposés : le panneau inactif est en
             position absolue, donc il n'ajoute aucune hauteur. Seul le panneau
             visible est interactif (inert sur l'autre). */}
-        <div className="relative w-full min-h-[28rem]">
+        {/* Sur un petit écran en hauteur, un minimum de 28 rem forçait un
+            défilement dès l'accueil. Le minimum disparait en dessous de
+            640 px de haut, où le contenu se contente de tenir. */}
+        <div className="relative w-full min-h-[24rem] sm:min-h-[28rem]">
           {/* ================= ÉTAPE 1 : accueil ================= */}
           <section
             aria-hidden={etape !== 'accueil'}
@@ -115,13 +118,13 @@ export function LoginPage() {
               Ministère de l&apos;Économie et des Finances
             </p>
             <h1
-              className="mt-2 max-w-md text-[26px] font-semibold leading-tight motion-safe:animate-ligne texte-degrade"
+              className="mt-2 max-w-md text-[22px] font-semibold leading-tight motion-safe:animate-ligne texte-degrade sm:text-[26px]"
               style={{ animationDelay: '400ms' }}
             >
               Service Régional de la Solde et des Pensions Fitovinany
             </h1>
 
-            <p className="mt-6 max-w-sm text-sm leading-relaxed text-white/45 motion-safe:animate-ligne" style={{ animationDelay: '460ms' }}>
+            <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/45 motion-safe:animate-ligne sm:mt-6" style={{ animationDelay: '460ms' }}>
               Plateforme de gestion des dossiers administratifs : réception,
               orientation, instruction, validation et archivage, avec
               traçabilité complète des actes.
@@ -134,7 +137,7 @@ export function LoginPage() {
               type="button"
               variant="accent"
               onClick={ouvrirFormulaire}
-              className="group mt-9 px-8 py-3.5 text-[15px] transition-transform motion-safe:animate-monte"
+              className="group mt-7 w-full px-8 py-3.5 text-[15px] transition-transform motion-safe:animate-monte sm:mt-9 sm:w-auto"
               style={{ animationDelay: '540ms' }}
             >
               <LogIn className="h-4 w-4" />
@@ -163,7 +166,7 @@ export function LoginPage() {
             </div>
 
             {/* La carte s'ouvre en fondu et monte. */}
-            <div className="verre relative rounded-[18px] p-7 shadow-2xl shadow-slate-950/60 ring-1 ring-white/10 sm:p-8 motion-safe:animate-monte">
+            <div className="verre relative rounded-[18px] p-5 shadow-2xl shadow-slate-950/60 ring-1 ring-white/10 sm:p-8 motion-safe:animate-monte">
               <button
                 type="button"
                 onClick={revenir}
