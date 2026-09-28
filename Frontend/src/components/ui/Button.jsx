@@ -11,11 +11,17 @@ const VARIANTS = {
     'bg-transparent text-primary-600 hover:bg-primary-50 focus-visible:ring-primary-400',
   outline:
     'bg-white text-primary-600 border border-primary-500 hover:bg-primary-50 focus-visible:ring-primary-400',
-  // Écran de connexion : dégradé d'accent avec halo, réservé au fond sombre.
+  // Écran de connexion : contour clair au repos, qui se REMPLIT d'un dégradé au
+  // survol. Le remplissage est un ::before en z-index négatif : pas de balisage
+  // supplémentaire, et le texte reste au-dessus.
   accent:
-    'bg-gradient-to-r from-primary-500 to-cyan-500 text-white shadow-lg shadow-primary-500/25 ' +
-    'hover:from-primary-400 hover:to-cyan-400 hover:shadow-xl hover:shadow-cyan-500/30 ' +
-    'active:scale-[.98] focus-visible:ring-cyan-400 disabled:from-slate-600 disabled:to-slate-600',
+    'relative isolate overflow-hidden border border-cyan-400/45 text-cyan-300 ' +
+    'before:absolute before:inset-0 before:-z-10 before:bg-gradient-to-r ' +
+    'before:from-primary-500 before:to-cyan-500 before:opacity-0 ' +
+    'before:transition-opacity before:duration-300 hover:before:opacity-100 ' +
+    'hover:border-cyan-300/80 hover:text-white hover:shadow-lg hover:shadow-cyan-500/30 ' +
+    'active:scale-[.98] focus-visible:ring-cyan-400 focus-visible:ring-offset-slate-950 ' +
+    'disabled:border-white/15 disabled:text-white/30',
 };
 
 const SIZES = {

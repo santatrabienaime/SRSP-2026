@@ -41,16 +41,11 @@
     0% { opacity: 0; transform: translateY(-6px); }
     100% { opacity: 1; transform: translateY(0); }
   }
-  /* Balayage lumineux qui parcourt le pourtour de la carte. */
-  @keyframes bordure {
-    to { transform: rotate(1turn); }
-  }
   /* Défilement du dégradé du titre. */
   @keyframes defilement {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
   }
-  --animate-bordure: bordure 7s linear infinite;
   --animate-defilement: defilement 9s ease-in-out infinite;
 }
 
