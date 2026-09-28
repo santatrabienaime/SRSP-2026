@@ -33,6 +33,10 @@ export async function findDossiers(filters = {}) {
 
     const groupes = {
       NOUVEAUX: ['RECU', 'ENREGISTRE'],
+      // File d'attente du chef de division apres le routage automatique :
+      // le dossier est oriente et attend son affectation a un agent. Ce groupe
+      // est une VUE supplementaire sur EN_COURS, il ne le remplace pas.
+      A_AFFECTER: ['ENREGISTRE', 'ORIENTE'],
       EN_COURS: [
         'ORIENTE', 'AFFECTE', 'EN_TRAITEMENT',
         'SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE',

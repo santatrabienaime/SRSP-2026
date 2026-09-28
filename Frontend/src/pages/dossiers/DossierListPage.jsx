@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle } from 'lucide-react';
+import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, UserCheck } from 'lucide-react';
 import { DossierList } from '../../components/dossier/DossierList.jsx';
 import { dashboardService } from '../../services/dashboardService.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -25,6 +25,22 @@ const GROUPES = [
     // Article 2.1 : uniquement les dossiers reçus dans les sept derniers jours.
     filters: { recus_depuis_jours: 7, statut: 'RECU,ENREGISTRE' },
     statuts: ['RECU', 'ENREGISTRE'],
+  },
+  {
+    // File d'attente du chef de division : le routage automatique y depose le
+    // dossier, qui attend son affectation a un agent. VUE sur EN_COURS.
+    code: 'A_AFFECTER', label: 'À affecter', icon: UserCheck,
+    hint: 'Orientés, en attente d’affectation',
+    filters: { statut: 'A_AFFECTER' },
+    statuts: ['ENREGISTRE', 'ORIENTE'],
+    // Reserve aux roles qui affectent un dossier a un agent. Les 13 noms de
+    // roles sont explicites : ce tableau de boutons est statique, le
+    // filtrage par permission n'y est pas disponible.
+    roles: [
+      'ADMIN', 'CHEF_SERVICE', 'CHEF_BAAF', 'COORDINATRICE',
+      'CHEF_DIVISION_VISA', 'CHEF_DIVISION_SOLDE',
+      'CHEF_DIVISION_PENSION', 'CHEF_DIVISION_SECOURS',
+    ],
   },
   {
     code: 'EN_COURS', label: 'En cours', icon: Loader2,
@@ -89,7 +105,7 @@ export function DossierListPage() {
 
       {/* Séparation des dossiers : un ensemble affiché à la fois. */}
       <div className="flex flex-wrap gap-2">
-        {GROUPES.map((g) => {
+        {GROUPES.filter((g) => !g.roles || g.roles.includes(roleNom)).map((g) => {
           const Icon = g.icon;
           const actif = groupe === g.code;
           const n = compte(g.statuts);

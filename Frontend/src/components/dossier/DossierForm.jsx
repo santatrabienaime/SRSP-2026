@@ -10,7 +10,7 @@ import { Textarea } from '../ui/Textarea.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import { todayISO } from '../../utils/formatDate.js';
 import { useNotification } from '../../hooks/useNotification.js';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Info } from 'lucide-react';
 
 /**
  * Formulaire de création / modification d'un dossier.
@@ -108,22 +108,47 @@ export function DossierForm({ initial = null, onSaved }) {
         </Alert>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Select
-          label="Type de dossier"
-          required
-          value={form.type_id}
-          onChange={set('type_id')}
-          disabled={Boolean(initial)}
-        >
-          <option value="">Sélectionner…</option>
+      {/* Type de dossier : le seul choix qui determine la division (règle 1). */}
+      <fieldset disabled={Boolean(initial)}>
+        <legend className="mb-2 block text-sm font-medium text-slate-700">
+          Type de dossier <span className="text-red-500">*</span>
+        </legend>
+        <div className="grid gap-2 sm:grid-cols-2">
           {referentiel.types_dossiers.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.libelle}
-            </option>
+            <label
+              key={t.id}
+              className={`flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm transition ${
+                String(form.type_id) === String(t.id)
+                  ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-300'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
+              } ${initial ? 'cursor-not-allowed opacity-70' : ''}`}
+            >
+              <input
+                type="radio"
+                name="type_id"
+                value={t.id}
+                checked={String(form.type_id) === String(t.id)}
+                onChange={set('type_id')}
+                className="mt-0.5 h-4 w-4 accent-emerald-600"
+              />
+              <span className="min-w-0">
+                <span className="block font-semibold text-slate-800">{t.libelle}</span>
+                {t.description && (
+                  <span className="block text-[11px] leading-tight text-slate-500">
+                    {t.description}
+                  </span>
+                )}
+              </span>
+            </label>
           ))}
-        </Select>
+        </div>
+        <p className="mt-2 flex items-center gap-1 text-[11px] text-slate-500">
+          <Info className="h-3 w-3 shrink-0" />
+          La division sera déterminée automatiquement à partir du type choisi.
+        </p>
+      </fieldset>
 
+      <div className="grid gap-4 sm:grid-cols-2">
         {/* Routage automatique : la division découle du type (règle 1). */}
         <div>
           <p className="mb-1 block text-sm font-medium text-slate-700">
@@ -192,7 +217,7 @@ export function DossierForm({ initial = null, onSaved }) {
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Input
           label="Date de réception"
           required
@@ -206,11 +231,12 @@ export function DossierForm({ initial = null, onSaved }) {
           value={form.date_limite || ''}
           onChange={set('date_limite')}
         />
-        <div className="sm:pt-6">
-          <Button type="submit" loading={saving} className="w-full">
-            {initial ? 'Enregistrer les modifications' : 'Créer le dossier'}
-          </Button>
-        </div>
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button type="submit" loading={saving}>
+          {initial ? 'Enregistrer les modifications' : 'Créer le dossier'}
+        </Button>
       </div>
 
       <Textarea

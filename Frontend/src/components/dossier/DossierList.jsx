@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, FolderKanban } from 'lucide-react';
+import { Search, Plus, FolderKanban, UserCheck } from 'lucide-react';
 import { dossierService } from '../../services/dossierService.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { usePagination } from '../../hooks/usePagination.js';
@@ -140,6 +140,32 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
       render: (r) => <span className="text-slate-500">{formatDateTime(r.created_at)}</span>,
     },
   ];
+
+  // File « À affecter » : le chef de division agit sans ouvrir chaque fiche.
+  // Le bouton n'apparait que pour un dossier qui attend son affectation et
+  // pour un role autorise a affecter.
+  const fileAAffecter = baseFilters.statut === 'A_AFFECTER';
+  const peutAffecter = hasPermission('affecter_dossier');
+  if (fileAAffecter && peutAffecter) {
+    columns.push({
+      key: 'action',
+      label: 'Action',
+      render: (r) => {
+        const affectable = [STATUTS.ENREGISTRE, STATUTS.ORIENTE].includes(r.statut_code);
+        if (!affectable) {
+          return <span className="text-xs text-slate-400">Déjà affecté</span>;
+        }
+        return (
+          <Link to={`/dossiers/${r.id}`}>
+            <Button size="sm" variant="outline">
+              <UserCheck className="h-3.5 w-3.5" />
+              Affecter
+            </Button>
+          </Link>
+        );
+      },
+    });
+  }
 
   return (
     <div className="space-y-4">
