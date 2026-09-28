@@ -45,19 +45,49 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 px-4 py-8">
       <div className="w-full max-w-md">
-        <div className="mb-6 text-center text-white">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 text-3xl font-bold backdrop-blur">
-            S
-          </div>
-          <h1 className="text-2xl font-bold">SRSP Fitovinany</h1>
-          <p className="mt-1 text-sm text-primary-100">
-            Suivi et traçabilité des dossiers administratifs
+        {/* En-tête officiel : l'identité administrative du service, affichée
+            avant l'écran de connexion. Il remplace un ancien bloc qui portait un
+            simple « S » — jamais un logo réel. */}
+        <header className="mb-6 text-center text-white">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em]">
+            République de Madagascar
           </p>
-        </div>
+          <p className="mt-1 text-[11px] italic text-primary-100">
+            Fitiavana &mdash; Tanindrazana &mdash; Fandrosoana
+          </p>
+
+          <div className="mx-auto my-3 h-px w-24 bg-white/40" />
+
+          <p className="text-sm font-bold uppercase tracking-wide">
+            Ministère de l&apos;Économie et des Finances
+          </p>
+          <p className="mt-1 text-sm font-semibold leading-snug">
+            Service Régional de la Solde et des Pensions Fitovinany
+          </p>
+        </header>
 
         <div className="rounded-xl bg-white p-6 shadow-xl">
+          {/* Coordonnées du service : sous l'en-tête, comme sur un document
+              administratif. */}
+          <address className="mb-4 border-b border-slate-200 pb-4 text-center text-[11px] not-italic leading-relaxed text-slate-500">
+            Ambodiaplay, Manakara
+            <br />
+            +261 32 11 090 10 / +261 32 25 469 11
+            <br />
+            <a
+              href="mailto:srsp.fitovinany@dgfag.mg"
+              className="text-primary-600 hover:underline"
+            >
+              srsp.fitovinany@dgfag.mg
+            </a>
+          </address>
+
+          <p className="mb-4 text-center text-xs text-slate-500">
+            Suivi et traçabilité des dossiers administratifs
+          </p>
+
           <div className="mb-4 flex items-center gap-2 text-slate-700">
             <ShieldCheck className="h-5 w-5 text-primary-600" />
             <h2 className="text-lg font-semibold">Connexion</h2>
