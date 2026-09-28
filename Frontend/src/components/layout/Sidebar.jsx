@@ -115,8 +115,24 @@ export function Sidebar() {
         will-change-[width] motion-reduce:transition-none
         ${barreRepliee ? 'w-[4.5rem]' : 'w-64'}`}
     >
-      <div className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-3 pr-2">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-lg font-bold text-white">
+      {/* En-tête.
+
+          Barre repliée, il ne reste que le bouton, centré. Garder le logo à
+          côté était impossible : le rail fait 4,5 rem, soit 48 px utiles une
+          fois les marges retirées, alors que le logo (40 px) et le bouton
+          (32 px) en demandent 72. Le bouton était donc repoussé hors cadre, et
+          le overflow-hidden de la barre le rendait invisible — c'est ce qui
+          manquait. Il est désormais seul, centré, donc toujours visible et
+          commode au doigt. La marque « SRSP Fitovinany » n'est pas perdue : la
+          barre supérieure l'affiche sur les écrans étroits. */}
+      <div className="relative flex shrink-0 items-center border-b border-slate-200 px-4 py-3 pr-2">
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-lg font-bold text-white transition-[transform,opacity] duration-200 motion-reduce:transition-none ${
+            barreRepliee
+              ? 'absolute left-1/2 -translate-x-1/2 scale-75 opacity-0'
+              : 'mr-3 opacity-100'
+          }`}
+        >
           S
         </div>
         <div
@@ -129,13 +145,14 @@ export function Sidebar() {
           <p className="truncate text-sm font-bold text-slate-800">SRSP Fitovinany</p>
           <p className="truncate text-[11px] text-slate-400">Suivi des dossiers</p>
         </div>
-        {/* Le bouton de repli est en haut de la barre : c'est là que l'on
-            regarde en premier, et il reste atteignable même quand la barre
-            est réduite à son rail d'icônes. */}
         <button
           type="button"
           onClick={basculerBarre}
-          className="shrink-0 rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+          /* p-2 : 32 px de cible, confortable au doigt. mx-auto centre le
+             bouton quand il est seul dans le rail. */
+          className={`shrink-0 rounded-md p-2 text-slate-500 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-800 ${
+            barreRepliee ? 'mx-auto' : ''
+          }`}
           aria-label={barreRepliee ? 'Afficher la barre latérale' : 'Masquer la barre latérale'}
           aria-expanded={!barreRepliee}
           title={barreRepliee ? 'Afficher le menu' : 'Masquer le menu'}
