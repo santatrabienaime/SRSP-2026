@@ -15,7 +15,11 @@ const CHECKS = [
   { key: 'certificat_cessation', label: 'Certificat de cessation valide' },
 ];
 
-/** Contrôle du décompte par le Chef de Division Solde (controler_decomptes). */
+/**
+ * Contrôle du décompte : vérification avant validation, par le Chef de Service
+ * (permission controler_decomptes, également portée par le Chef de Division
+ * Solde pour le contrôle interne à sa division).
+ */
 export function ControleDecompte({ dossierId }) {
   const { hasPermission } = useAuth();
   const canControl = hasPermission('controler_decomptes');
@@ -28,10 +32,13 @@ export function ControleDecompte({ dossierId }) {
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
+    // Un utilisateur qui ne contrôle pas ne doit pas appeler l'API : sinon il
+    // recevait un « Accès refusé » sur un écran qui ne le concernait pas.
+    if (!canControl) return;
     try {
       setHistorique(await dossierService.getControleDecompte(dossierId) || []);
     } catch (e) { setError(e); }
-  }, [dossierId]);
+  }, [dossierId, canControl]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -115,7 +122,7 @@ export function ControleDecompte({ dossierId }) {
 
       {!canControl && (
         <p className="text-sm text-slate-400">
-          Seul le Chef de Division Solde peut contrôler un décompte.
+          Le contrôle du décompte est réservé au Chef de Service.
         </p>
       )}
 

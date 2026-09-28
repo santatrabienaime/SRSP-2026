@@ -29,11 +29,21 @@ router.post(
 );
 
 /* --- Contrôle du décompte ---
-   Décision : Chef de Division Solde (controler_decomptes), vue globale. */
-router.get('/:id/controle-decompte', rbacMiddleware('controler_decomptes'), ctrl.getControles);
+   Décision : Chef de Service (controler_decomptes), avant validation.
+   Le cloisonnement s'applique comme sur les deux autres blocs : sans
+   assertDossierAccessMiddleware, un chef de division Solde pouvait contrôler —
+   donc RETOURNER ou APPROUVER — le dossier d'une AUTRE division en devinant
+   son identifiant. */
+router.get(
+  '/:id/controle-decompte',
+  rbacMiddleware('controler_decomptes'),
+  assertDossierAccessMiddleware,
+  ctrl.getControles
+);
 router.post(
   '/:id/controle-decompte',
   rbacMiddleware('controler_decomptes'),
+  assertDossierAccessMiddleware,
   ctrl.saveControle
 );
 

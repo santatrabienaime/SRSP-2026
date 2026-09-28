@@ -12,12 +12,14 @@ DELETE FROM role_permissions;
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p WHERE r.nom = 'ADMIN';
 
--- CHEF_SERVICE : supervision, workflow complet final, rapports, courriers
+-- CHEF_SERVICE : supervision, workflow complet final, contrôle du décompte
+-- (contrôle AVANT validation, donc lui revient), rapports, courriers
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p
 WHERE r.nom = 'CHEF_SERVICE' AND p.nom IN (
   'view_all_dossiers', 'affecter_dossier', 'traiter_dossier', 'verifier_dossier',
   'valider_dossier', 'signer_dossier', 'cloturer_dossier', 'archiver_dossier',
+  'controler_decomptes',
   'manage_courriers', 'upload_document', 'view_stats', 'export_data'
 );
 
@@ -61,7 +63,9 @@ WHERE r.nom = 'VERIFICATEUR_VISA' AND p.nom IN (
   'soumettre_verification', 'upload_document'
 );
 
--- CHEF DIVISION SOLDE : affectation, décision, décomptes, bons de caisse
+-- CHEF DIVISION SOLDE : affectation, décision, contrôle interne des décomptes
+-- de sa division, bons de caisse (le contrôle avant validation revient au
+-- Chef de Service ; voir migration 028)
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r JOIN permissions p
 WHERE r.nom = 'CHEF_DIVISION_SOLDE' AND p.nom IN (
