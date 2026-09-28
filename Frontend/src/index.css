@@ -41,6 +41,57 @@
     0% { opacity: 0; transform: translateY(-6px); }
     100% { opacity: 1; transform: translateY(0); }
   }
+  /* Balayage lumineux qui parcourt le pourtour de la carte. */
+  @keyframes bordure {
+    to { transform: rotate(1turn); }
+  }
+  /* Défilement du dégradé du titre. */
+  @keyframes defilement {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  --animate-bordure: bordure 7s linear infinite;
+  --animate-defilement: defilement 9s ease-in-out infinite;
+}
+
+@layer utilities {
+  /* Trame technique en arrière-plan, estompée sur les bords. */
+  .grille-futur {
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / .05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / .05) 1px, transparent 1px);
+    background-size: 58px 58px;
+    mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, #000 35%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, #000 35%, transparent 100%);
+  }
+
+  /* Verre dépoli : la carte se lit par transparence sur le fond animé. */
+  .verre {
+    background: linear-gradient(158deg, rgb(255 255 255 / .11), rgb(255 255 255 / .035));
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+  }
+
+  /* Titre en dégradé animé (service, puis plateforme). */
+  .texte-degrade {
+    background-image: linear-gradient(100deg, #ffffff 8%, #bfdbfe 45%, #67e8f9 92%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .texte-degrade-anime {
+    composes: texte-degrade;
+    animation: var(--animate-defilement);
+  }
+
+  /* Lueur stable sous le logo. */
+  .lueur-logo {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / .12),
+      0 0 32px -6px rgb(59 130 246 / .55),
+      inset 0 1px 0 rgb(255 255 255 / .18);
+  }
 }
 
 html {

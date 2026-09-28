@@ -11,6 +11,11 @@ const VARIANTS = {
     'bg-transparent text-primary-600 hover:bg-primary-50 focus-visible:ring-primary-400',
   outline:
     'bg-white text-primary-600 border border-primary-500 hover:bg-primary-50 focus-visible:ring-primary-400',
+  // Écran de connexion : dégradé d'accent avec halo, réservé au fond sombre.
+  accent:
+    'bg-gradient-to-r from-primary-500 to-cyan-500 text-white shadow-lg shadow-primary-500/25 ' +
+    'hover:from-primary-400 hover:to-cyan-400 hover:shadow-xl hover:shadow-cyan-500/30 ' +
+    'active:scale-[.98] focus-visible:ring-cyan-400 disabled:from-slate-600 disabled:to-slate-600',
 };
 
 const SIZES = {
