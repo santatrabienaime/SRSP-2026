@@ -206,19 +206,35 @@ export async function createDossier(data) {
     `SELECT id FROM statuts_dossiers WHERE code = 'RECU'`
   );
   const statutNouveau = rows[0].id;
-  const result = await db.query(
-    `INSERT INTO dossiers
-     (numero, type_id, objet, demandeur, matricule, date_reception, date_limite,
-      division_id, priorite_id, statut_id, observation, created_by,
-      demandeur_nom, demandeur_prenom, demandeur_tel, demandeur_email, demandeur_adresse)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [numero, type_id, objet, demandeur, matricule ?? null, date_reception,
-     date_limite ?? null, division_id, priorite_id, statutNouveau,
-     observation ?? null, created_by,
-     demandeur_nom || null, demandeur_prenom || null, demandeur_tel || null,
-     demandeur_email || null, demandeur_adresse || null]
-  );
-  return { id: result.insertId, numero };
+  try {
+    const result = await db.query(
+      `INSERT INTO dossiers
+       (numero, type_id, objet, demandeur, matricule, date_reception, date_limite,
+        division_id, priorite_id, statut_id, observation, created_by,
+        demandeur_nom, demandeur_prenom, demandeur_tel, demandeur_email, demandeur_adresse)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [numero, type_id, objet, demandeur, matricule ?? null, date_reception,
+       date_limite ?? null, division_id, priorite_id, statutNouveau,
+       observation ?? null, created_by,
+       demandeur_nom || null, demandeur_prenom || null, demandeur_tel || null,
+       demandeur_email || null, demandeur_adresse || null]
+    );
+    return { id: result.insertId, numero };
+  } catch (e) {
+    /* Le compteur rend desormais la collision impossible en pratique. Mais si
+       elle survenait quand meme — restauration de sauvegarde, import, cas non
+       prevu — le message doit etre comprehensible par une secretaire, et pas
+       « Duplicate entry 'SECOURS-2026-000001' for key 'numero' », qui ne dit
+       ni quoi faire ni pourquoi. */
+    if (e.code === 'ER_DUP_ENTRY') {
+      const err = new Error(
+        `Le numéro ${numero} est déjà attribué à un autre dossier. La création n'a pas abouti : recommencez dans un instant.`
+      );
+      err.status = 409;
+      throw err;
+    }
+    throw e;
+  }
 }
 
 /**
