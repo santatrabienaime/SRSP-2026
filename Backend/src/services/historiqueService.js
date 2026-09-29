@@ -81,6 +81,11 @@ function presenter(ligne) {
     action: ligne.action,
     action_libelle: LIBELLES_ACTIONS[ligne.action] || ligne.action,
     details: ligne.details,
+    // Ces deux champs disent CE QUI a changé. Sans eux, une affectation se
+    // lisait « AFFECTATION » sans dire à qui : la trace existait mais ne
+    // informait pas.
+    ancienne_valeur: ligne.ancienne_valeur,
+    nouvelle_valeur: ligne.nouvelle_valeur,
     ip_address: ligne.ip_address,
     date_action: ligne.date_action,
     dossier_id: ligne.dossier_id,

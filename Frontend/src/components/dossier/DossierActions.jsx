@@ -74,11 +74,16 @@ export function DossierActions({ dossier, onDone }) {
       variant: 'secondary',
     });
   }
-  // Affectation (§14.2 : Chef de Division — → AFFECTE)
+  /* Affectation (§14.2 : Chef de Division — → AFFECTE).
+     Le dossier arrive normalement déjà affecté à l'agent de traitement de sa
+     division. Le bouton n'est donc plus une étape du parcours courant, mais une
+     REGISTRE : il change l'agent, et le libellé doit le dire, sinon le chef
+     croirait que le dossier attend encore d'être affecté. */
   if ([STATUTS.ENREGISTRE, STATUTS.ORIENTE, STATUTS.AFFECTE, STATUTS.CORRECTION_DEMANDEE].includes(statut) && can('affecter_dossier')) {
+    const dejaAffecte = Boolean(dossier.agent_responsable_id);
     actions.push({
       key: 'affecter',
-      label: 'Affecter à un agent',
+      label: dejaAffecte ? 'Changer l\'agent affecté' : 'Affecter à un agent',
       icon: UserCheck,
       variant: 'secondary',
     });

@@ -6,6 +6,7 @@ import db from '../config/db.js';
 import * as workflowService from './workflowService.js';
 import * as tracabiliteService from './tracabiliteService.js';
 import * as routageService from './routageService.js';
+import * as affectationAutoService from './affectationAutoService.js';
 import { STATUTS, STATUTS_PROTEGES } from '../utils/constants.js';
 import { httpError } from '../utils/httpError.js';
 import { normaliserCIN } from '../validators/dossierValidators.js';
@@ -129,8 +130,9 @@ export async function createDossier(data, userId) {
     details: `Dossier ${dossier.numero} enregistré.`,
   });
 
-  // Orientation automatique vers la division du type : le dossier arrive
-  // directement dans la file du chef de division, qui en est notifié.
+  // Orientation automatique vers la division du type, puis affectation
+  // automatique à l'agent de traitement de cette division.
+  let agentAutomatic = null;
   try {
     await workflowService.transition(
       dossier.id,
@@ -145,6 +147,8 @@ export async function createDossier(data, userId) {
       nouvelle_valeur: division.nom,
       details: 'Routage automatique : la division découle du type de dossier.',
     });
+
+    agentAutomatic = await affecterAutomatiquement(dossier.id, division.id, userId);
   } catch (e) {
     // Si l'orientation échoue, le dossier reste enregistré et sera orientable
     // manuellement : on ne perd pas la création.
@@ -156,11 +160,91 @@ export async function createDossier(data, userId) {
     dossier_id: dossier.id,
     action: 'DOSSIER_ENREGISTRE',
     type: 'INFO',
-    message: `Nouveau dossier ${dossier.numero} enregistré et orienté vers ${division.nom}.`,
+    message: agentAutomatic
+      ? `Nouveau dossier ${dossier.numero} enregistré, orienté vers ${division.nom} et affecté à ${agentAutomatic.nom} ${agentAutomatic.prenom || ''}`.trim() + '.'
+      : `Nouveau dossier ${dossier.numero} enregistré et orienté vers ${division.nom}.`,
     lien: `/dossiers/${dossier.id}`,
   });
 
-  return { ...dossier, division_nom: division.nom, division_code: division.code };
+  return {
+    ...dossier,
+    division_nom: division.nom,
+    division_code: division.code,
+    agent_id: agentAutomatic?.id || null,
+    agent_nom: agentAutomatic?.nom || null,
+    agent_prenom: agentAutomatic?.prenom || null,
+  };
+}
+
+/**
+ * Affecte un dossier orienté à l'agent de traitement de sa division.
+ *
+ * Appelée après chaque orientation. Retourne l'agent retenu, ou null si la
+ * division n'a personne d'éligible — le dossier reste alors ORIENTE, visible
+ * dans la file d'attente, et le chef de division l'affecte lui-même. Mieux vaut
+ * une exception signalée qu'un dossier confié à personne.
+ */
+export async function affecterAutomatiquement(dossierId, divisionId, userId) {
+  const agent = await affectationAutoService.choisirAgent(divisionId);
+  if (!agent) {
+    await historiqueModel.log({
+      user_id: userId,
+      action: 'ORIENTATION',
+      dossier_id: dossierId,
+      details: "Aucun agent de traitement actif dans cette division : le dossier reste en attente d'affectation.",
+    });
+    return null;
+  }
+
+  const identite = `${agent.nom} ${agent.prenom || ''}`.trim();
+  await dossierModel.setAgentResponsable(dossierId, agent.id);
+  await workflowService.transition(
+    dossierId,
+    AFFECTE,
+    userId,
+    `Affectation automatique à ${identite} (${agent.role_code}).`
+  );
+  // tracabiliteService porte déjà l'écriture dans `affectations` et, le cas
+  // échéant, la trace de transfert : on s'y branche plutôt que de dupliquer.
+  await tracabiliteService.tracerAffectation(dossierId, {
+    division_id: divisionId,
+    agent_id: agent.id,
+    motif: 'Affectation automatique à la création du dossier.',
+    userId,
+  });
+  await historiqueModel.log({
+    user_id: userId,
+    action: 'AFFECTATION',
+    dossier_id: dossierId,
+    nouvelle_valeur: `${identite} (${agent.role_code})`,
+    // Le nom de l'agent est dans le détail, et pas seulement dans la valeur
+    // nouvelle : l'historique doit être lisible tel quel dans la fiche, sans
+    // que l'agent ait à décoder une valeur technique.
+    details: `Affectation automatique à ${identite} — agent de traitement de la division, le moins chargé.`,
+  });
+
+  // L'agent concerné est prévenu, comme pour toute affectation.
+  const [destinataire] = await db.query(
+    'SELECT user_id FROM agents WHERE id = ?',
+    [agent.id]
+  );
+  if (destinataire?.user_id) {
+    await notificationModel.notifyUser(destinataire.user_id, {
+      dossier_id: dossierId,
+      action: 'DOSSIER_AFFECTE',
+      type: 'INFO',
+      message: `Le dossier ${await numeroDu(dossierId)} vous a été affecté automatiquement.`,
+      lien: `/dossiers/${dossierId}`,
+    });
+  }
+
+  return { id: agent.id, nom: agent.nom, prenom: agent.prenom, role: agent.role_code };
+}
+
+/** Numéro d'un dossier, pour un message de notification. */
+async function numeroDu(dossierId) {
+  const [ligne] = await db.query('SELECT numero FROM dossiers WHERE id = ?', [dossierId]);
+  return ligne?.numero || `#${dossierId}`;
 }
 
 export async function updateDossier(id, data, userId) {
@@ -249,6 +333,11 @@ export async function orienter(id, { division_id }, userId) {
     dossier_id: id,
     details: `Dossier orienté vers la division ${division_id}.`,
   });
+
+  // Un dossier orienté manuellement l'est aussi automatiquement, sinon la
+  // secrétaire devrait en plus choisir l'agent : c'est précisément la double
+  // saisie que l'affectation automatique doit supprimer.
+  await affecterAutomatiquement(id, division_id, userId);
 }
 
 /** Affectation à un agent (ORIENTE → AFFECTE). */
