@@ -91,6 +91,17 @@ export function Sidebar() {
         { to: '/courriers', label: 'Courriers', icon: 'courriers', perms: ['manage_courriers'] },
       ],
     },
+    /* Section de la Coordinatrice. Ces permissions existaient sans menu ni
+       écran : le rôle se connectait et ne trouvait rien à faire. */
+    {
+      label: 'Gestion administrative',
+      items: [
+        { to: '/administratif', label: 'Mon tableau de bord', icon: 'statistiques', perms: ['gerer_immatriculations'] },
+        { to: '/administratif/immatriculations', label: 'Immatriculations', icon: 'agents', perms: ['gerer_immatriculations'] },
+        { to: '/administratif/augure', label: 'Insertions Augure', icon: 'courriers', perms: ['gerer_augure'] },
+        { to: '/administratif/paiements', label: 'Modes de paiement', icon: 'settings', perms: ['gerer_paiements'] },
+      ],
+    },
     {
       label: 'Suivi',
       items: [

@@ -29,6 +29,7 @@ import mandatementRoutes from './routes/mandatementRoutes.js';
 import correspondanceRoutes from './routes/correspondanceRoutes.js';
 import commentaireRoutes from './routes/commentaireRoutes.js';
 import archiveRoutes from './routes/archiveRoutes.js';
+import administratifRoutes from './routes/administratifRoutes.js';
 
 const app = express();
 
@@ -65,6 +66,7 @@ app.use('/api/dossiers', mandatementRoutes);
 app.use('/api/dossiers', commentaireRoutes);
 app.use('/api/correspondances', correspondanceRoutes);
 app.use('/api/archives', archiveRoutes);
+app.use('/api/administratif', administratifRoutes);
 
 app.use(errorMiddleware);
 

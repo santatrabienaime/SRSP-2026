@@ -30,6 +30,11 @@ import { StatistiquesPage } from '../pages/statistiques/StatistiquesPage.jsx';
 import { RapportsPage } from '../pages/rapports/RapportsPage.jsx';
 import { ProfilePage } from '../pages/profile/ProfilePage.jsx';
 
+import { AdministratifDashboard as AdministratifDashboardPage } from '../pages/administratif/AdministratifDashboardPage.jsx';
+import { ImmatriculationsPage } from '../pages/administratif/ImmatriculationsPage.jsx';
+import { AugurePage } from '../pages/administratif/AugurePage.jsx';
+import { PaiementsPage } from '../pages/administratif/PaiementsPage.jsx';
+
 import { UsersAdminPage } from '../pages/administration/UsersAdminPage.jsx';
 import { RolesAdminPage } from '../pages/administration/RolesAdminPage.jsx';
 import { SettingsPage } from '../pages/administration/SettingsPage.jsx';
@@ -135,6 +140,42 @@ export function AppRouter() {
               </RoleRoute>
             }
           />
+          {/* Gestion administrative (Coordinatrice). Ces permissions
+              existaient sans menu ni écran : le rôle se connectait et ne
+              trouvait rien à faire. */}
+          <Route
+            path="/administratif"
+            element={
+              <RoleRoute permissions={['gerer_immatriculations', 'gerer_augure', 'gerer_paiements']}>
+                <AdministratifDashboardPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/administratif/immatriculations"
+            element={
+              <RoleRoute permissions={['gerer_immatriculations']}>
+                <ImmatriculationsPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/administratif/augure"
+            element={
+              <RoleRoute permissions={['gerer_augure']}>
+                <AugurePage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/administratif/paiements"
+            element={
+              <RoleRoute permissions={['gerer_paiements']}>
+                <PaiementsPage />
+              </RoleRoute>
+            }
+          />
+
           <Route
             path="/archives"
             element={
