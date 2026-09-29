@@ -20,7 +20,7 @@ const ETATS = {
   LIQUIDE: 'Liquidé',
 };
 
-const vide = { nom: '', prenom: '', lien: '', quote_part: '', montant: '' };
+const vide = { nom: '', prenom: '', lien: '', quote_part: '' };
 
 /** Mandatement du dossier de secours (Chef de Division Secours). */
 export function Mandatement({ dossierId }) {
@@ -48,15 +48,30 @@ export function Mandatement({ dossierId }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Contrôle de cohérence affiché avant envoi (le serveur revérifie).
+  /* Contrôle de cohérence affiché avant envoi (le serveur revérifie).
+     Les MONTANTS ne sont plus saisis : ils sont déduits des quotes-parts, comme
+     le demande le document (« le système calcule automatiquement le montant »).
+     L'agent saisit un total et des pourcentages, ce qu'il peut vérifier ; il ne
+     répartit plus 5 000 000 Ar à la main, division dont il ne peut contrôler le
+     résultat. */
   const sommeQuotes = beneficiaires.reduce(
     (s, b) => s + (Number(b.quote_part) || 0), 0
   );
-  const sommeMontants = beneficiaires.reduce(
-    (s, b) => s + (Number(b.montant) || 0), 0
-  );
   const quotesOk = Math.abs(sommeQuotes - 100) < 0.01;
-  const montantsOk = Number(montantTotal) === sommeMontants;
+
+  /* Aperçu de la répartition, avec la même règle que le serveur : arrondi à
+     l'ariary par distribute, reliquat à la plus grande part. Sans cet aperçu,
+     l'agent verrait un total et ne pourrait pas savoir qui touche quoi. */
+  const montantTotalNum = Number(montantTotal) || 0;
+  const apercu = (() => {
+    const quotes = beneficiaires.map((b) => Number(b.quote_part) || 0);
+    const parts = quotes.map((q) => Math.floor((montantTotalNum * q) / 100));
+    const distribue = parts.reduce((s, p) => s + p, 0);
+    let cible = 0;
+    for (let i = 1; i < quotes.length; i++) if (quotes[i] > quotes[cible]) cible = i;
+    parts[cible] += montantTotalNum - distribue;
+    return parts;
+  })();
 
   const setBenef = (i, key) => (e) =>
     setBeneficiaires((list) =>
@@ -69,12 +84,13 @@ export function Mandatement({ dossierId }) {
     try {
       const res = await dossierService.saveMandatement(dossierId, {
         montant_total: Number(montantTotal),
+        // Le montant n'est pas transmis : le serveur le calcule depuis la
+        // quote-part, qui est la seule donnée saisie.
         beneficiaires: beneficiaires.map((b) => ({
           nom: b.nom,
           prenom: b.prenom,
           lien: b.lien,
-          quote_part: Number(b.quote_part),
-          montant: Number(b.montant),
+          quote_part: Number(b.quote_part) || 0,
         })),
       });
       setData(res);
@@ -146,10 +162,16 @@ export function Mandatement({ dossierId }) {
                 <Input className="sm:col-span-2" label="Nom" value={b.nom} onChange={setBenef(i, 'nom')} />
                 <Input label="Prénom" value={b.prenom} onChange={setBenef(i, 'prenom')} />
                 <Input label="Lien" value={b.lien} onChange={setBenef(i, 'lien')} />
-                <Input label="Quote-part %" type="number" min="0" max="100"
+                <Input label="Quote-part %" type="number" min="0" max="100" step="0.01"
                        value={b.quote_part} onChange={setBenef(i, 'quote_part')} />
-                <Input label="Montant (Ar)" type="number" min="0"
-                       value={b.montant} onChange={setBenef(i, 'montant')} />
+                {/* Montant calculé, non saisi : l'agent saisit le total et les
+                    pourcentages, la plateforme fait la répartition. */}
+                <div className="pb-1">
+                  <p className="mb-1 block text-sm font-medium text-slate-700">Montant (Ar)</p>
+                  <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm tabular-nums text-slate-700">
+                    {fmt(apercu[i] ?? 0)}
+                  </p>
+                </div>
                 <div className="flex items-end pb-1">
                   <Button
                     type="button" size="sm" variant="ghost"
@@ -168,9 +190,8 @@ export function Mandatement({ dossierId }) {
                   Quotes-parts : {sommeQuotes} %
                   {quotesOk ? ' ✓' : ' (doivent totaliser 100 %)'}
                 </span>
-                <span className={montantsOk ? 'text-emerald-700' : 'text-red-600'}>
-                  Somme : {fmt(sommeMontants)} / {fmt(montantTotal)}
-                  {montantsOk ? ' ✓' : ' (incompatible)'}
+                <span className="text-slate-600">
+                  Répartition : {apercu.map((m) => fmt(m)).join(' + ')} = {fmt(montantTotal)}
                 </span>
               </div>
             )}

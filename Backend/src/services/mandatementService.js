@@ -29,20 +29,62 @@ export async function getMandatement(dossierId) {
 
 /**
  * Enregistre le mandatement.
- * Règles métier : au moins un bénéficiaire, quotes-parts totalisant 100 %,
- * et somme des montants = montant total.
+ *
+ * Règles métier : au moins un bénéficiaire, quotes-parts totalisant 100 %.
+ *
+ * Les MONTANTS sont calculés, pas saisis. L'interface de mandatement du
+ * document montre un total et des pourcentages, et dit que « le système calcule
+ * automatiquement le montant à engager » : demander à l'agent de répartir
+ * 5 000 000 Ar entre trois bénéficiaires à la main lui fait faire une division
+ * dont il ne peut vérifier le résultat, et l inviting à saisir un total qui ne
+ * correspond plus à la somme — ce que le serveur rejetait jusqu'ici.
+ *
+ * Le montant de chaque bénéficiaire est donc déduit de sa quote-part, arrondi à
+ * l'ariary. L'arrondi est distributions, pas prélevé : les parts sont arrondies
+ * à la baisse, et le reliquat est ajouté à la plus grande part. Sans cela, cinq
+ * bénéficiaires à 33,33 % donneraient 4 999 985 Ar au lieu de 5 000 000, et le
+ * mandat ne correspondrait pas au montant annoncé.
  */
+/**
+ * Répartit un montant entre les bénéficiaires selon leurs quotes-parts.
+ *
+ * Les parts sont arrondies à l'ariary, ce qui perd au plus quelques unités. Le
+ * reliquat revient à la plus grande part : arrondir en répartissant au hasard
+ * ferait que deux saisies identiques du même dossier donnent des mandats
+ * différents, et un mandat ne peut pas varier d'un enregistrement à l'autre.
+ *
+ * L'ordre est conservé : le bénéficiaire listé en premier reste le premier.
+ */
+function repartirMontants(beneficiaires, montantTotal) {
+  const quotes = beneficiaires.map((b) => Number(b.quote_part));
+  const parts = quotes.map((q) => Math.floor((montantTotal * q) / 100));
+  const distribue = parts.reduce((s, p) => s + p, 0);
+
+  /* Le reliquat va à la plus grande quote-part. À quote-parts égales, au premier
+     bénéficiaire : la règle doit être déterministe. */
+  let cible = 0;
+  for (let i = 1; i < quotes.length; i++) {
+    if (quotes[i] > quotes[cible]) cible = i;
+  }
+  parts[cible] += montantTotal - distribue;
+
+  return beneficiaires.map((b, i) => ({
+    ...b,
+    quote_part: quotes[i],
+    montant: parts[i],
+  }));
+}
+
 export async function enregistrerMandatement(dossierId, data, userId) {
   const montant_total = montant(data.montant_total, 'Le montant total');
-  const beneficiaires = Array.isArray(data.beneficiaires) ? data.beneficiaires : [];
+  const saisie = Array.isArray(data.beneficiaires) ? data.beneficiaires : [];
 
-  if (!beneficiaires.length) {
+  if (!saisie.length) {
     throw httpError(400, 'Le mandatement doit comporter au moins un bénéficiaire.');
   }
 
   let sommeQuotes = 0;
-  let sommeMontants = 0;
-  for (const b of beneficiaires) {
+  for (const b of saisie) {
     if (!b.nom?.trim()) {
       throw httpError(400, 'Chaque bénéficiaire doit avoir un nom.');
     }
@@ -50,12 +92,7 @@ export async function enregistrerMandatement(dossierId, data, userId) {
     if (!Number.isFinite(quote) || quote < 0 || quote > 100) {
       throw httpError(400, `Quote-part invalide pour ${b.nom} (attendu entre 0 et 100).`);
     }
-    const m = Number(b.montant);
-    if (!Number.isInteger(m) || m < 0) {
-      throw httpError(400, `Montant invalide pour ${b.nom}.`);
-    }
     sommeQuotes += quote;
-    sommeMontants += m;
   }
 
   // Tolérance à l'arrondi : les quotes-parts sont des pourcentages.
@@ -65,10 +102,17 @@ export async function enregistrerMandatement(dossierId, data, userId) {
       `Les quotes-parts doivent totaliser 100 % (total obtenu : ${sommeQuotes} %).`
     );
   }
+
+  const beneficiaires = repartirMontants(saisie, montant_total);
+  const sommeMontants = beneficiaires.reduce((s, b) => s + b.montant, 0);
+
+  /* Garde-fou : la répartition doit tomber juste. Si elle ne tombe pas juste,
+     c'est que la logique de distribution est fausse — on préfère le dire que
+     laisser un mandat dont les parts ne reconstruisent pas le total. */
   if (sommeMontants !== montant_total) {
     throw httpError(
-      400,
-      `La somme des montants des bénéficiaires (${sommeMontants} Ar) doit être égale au montant total (${montant_total} Ar).`
+      500,
+      `Répartition incohérente : les parts totalisent ${sommeMontants} Ar au lieu de ${montant_total} Ar.`
     );
   }
 
