@@ -13,12 +13,13 @@ export function AgentDetailPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    /* Fiche ciblée. Charger la liste complète puis filtrer sur l'identifiant
+       fonctionnait, mais téléchargait les treize agents pour en montrer un : le
+       jour où le service en compte deux cents, cette page devient lente, et le
+       filtre échouerait sans message si la liste était tronquée. */
     agentService
-      .list()
-      .then((rows) => {
-        const found = (Array.isArray(rows) ? rows : []).find((a) => a.id === Number(id));
-        setAgent(found || null);
-      })
+      .get(id)
+      .then((row) => setAgent(row || null))
       .catch(setError)
       .finally(() => setLoading(false));
   }, [id]);

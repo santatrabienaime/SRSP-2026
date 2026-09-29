@@ -2,6 +2,14 @@ import fs from 'fs';
 import * as documentService from '../services/documentService.js';
 import * as documentModel from '../models/documentModel.js';
 
+export async function getOne(req, res, next) {
+  try {
+    const document = await documentModel.findDocumentById(req.params.id);
+    if (!document) return res.status(404).json({ message: 'Document introuvable.' });
+    res.json(document);
+  } catch (e) { next(e); }
+}
+
 export async function list(req, res, next) {
   try { res.json(await documentService.getDocuments(req.query)); } catch (e) { next(e); }
 }

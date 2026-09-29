@@ -177,12 +177,17 @@ export async function findDossierById(id) {
   const rows = await db.query(
     `SELECT d.*, t.code AS type_code, t.libelle AS type_libelle,
             s.libelle AS statut_libelle, s.code AS statut_code,
-            dv.nom AS division_nom, dv.code AS division_code, p.libelle AS priorite_libelle
+            dv.nom AS division_nom, dv.code AS division_code, p.libelle AS priorite_libelle,
+            a.nom AS agent_nom, a.prenom AS agent_prenom
      FROM dossiers d
      JOIN types_dossiers t ON d.type_id = t.id
      JOIN statuts_dossiers s ON d.statut_id = s.id
      JOIN divisions dv ON d.division_id = dv.id
      JOIN priorites p ON d.priorite_id = p.id
+     /* Agent responsable : la fiche doit afficher son nom. Sans cette jointure,
+        la liste des dossiers le montrait mais la fiche affiche « — », et rien
+        n'explique pourquoi un agent affecté disparaît sur la page du dossier. */
+     LEFT JOIN agents a ON a.id = d.agent_responsable_id
      WHERE d.id = ?`,
     [id]
   );

@@ -17,12 +17,11 @@ export function DivisionDashboard({ divisionId }) {
       setLoading(false);
       return;
     }
+    /* Fiche ciblée plutôt que liste complète filtrée : moins de données
+       transportees, et pas de dépendance à la taille de la liste. */
     divisionService
-      .list()
-      .then((rows) => {
-        const found = (Array.isArray(rows) ? rows : []).find((d) => d.id === Number(effectiveId));
-        setDivision(found);
-      })
+      .get(effectiveId)
+      .then((row) => setDivision(row || null))
       .finally(() => setLoading(false));
   }, [effectiveId]);
 
