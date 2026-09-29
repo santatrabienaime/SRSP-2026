@@ -183,14 +183,47 @@ export async function createDossier(data) {
   return { id: result.insertId, numero };
 }
 
+/**
+ * Met à jour un dossier.
+ *
+ * Les colonnes d'identité (nom, prénom, téléphone, email, adresse) sont
+ * enregistrées ici aussi. Elles ne l'étaient pas : le formulaire de
+ * modification les affichait et la sauvegarde les perdait, si bien qu'une
+ * correction d'un champ annexe effaçait silencieusement les coordonnées du
+ * demandeur.
+ *
+ * Chaque paramètre non transmis devient explicitement NULL. Une valeur
+ * `undefined` fait échouer mysql2 (« Bind parameters must not contain
+ * undefined ») : le champ laissé vide par un formulaire devient, selon le
+ * champ, soit un null qui vide la donnée, soit une erreur 500.
+ */
 export async function updateDossier(id, data) {
-  const { type_id, objet, demandeur, matricule, division_id, priorite_id, observation } = data;
+  const {
+    type_id, objet, demandeur, matricule, division_id, priorite_id, observation,
+    demandeur_nom, demandeur_prenom, demandeur_tel, demandeur_email, demandeur_adresse,
+  } = data;
   await db.query(
     `UPDATE dossiers
      SET type_id = ?, objet = ?, demandeur = ?, matricule = ?,
-         division_id = ?, priorite_id = ?, observation = ?
+         division_id = ?, priorite_id = ?, observation = ?,
+         demandeur_nom = ?, demandeur_prenom = ?, demandeur_tel = ?,
+         demandeur_email = ?, demandeur_adresse = ?
      WHERE id = ?`,
-    [type_id, objet, demandeur, matricule ?? null, division_id, priorite_id, observation ?? null, id]
+    [
+      type_id ?? null,
+      objet ?? null,
+      demandeur ?? null,
+      matricule || null,
+      division_id || null,
+      priorite_id ?? null,
+      observation || null,
+      demandeur_nom || null,
+      demandeur_prenom || null,
+      demandeur_tel || null,
+      demandeur_email || null,
+      demandeur_adresse || null,
+      id,
+    ]
   );
   return findDossierById(id);
 }
