@@ -34,8 +34,3 @@ export const LIBELLES_ACTIONS = {
   CONNEXION_ECHOUEE: 'Tentative de connexion refusée',
   SAUVEGARDE_DB: 'Sauvegarde de la base',
 };
-
-/** Renvoie le libellé, ou le code brut si l'action n'est pas encore connue. */
-export function libelleAction(action) {
-  return LIBELLES_ACTIONS[action] || action;
-}

@@ -15,11 +15,6 @@ export async function findById(id) {
   return rows[0];
 }
 
-export async function findByNom(nom) {
-  const rows = await db.query('SELECT * FROM roles WHERE nom = ?', [nom]);
-  return rows[0];
-}
-
 export async function create({ nom, description }) {
   const result = await db.query(
     'INSERT INTO roles (nom, description) VALUES (?, ?)',

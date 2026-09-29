@@ -22,14 +22,4 @@ export async function divisionPourType(typeId) {
   return rows[0] || null;
 }
 
-/** Libellé de division à partir d'un code. */
-export async function divisionParCode(code) {
-  if (!code) return null;
-  const rows = await db.query(
-    'SELECT id, code, nom FROM divisions WHERE code = ? LIMIT 1',
-    [code]
-  );
-  return rows[0] || null;
-}
-
 export default divisionPourType;
