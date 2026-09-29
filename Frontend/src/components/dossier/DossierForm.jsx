@@ -9,27 +9,14 @@ import { Select } from '../ui/Select.jsx';
 import { Textarea } from '../ui/Textarea.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import { todayISO, pourChampDate } from '../../utils/formatDate.js';
+import { validerDossier, validerTout, cinPlausible, compacterCIN } from '../../utils/validationDossier.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { CheckCircle2, Info, Search, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 
-/**
- * Formats de CIN acceptés, alignés sur le validateur du serveur.
- *
- * 12 chiffres pour le CIN malgache ; une lettre suivie de chiffres pour la carte
- * de non-inscription. Un motif « 4 à 20 caractères alphanumériques » laisserait
- * passer un CIN malgache à 11 chiffres : le chiffre manquant serait signalé trop
- * tard, au moment de l'enregistrement.
- */
-const CIN_MALGACHE = /^\d{12}$/;
-const CIN_NON_INSCRIPTION = /^[A-Z]{1,4}\d{2,10}$/i;
-const CIN_LONGUEUR = 12;
-
-const cinEstValide = (valeur) => {
-  const compact = (valeur || '').replace(/[\s.-]/g, '');
-  if (!compact) return true;
-  return CIN_MALGACHE.test(compact) || CIN_NON_INSCRIPTION.test(compact);
-};
+/* Les règles de saisie — dont le format du matricule — vivent dans
+   utils/validationDossier.js, où elles sont testables. Voir ce fichier pour
+   pourquoi un format strict est un défaut : il bloquait l'agent. */
 
 const vide = (initial) => ({
   type_id: initial?.type_id ?? '',
@@ -108,11 +95,11 @@ export function DossierForm({ initial = null, onSaved }) {
      autant d'appels que de lettres. */
   useEffect(() => {
     if (initial) return undefined; // pas de recherche en modification
-    const cin = (cinDebounce || '').replace(/[\s.-]/g, '');
-    // On n'interroge le serveur qu'un CIN conforme : chercher un dossier à un
-    // numéro tronqué ne peut rien retourner, et afficherait « inconnu » à
-    // chaque frappe.
-    if (!cinEstValide(cin) || !cin) {
+    const cin = compacterCIN(cinDebounce);
+    // On n'interroge le serveur que sur un matricule plausible : chercher un
+    // dossier à un numéro tronqué ne peut rien retourner, et afficherait
+    // « inconnu » à chaque frappe.
+    if (!cin || !cinPlausible(cin)) {
       setRecherche(null);
       return undefined;
     }
@@ -157,29 +144,20 @@ export function DossierForm({ initial = null, onSaved }) {
     setForm((f) => ({ ...f, demandeur: [nom, prenom].filter(Boolean).join(' ') }));
   }, [form.demandeur_nom, form.demandeur_prenom, initial]);
 
-  const validation = useMemo(() => {
-    const problemes = [];
-    if (!form.type_id) problemes.push('Le type de dossier est requis.');
-    if (!form.demandeur_nom && !form.demandeur) problemes.push('Le nom du demandeur est requis.');
-    if (!form.demandeur_prenom && !form.demandeur) problemes.push('Le prénom du demandeur est requis.');
-    if (!form.objet.trim()) problemes.push("L'objet est requis.");
-    if (!form.priorite_id) problemes.push('La priorité est requise.');
-    if (!form.date_reception) problemes.push('La date de réception est requise.');
-    if (form.date_limite && form.date_limite < form.date_reception) {
-      problemes.push('La date limite ne peut pas précéder la date de réception.');
-    }
-    if (!cinEstValide(form.matricule)) {
-      problemes.push(`Le CIN doit contenir ${CIN_LONGUEUR} chiffres, ou un matricule de non-inscription (ex. MAT-1234).`);
-    }
-    if (form.demandeur_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.demandeur_email)) {
-      problemes.push('Email invalide.');
-    }
-    return problemes;
-  }, [form]);
+  /* La validation vit dans utils/validationDossier.js, donc testable sans
+     navigateur. Elle distingue ce qui BLOQUE (erreur) de ce qui INFORME
+     (avertissement) : exiger un format de CIN strict immobilisait l'agent, les
+     numéros réels du service n'ayant pas tous la même longueur. */
+  const etape1 = useMemo(() => validerDossier(form, 1), [form]);
+  const etape2 = useMemo(() => validerDossier(form, 2), [form]);
+  const etape3 = useMemo(() => validerDossier(form, 3), [form]);
+  const tout = useMemo(() => validerTout(form), [form]);
 
-  const problemesEtape1 = validation.filter((p) => /type de dossier/.test(p));
-  const problemesEtape2 = validation.filter((p) => /demandeur|CIN|Email/i.test(p));
-  const problemesEtape3 = validation.filter((p) => !/type de dossier|demandeur|CIN|Email/i.test(p));
+  const problemesEtape1 = etape1.erreurs;
+  const problemesEtape2 = etape2.erreurs;
+  const problemesEtape3 = etape3.erreurs;
+  const avertissementsEtape = { 1: etape1, 2: etape2, 3: etape3 }[etape].avertissements;
+  const validation = tout.erreurs;
 
   const allerA = (n) => {
     setError(null);
@@ -335,6 +313,20 @@ export function DossierForm({ initial = null, onSaved }) {
               {error.details.map((d) => <li key={d}>{d}</li>)}
             </ul>
           )}
+        </Alert>
+      )}
+
+      {/* Avertissements : ils n'empêchent PAS de continuer, contrairement aux
+          erreurs. Les afficher évite que l'agent se demande pourquoi le système
+          doute d'une saisie qu'il sait correcte. */}
+      {avertissementsEtape.length > 0 && (
+        <Alert type="warning" title="Points à vérifier">
+          <ul className="list-inside list-disc text-xs">
+            {avertissementsEtape.map((m) => <li key={m}>{m}</li>)}
+          </ul>
+          <p className="mt-1 text-[11px] text-slate-500">
+            Vous pouvez continuer : ces points n\'empêchent pas l\'enregistrement.
+          </p>
         </Alert>
       )}
 

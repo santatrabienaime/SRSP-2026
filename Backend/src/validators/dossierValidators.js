@@ -10,38 +10,37 @@ import Joi from 'joi';
  * « Non, modifier » face à un CIN déjà connu. Bloquer serait une faute.
  */
 
-/** CIN malgache : exactement 12 chiffres, une fois les séparateurs retirés. */
-export const CIN_MALGACHE = /^\d{12}$/;
+/** Longueur minimale et maximale d'un matricule, séparateurs exclus. */
+export const CIN_LONGUEUR_MIN = 5;
+export const CIN_LONGUEUR_MAX = 20;
 
 /**
- * Carte de non-inscription : une lettre suivie de chiffres (MAT-1234).
+ * Un matricule est-il recevable ?
  *
- * La forme est volontairement contrainte. Un motif « 4 à 20 caractères
- * alphanumériques » acceptait un CIN malgache tronqué à 11 chiffres, puisque
- * 11 chiffres rentrent dans cette plage : la saisie d'un chiffre manquant
- * passait au lieu d'être signalée. Le service ne délivre pas de numéro de
- * 5 chiffres.
+ * L'administration malgache délivre des CIN de longueurs diverses : la base en
+ * contient de 5, 6, 8 et 12 chiffres, ainsi que des cartes de non-inscription
+ * alphanumériques. Exiger 12 chiffres exacts revenait à refuser une pièce
+ * d'identité parfaitement officielle — et, pire, à rendre IMPOSSIBLE la
+ * modification d'un dossier existant dont le matricule fait 6 chiffres : la
+ * secrétaire ne pouvait plus corriger un dossier réel sans changer le numéro du
+ * demandeur.
+ *
+ * On exige donc seulement des caractères d'identification plausibles. Un format
+ * atypique est signalé par l'interface, jamais refusé par la base.
  */
-export const CIN_NON_INSCRIPTION = /^[A-Z]{1,4}\d{2,10}$/i;
+export function cinValide(valeur) {
+  if (valeur === null || valeur === undefined || String(valeur).trim() === '') return true;
+  const compact = normaliserCIN(valeur);
+  if (!compact) return true;
+  if (compact.length < CIN_LONGUEUR_MIN || compact.length > CIN_LONGUEUR_MAX) return false;
+  return /^[A-Z0-9]+$/.test(compact);
+}
 
 /** Normalise un CIN pour comparaison : sans séparateur, en majuscules. */
 export function normaliserCIN(valeur) {
   if (valeur === null || valeur === undefined) return null;
   const compact = String(valeur).replace(/[\s.-]/g, '').toUpperCase();
   return compact === '' ? null : compact;
-}
-
-/**
- * Le CIN est-il conforme à l'un des deux formats que le service connaît ?
- *
- * Vide est accepté : le CIN est facultatif, et un dossier sans CIN est
- * légitime. Un CIN non conforme ne l'est jamais — c'est la seule façon d'éviter
- * d'accrocher une personne à un dossier portant le numéro d'une autre.
- */
-export function cinValide(valeur) {
-  if (valeur === null || valeur === undefined || String(valeur).trim() === '') return true;
-  const compact = normaliserCIN(valeur);
-  return CIN_MALGACHE.test(compact) || CIN_NON_INSCRIPTION.test(compact);
 }
 
 /** Un nom ou un prénom trop court ne permet aucune exploitation. */
@@ -78,7 +77,7 @@ export const createDossierSchema = Joi.object({
     }
     return valeur;
   }).messages({
-    'cin.invalide': 'Le CIN doit contenir 12 chiffres (ex. 101 234 567 890), ou un matricule de non-inscription (ex. MAT-1234)',
+    'cin.invalide': 'Le CIN doit comporter 5 à 20 caractères alphanumériques (ex. 101 234 567 890)',
   }),
   date_reception: Joi.date().iso().required().messages({
     'any.required': 'La date de réception est requise',
@@ -117,7 +116,7 @@ export const updateDossierSchema = Joi.object({
   demandeur_adresse: Joi.string().trim().allow('', null).max(255),
   matricule: Joi.string().trim().allow('', null).max(50).custom((valeur, helpers) => (
     cinValide(valeur) ? valeur : helpers.error('cin.invalide')
-  )).messages({ 'cin.invalide': 'Le CIN doit contenir 12 chiffres, ou un matricule de non-inscription' }),
+  )).messages({ 'cin.invalide': 'Le CIN doit comporter 5 à 20 caractères alphanumériques' }),
   division_id: Joi.number().integer().allow(null, ''),
   priorite_id: Joi.number().integer().required(),
   observation: Joi.string().allow('', null),
