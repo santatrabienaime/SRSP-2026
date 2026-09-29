@@ -27,6 +27,7 @@ import { NotificationsPage } from '../pages/notifications/NotificationsPage.jsx'
 import { HistoriquePage } from '../pages/historique/HistoriquePage.jsx';
 import { ArchivesPage } from '../pages/archives/ArchivesPage.jsx';
 import { StatistiquesPage } from '../pages/statistiques/StatistiquesPage.jsx';
+import { PerformancePage } from '../pages/statistiques/PerformancePage.jsx';
 import { RapportsPage } from '../pages/rapports/RapportsPage.jsx';
 import { ProfilePage } from '../pages/profile/ProfilePage.jsx';
 
@@ -184,6 +185,12 @@ export function AppRouter() {
               </RoleRoute>
             }
           />
+          {/* Mes statistiques : accessible a tout utilisateur authentifie.
+              Le server fait le cloisonnement lui-meme — un agent ne recoit que
+              ses chiffres, un chef de division que sa division. La page n'a donc
+              besoin d'aucune permission RoleRoute, et un agent sans view_stats
+              voit malgre tout son propre travail. */}
+          <Route path="/performance" element={<PerformancePage />} />
           <Route
             path="/statistiques"
             element={

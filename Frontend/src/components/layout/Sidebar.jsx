@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, FolderKanban, FileText, Mail, History, Archive,
   BarChart3, FileBarChart2, Settings, Users, Shield, Bell,
-  UserCog, Building2, ScrollText, PanelLeftClose, PanelLeftOpen,
+  UserCog, Building2, ScrollText, PanelLeftClose, PanelLeftOpen, TrendingUp,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
@@ -23,6 +23,7 @@ const ICONS = {
   personnel: UserCog,
   divisions: Building2,
   audit: ScrollText,
+  performance: TrendingUp,
 };
 
 /**
@@ -108,6 +109,14 @@ export function Sidebar() {
         { to: '/notifications', label: 'Notifications', icon: 'notifications' },
         { to: '/historique', label: 'Historique', icon: 'historique', perms: ['view_journal', 'view_audit'] },
         { to: '/archives', label: 'Archives', icon: 'archives', perms: ['view_archives'] },
+        /* « Mes statistiques » est ouvert à tout le monde, sans permission.
+           C'est la donnée de la personne sur elle-même : il n'y a rien
+           à autoriser, et un agent qui ne voit pas son propre travail n'a pas de
+           moyen de savoir s'il avance.
+
+           La page « Statistiques » ci-dessous reste, elle, réservée à view_stats
+           parce qu'elle porte sur le SERVICE entier. */
+        { to: '/performance', label: 'Mes statistiques', icon: 'performance' },
         { to: '/statistiques', label: 'Statistiques', icon: 'statistiques', perms: ['view_stats'] },
         { to: '/rapports', label: 'Rapports', icon: 'rapports', perms: ['view_stats', 'consolidate_reports', 'export_data'] },
       ],
