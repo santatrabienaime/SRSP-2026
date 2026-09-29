@@ -49,6 +49,10 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
   const [search, setSearch] = useState('');
   const [statut, setStatut] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  /* Tri de la file de travail. « prioritaire » place en tête ce qui doit être
+     traité aujourd'hui — urgence, échéance, ancienneté. Un agent qui arrive le
+     matin voit ainsi d'abord ce qui l'attend, au lieu du plus récemment reçu. */
+  const [tri, setTri] = useState('prioritaire');
   const debouncedSearch = useDebounce(search, 350);
 
   // baseFilters est souvent un objet recréé à chaque rendu du parent (ou défaut {} )
@@ -70,6 +74,7 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
         // Le type vient du selecteur, sauf si la liste est verrouillee sur un
         // type (page d'une division) : dans ce cas baseFilters fait foi.
         ...(lockedType ? {} : { type: typeFilter || undefined }),
+        tri: tri || undefined,
       };
       const rows = await dossierService.list(params);
       setData(Array.isArray(rows) ? rows : []);
@@ -78,7 +83,7 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
     } finally {
       setLoading(false);
     }
-  }, [filterKey, debouncedSearch, statut, typeFilter]);
+  }, [filterKey, debouncedSearch, statut, typeFilter, tri]);
 
   // load est stable (dépendances primitives : filterKey, debouncedSearch, statut, typeFilter)
   // → l'effet se déclenche au montage ET à chaque vrai changement de filtre, sans boucle.
@@ -203,6 +208,19 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
             </Select>
           </div>
         )}
+        {/* Tri de la file de travail : ce n'est qu'un ordre d'affichage, il ne
+            change rien au contenu de la liste. */}
+        <div className="w-full sm:w-56">
+          <Select label="Trier par" value={tri} onChange={(e) => setTri(e.target.value)}>
+            <option value="prioritaire">À traiter en premier</option>
+            <option value="echeance">Échéance la plus proche</option>
+            <option value="ancien">Plus anciens d'abord</option>
+            <option value="recent">Plus récents d'abord</option>
+            <option value="numero">Numéro de dossier</option>
+            <option value="division">Division</option>
+            <option value="agent">Agent responsable</option>
+          </Select>
+        </div>
         {showTypeFilter ? (
           <div className="w-full sm:w-48">
             <Select

@@ -110,6 +110,36 @@ export async function findDossiers(filters = {}) {
     const s = `%${filters.search}%`;
     params.push(s, s, s, s, s, s);
   }
+
+  /* Tri.
+     Par défaut la liste suit la date de réception du plus récent au plus
+     ancien, ce qui est naturel pour une recherche mais pas pour un agent qui
+     doit décider par quoi commencer.
+
+     Le tri « prioritaire » répond à cette question : ce qui doit être traité
+     aujourd'hui arrive en tête. L'ordre combine trois éléments, dans cet ordre
+     de poids décroissant :
+       1. la priorité déclarée (niveau décroissant) ;
+       2. l'échéance — un dossier en retard passe avant un dossier qui ne l'est
+          pas, et une échéance proche avant une échéance lointaine ;
+       3. l'ancienneté, pour qu'aucun dossier ne reste indéfiniment en bas.
+
+     Un dossier sans échéance n'est pas pénalisé : il se range après ceux qui
+     en ont une, à égalité de priorité et d'ancienneté. */
+  const TRIS = {
+    prioritaire:
+      'p.niveau DESC, ' +
+      // En retard d'abord, puis l'échéance la plus proche, puis sans échéance.
+      '(CASE WHEN d.date_limite IS NULL THEN 1 ELSE 0 END) ASC, ' +
+      'd.date_limite ASC, ' +
+      'd.date_reception ASC, d.id ASC',
+    recent: 'd.date_reception DESC, d.id DESC',
+    ancien: 'd.date_reception ASC, d.id ASC',
+    numero: 'd.numero ASC',
+    echeance: '(CASE WHEN d.date_limite IS NULL THEN 1 ELSE 0 END) ASC, d.date_limite ASC, d.id ASC',
+    division: 'dv.nom ASC, p.niveau DESC, d.id ASC',
+    agent: '(a.nom IS NULL) ASC, a.nom ASC, p.niveau DESC, d.id ASC',
+  };
   // Article 2.1 : dossiers recus dans les N derniers jours.
   if (filters.recus_depuis_jours) {
     const jours = Number(filters.recus_depuis_jours);
@@ -136,7 +166,10 @@ export async function findDossiers(filters = {}) {
     query += ' AND d.date_reception <= ?';
     params.push(filters.date_fin);
   }
-  query += ' ORDER BY d.date_reception DESC';
+  /* Le tri est positionne en DERNIER : la clause doit suivre tous les filtres,
+     sinon la requete est rejetee. La liste des tris est fermee, la colonne
+     n'est donc jamais concatenee depuis l'exterieur. */
+  query += ` ORDER BY ${TRIS[filters.tri] || TRIS.prioritaire}`;
   return db.query(query, params);
 }
 
