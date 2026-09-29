@@ -3,6 +3,7 @@ import {
   LayoutDashboard, FolderKanban, FileText, Mail, History, Archive,
   BarChart3, FileBarChart2, Settings, Users, Shield, Bell,
   UserCog, Building2, ScrollText, PanelLeftClose, PanelLeftOpen, TrendingUp,
+  MapPinned,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
@@ -24,6 +25,7 @@ const ICONS = {
   divisions: Building2,
   audit: ScrollText,
   performance: TrendingUp,
+  deplacement: MapPinned,
 };
 
 /**
@@ -101,6 +103,16 @@ export function Sidebar() {
         { to: '/administratif/immatriculations', label: 'Immatriculations', icon: 'agents', perms: ['gerer_immatriculations'] },
         { to: '/administratif/augure', label: 'Insertions Augure', icon: 'courriers', perms: ['gerer_augure'] },
         { to: '/administratif/paiements', label: 'Modes de paiement', icon: 'settings', perms: ['gerer_paiements'] },
+      ],
+    },
+    {
+      /* Section du Chef BAAF. Les entrees sont filtrees par permission : le
+         Chef de Service ne voit que « Pieces de deplacement » (il signe) et
+         n'ouvre jamais l'ecran d'etablissement. */
+      label: 'Chef BAAF',
+      items: [
+        { to: '/baaf/pieces-deplacement', label: 'Pièces de déplacement', icon: 'deplacement',
+          perms: ['etablir_pieces_deplacement', 'signer_pieces_deplacement', 'executer_pieces_deplacement'] },
       ],
     },
     {
