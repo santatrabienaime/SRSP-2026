@@ -104,6 +104,10 @@ export const paiementSchema = Joi.object({
       'string.empty': 'Le motif est requis',
       'string.min': 'Le motif doit comporter 5 caractères minimum',
     }),
+  /* Contrôle des pièces justificatives (document 4.3). Le schéma est en
+     unknown(false) : un champ oublié ici est refusé, pas silencieusement
+     ignoré — c'est ce qui rend le 400 explicite plutôt qu'un fauxsuccès. */
+  pieces_verifiees: Joi.boolean().default(false),
   statut: Joi.string().valid('EN_ATTENTE', 'APPROUVE', 'REJETE').allow('', null),
 }).unknown(false);
 

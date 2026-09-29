@@ -102,6 +102,10 @@ CREATE TABLE IF NOT EXISTS modes_paiement (
   banque VARCHAR(100) NULL,
   compte_bancaire VARCHAR(50) NULL,
   motif TEXT NOT NULL,
+  -- Pieces justificatives vues par la Coordinatrice (4.3 : « contrôle les pièces
+  -- justificatives »). Le piece jointe reel est deposee dans documents, lie au
+  -- dossier ; ce champ trace ce qui a ete verifie, et non ce qui a ete affiche.
+  pieces_verifiees TINYINT(1) NOT NULL DEFAULT 0,
   statut ENUM('EN_ATTENTE', 'APPROUVE', 'REJETE') NOT NULL DEFAULT 'EN_ATTENTE',
   -- Observations de traitement : pourquoi la demande est approuvée ou refusée.
   -- Sans elles, une décision financière reste inexplicable plus tard.
@@ -131,6 +135,17 @@ SET @sql := (
       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'modes_paiement'
         AND COLUMN_NAME = 'observations') = 0,
     'ALTER TABLE modes_paiement ADD COLUMN observations TEXT NULL AFTER statut',
+    'SELECT 1'
+  )
+);
+PREPARE requete FROM @sql; EXECUTE requete; DEALLOCATE PREPARE requete;
+
+SET @sql := (
+  SELECT IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'modes_paiement'
+        AND COLUMN_NAME = 'pieces_verifiees') = 0,
+    'ALTER TABLE modes_paiement ADD COLUMN pieces_verifiees TINYINT(1) NOT NULL DEFAULT 0 AFTER motif',
     'SELECT 1'
   )
 );

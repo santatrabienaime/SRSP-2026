@@ -25,7 +25,7 @@ const STATUTS = {
   REJETE: { label: 'Rejeté', classe: 'border-red-200 bg-red-50 text-red-700' },
 };
 
-const VIDE = { immatriculation_id: '', mode: 'VIREMENT', banque: '', compte_bancaire: '', motif: '' };
+const VIDE = { immatriculation_id: '', mode: 'VIREMENT', banque: '', compte_bancaire: '', motif: '', pieces_verifiees: false };
 
 /**
  * Changements de mode de paiement.
@@ -55,6 +55,7 @@ export function PaiementsPage() {
   const [erreurs, setErreurs] = useState({});
   const [decision, setDecision] = useState(null);
   const [observations, setObservations] = useState('');
+  const [piecesVerifiees, setPiecesVerifiees] = useState(false);
 
   const charger = useCallback(async () => {
     try {
@@ -99,6 +100,7 @@ export function PaiementsPage() {
         immatriculation_id: Number(form.immatriculation_id),
         banque: form.banque || null,
         compte_bancaire: form.compte_bancaire || null,
+        pieces_verifiees: form.pieces_verifiees,
       });
       toastSuccess('Demande de changement de paiement enregistrée.');
       setModal(false);
@@ -112,6 +114,11 @@ export function PaiementsPage() {
 
   const traiter = async () => {
     if (!decision) return;
+    // Le contrôle des pièces est obligatoire pour approuver (document 4.3).
+    if (decision.statut === 'APPROUVE' && !piecesVerifiees) {
+      toastError('Cochez « Pièces justificatives contrôlées » avant d\'approuver.');
+      return;
+    }
     setSaving(true);
     try {
       await administratifService.paiements.traiter(decision.id, decision.statut, observations);
@@ -134,6 +141,7 @@ export function PaiementsPage() {
     { key: 'mode', label: 'Mode demandé', render: (r) => <span className="text-slate-700">{MODES[r.mode] || r.mode}</span> },
     { key: 'banque', label: 'Banque / Compte', render: (r) => <span className="text-slate-600">{r.compte_bancaire ? `${r.banque || '—'} · ${r.compte_bancaire}` : '—'}</span> },
     { key: 'motif', label: 'Motif', render: (r) => <p className="max-w-xs truncate text-slate-600">{r.motif}</p> },
+    { key: 'pieces', label: 'Pièces', render: (r) => <span className={r.pieces_verifiees ? 'text-emerald-700' : 'text-slate-400'}>{r.pieces_verifiees ? 'Contrôlées' : 'Non contrôlées'}</span> },
     {
       key: 'statut',
       label: 'Statut',
@@ -147,10 +155,10 @@ export function PaiementsPage() {
       label: '',
       render: (r) => (r.statut === 'EN_ATTENTE' ? (
         <div className="flex gap-1">
-          <Button size="sm" onClick={() => { setDecision({ ...r, statut: 'APPROUVE' }); setObservations(''); }}>
+          <Button size="sm" onClick={() => { setDecision({ ...r, statut: 'APPROUVE' }); setObservations(''); setPiecesVerifiees(false); }}>
             <CheckCircle2 className="h-3.5 w-3.5" /> Approuver
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => { setDecision({ ...r, statut: 'REJETE' }); setObservations(''); }}>
+          <Button size="sm" variant="ghost" onClick={() => { setDecision({ ...r, statut: 'REJETE' }); setObservations(''); setPiecesVerifiees(false); }}>
             <XCircle className="h-3.5 w-3.5" /> Rejeter
           </Button>
         </div>
@@ -252,6 +260,23 @@ export function PaiementsPage() {
                 Les autres demandes en attente de cette personne seront automatiquement
                 rejetées, afin qu'une seule décision reste valable.
               </Alert>
+            )}
+            {decision.statut === 'APPROUVE' && (
+              <label className="flex items-start gap-2 rounded-md border border-slate-200 p-3 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-primary-600"
+                  checked={piecesVerifiees}
+                  onChange={(e) => setPiecesVerifiees(e.target.checked)}
+                />
+                <span>
+                  Pièces justificatives contrôlées
+                  <span className="block text-[11px] text-slate-500">
+                    Obligatoire pour approuver : l\'approbation est refusée par le serveur
+                    sans ce contrôle.
+                  </span>
+                </span>
+              </label>
             )}
             <Textarea
               label="Observations de traitement"

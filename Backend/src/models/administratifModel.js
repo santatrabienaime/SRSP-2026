@@ -21,21 +21,34 @@ export const STATUTS_PAIEMENT = { EN_ATTENTE: 'EN_ATTENTE', APPROUVE: 'APPROUVE'
 /**
  * Numéro d'immatriculation.
  *
- * Format : AAAA-XX-NNNNNN, où XX est le code de la division et NNNNNN un
- * compteur. Il est calculé en base et non à la saisie : un numéro saisi à la
- * main finit toujours par se dupliquer, et la contrainte d'unicité renverrait
- * alors une erreur que la Coordinatrice ne peut pas comprendre.
+ * Format : AAAA-CCC-NNNNNN, où CCC est le CORPS du fonctionnaire et NNNNNN un
+ * compteur sur l'année. Exemple du document : 2025-ADM-001234.
+ *
+ * Le segment est le corps, PAS la division. J'avais d'abord utilisé le code de
+ * la division, ce qui produisait « 2026-VISAS-000001 » : le numéro d'un
+ * fonctionnaire doit suivre son corps d'appartenance, pas le service par
+ * hasard où il se trouve affecté, sans quoi un numéro change de préfixe lors
+ * d'une mutation et devient faux.
+ *
+ * « Administration » donne ADM, comme dans l'exemple du document. Le code est
+ * dérivé des trois premières lettres du corps : le champ est libre, il n'existe
+ * donc pas de table de référence à interroger.
  */
-async function genererNumeroImmatriculation(divisionId) {
+function codeCorps(corps) {
+  const abrégé = String(corps || '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')   // « Santé » → SANTE
+    .replace(/[^A-Za-z]/g, '')
+    .toUpperCase()
+    .slice(0, 3);
+  return abrégé || 'GEN';
+}
+
+async function genererNumeroImmatriculation(corps) {
   const annee = new Date().getFullYear();
-  let code = 'GEN';
-  if (divisionId) {
-    const [div] = await db.query('SELECT code FROM divisions WHERE id = ?', [divisionId]);
-    if (div?.code) code = div.code.slice(0, 6);
-  }
+  const code = codeCorps(corps);
   const [compte] = await db.query(
-    `SELECT COUNT(*) AS total FROM immatriculations
-     WHERE numero LIKE ?`,
+    'SELECT COUNT(*) AS total FROM immatriculations WHERE numero LIKE ?',
     [`${annee}-${code}-%`]
   );
   const n = (compte?.total || 0) + 1;
@@ -104,7 +117,7 @@ export async function cinDejaImmatricule(cin) {
 }
 
 export async function creerImmatriculation(data, userId) {
-  const numero = await genererNumeroImmatriculation(data.division_id);
+  const numero = await genererNumeroImmatriculation(data.corps);
   const result = await db.query(
     `INSERT INTO immatriculations
      (numero, nom, prenom, cin, date_naissance, corps, grade, indice,
@@ -277,11 +290,12 @@ export async function listerPaiements(filtres = {}) {
 export async function creerModePaiement(data, userId) {
   const result = await db.query(
     `INSERT INTO modes_paiement
-     (immatriculation_id, mode, banque, compte_bancaire, motif, statut)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+     (immatriculation_id, mode, banque, compte_bancaire, motif, pieces_verifiees, statut)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       data.immatriculation_id, data.mode, data.banque || null,
       data.compte_bancaire || null, data.motif,
+      data.pieces_verifiees ? 1 : 0,
       data.statut || STATUTS_PAIEMENT.EN_ATTENTE,
     ]
   );
@@ -307,6 +321,17 @@ export async function traiterModePaiement(id, statut, userId, observations) {
   if (avant.statut !== STATUTS_PAIEMENT.EN_ATTENTE) {
     const e = new Error(`Demande déjà traitée (statut : ${avant.statut}).`);
     e.status = 409;
+    throw e;
+  }
+  /* Le document (4.3) demande de contrôler les pièces justificatives avant de
+     statuer. On l'impose à l'approbation, pas au refus : refuser une demande
+     reste possible même si une pièce manque, refuser pour ce motif serait
+     absurde. */
+  if (statut === STATUTS_PAIEMENT.APPROUVE && !avant.pieces_verifiees) {
+    const e = new Error(
+      "Les pièces justificatives n'ont pas été contrôlées : l'approbation est bloquée."
+    );
+    e.status = 422;
     throw e;
   }
 

@@ -154,7 +154,7 @@ export function ImmatriculationsPage() {
             <BookUser className="h-5 w-5 text-primary-600" /> Immatriculations
           </h1>
           <p className="text-sm text-slate-500">
-            Le numéro est généré automatiquement. Un CIN déjà connu est signalé, sans bloquer la saisie.
+            Le numéro est généré automatiquement à partir du corps et de l'année (ex. 2026-ADM-000001). Un CIN déjà connu est signalé, sans bloquer la saisie.
           </p>
         </div>
         <Button onClick={ouvrir}>
