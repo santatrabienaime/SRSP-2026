@@ -99,9 +99,17 @@ export async function marquerPieceImprimee(dossier_id, piece_code, imprimee = tr
 }
 
 export async function changerEtatMandatement(dossier_id, etat, agentId) {
+  /* A_ORDONNANCER ne pose aucune date : c'est un etat d'attente, pas un acte.
+     L'ordonnancement et la liquidation, eux, horodatent et identifient l'agent. */
   const champs = { ORDONNANCE: 'ordonnancement_date = NOW(), ordonnateur_id = ?',
                    LIQUIDE: 'liquidation_date = NOW()' };
-  if (!champs[etat]) return findMandatement(dossier_id);
+  if (!champs[etat]) {
+    if (etat !== 'A_ORDONNANCER') return findMandatement(dossier_id);
+    await db.query(
+      'UPDATE mandatements SET etat = ? WHERE dossier_id = ?', [etat, dossier_id]
+    );
+    return findMandatement(dossier_id);
+  }
   await db.query(
     `UPDATE mandatements SET etat = ?, ${champs[etat]} WHERE dossier_id = ?`,
     etat === 'ORDONNANCE' ? [etat, agentId || null, dossier_id] : [etat, dossier_id]

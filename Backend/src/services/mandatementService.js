@@ -116,12 +116,24 @@ export async function enregistrerMandatement(dossierId, data, userId) {
     );
   }
 
-  const resultat = await model.saveMandatement({
+  const enregistre = await model.saveMandatement({
     dossier_id: dossierId,
     montant_total,
     observation: data.observation,
     beneficiaires,
   });
+
+  /* Le mandatement prepare attend d'etre ordonnance. L'etat A_ORDONNANCER
+     existe en base depuis le debut mais n etait atteint par rien : le mandat
+     restait BROUILLON jusqu'a l'ordonnancement, sans etape intermediaire ou le
+     chef puisse voir ce qui l'attend. On le pose ici, et on ne le pose que si
+     le mandatement n'a pas deja ete ordonnance : reordonner un mandat deja
+     signe le ferait revenir en arriere. On RELIT ensuite, plutot que de
+     renvoyer l'objet capture avant le changement : c'etait ce qui faisait
+     paraitre l'etat inchange alors qu'il venait d'etre pose. */
+  if (enregistre?.etat === 'BROUILLON') {
+    await model.changerEtatMandatement(dossierId, 'A_ORDONNANCER', null);
+  }
 
   await historiqueModel.log({
     user_id: userId,
@@ -131,7 +143,7 @@ export async function enregistrerMandatement(dossierId, data, userId) {
     details: data.observation || null,
   });
 
-  return resultat;
+  return model.findMandatement(dossierId);
 }
 
 export async function marquerPiece(dossierId, pieceCode, userId) {
