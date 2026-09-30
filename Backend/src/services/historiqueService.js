@@ -145,7 +145,10 @@ export async function getHistorique(userId, filtres = {}) {
     }
   }
 
-  const { lignes, total, tronque } = await historiqueModel.findAll(filtres);
+  // `sans_auteur` est repris ici : sans cela, le modèle le calcule et le
+  // service le laisse tomber, et l'écran affiche « aucun » — c'est exactement
+  // le défaut que le décompte serveur corrigeait.
+  const { lignes, total, tronque, sans_auteur } = await historiqueModel.findAll(filtres);
   const actions = lignes.map(presenter);
 
   // Durée totale de traitement, du premier au dernier acte du dossier.
@@ -157,7 +160,7 @@ export async function getHistorique(userId, filtres = {}) {
     }
   }
 
-  return { actions, total, tronque, duree_traitement: dureeTraitement };
+  return { actions, total, tronque, sans_auteur: Number(sans_auteur || 0), duree_traitement: dureeTraitement };
 }
 
 /** Types d'actions réellement présents au journal, pour les listes de filtre. */

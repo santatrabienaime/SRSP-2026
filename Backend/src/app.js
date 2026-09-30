@@ -23,6 +23,7 @@ import statistiqueRoutes from './routes/statistiqueRoutes.js';
 import performanceRoutes from './routes/performanceRoutes.js';
 import ordreDeplacementRoutes from './routes/ordreDeplacementRoutes.js';
 import secoursRoutes from './routes/secoursRoutes.js';
+import geographieRoutes from './routes/geographieRoutes.js';
 import rapportRoutes from './routes/rapportRoutes.js';
 import referentielRoutes from './routes/referentielRoutes.js';
 import backupRoutes from './routes/backupRoutes.js';
@@ -49,6 +50,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/permissions', permissionRoutes);
+// L'API geographie est montee AVANT les routes de dossiers : `/dossiers/:id`
+// capterait `/dossiers/1/district` si elle etait enregistree apres.
+app.use('/api/geographie', geographieRoutes);
 app.use('/api/dossiers', dossierRoutes);
 app.use('/api/workflow', workflowRoutes);
 app.use('/api/documents', documentRoutes);

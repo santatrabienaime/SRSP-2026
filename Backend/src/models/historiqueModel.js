@@ -119,7 +119,25 @@ export async function findAll(filters = {}) {
   }
   const [compte] = await db.query(countQuery, countParams);
 
-  return { lignes, total: compte?.total ?? 0, tronque: (compte?.total ?? 0) > lignes.length };
+  /* Nombre d'événements du JOURNAL filtré qui n'ont pas d'auteur identifié.
+     Compté ici, sur la même requête et les mêmes filtres, et non dans la page
+     renvoyée : l'écran affichait « aucun événement sans auteur » alors que le
+     journal en comptait 14, simplement parce qu'ils étaient au-delà de la page
+     affichée. Un avertissement calculé sur une tranche alors qu'il parle du
+     tout ne peut être que faux — ici par omission, demain par excès. */
+  countQuery = countQuery.replace(
+    'SELECT COUNT(*) AS total',
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN a.id IS NULL THEN 1 ELSE 0 END) AS sans_auteur`
+  );
+  const [compteComplet] = await db.query(countQuery, countParams);
+
+  return {
+    lignes,
+    total: compteComplet?.total ?? compte?.total ?? 0,
+    sans_auteur: Number(compteComplet?.sans_auteur || 0),
+    tronque: (compteComplet?.total ?? 0) > lignes.length,
+  };
 }
 
 /**

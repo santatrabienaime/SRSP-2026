@@ -54,7 +54,7 @@ export function HistoriquePage() {
   const { toastSuccess, toastError } = useNotification();
   const [criteres, setCriteres] = useState(CRITERES_VIDES);
   const [appliques, setAppliques] = useState({});
-  const [donnees, setDonnees] = useState({ actions: [], total: 0, tronque: false });
+  const [donnees, setDonnees] = useState({ actions: [], total: 0, tronque: false, sans_auteur: 0 });
   const [actionsDisponibles, setActionsDisponibles] = useState([]);
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +68,7 @@ export function HistoriquePage() {
       setDonnees(await historiqueService.list(appliques));
     } catch (e) {
       toastError(e.message);
-      setDonnees({ actions: [], total: 0, tronque: false });
+      setDonnees({ actions: [], total: 0, tronque: false, sans_auteur: 0 });
     } finally {
       setLoading(false);
     }
@@ -190,7 +190,10 @@ export function HistoriquePage() {
     },
   ];
 
-  const sansAuteur = donnees.actions.filter((a) => a.agent?.systeme).length;
+  /* Le décompte vient du serveur, qui le fait sur TOUT le journal filtré.
+     Le compter dans la page affichée donnait « aucun événement sans auteur »
+     alors que le journal en comptait 14 : ils étaient au-delà de la page. */
+  const sansAuteur = donnees.sans_auteur ?? 0;
 
   return (
     <div className="space-y-5">
@@ -269,8 +272,10 @@ export function HistoriquePage() {
         {sansAuteur > 0 && (
           <p className="mb-3 flex items-center gap-1.5 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
             <AlertTriangle className="h-3.5 w-3.5" />
-            {sansAuteur} événement{sansAuteur > 1 ? 's' : ''} sans auteur : il{sansAuteur > 1 ? 's' : ''}
-            s’agit d’une tentative de connexion refusée, où aucun compte ne s’est identifié.
+            {sansAuteur} événement{sansAuteur > 1 ? 's' : ''} sans auteur&nbsp;:{' '}
+            {sansAuteur > 1 ? 'ils' : 'il'} s’agit
+            {sansAuteur > 1 ? 's' : ''} d’une tentative de connexion refusée, où aucun
+            compte ne s’est identifié.
           </p>
         )}
         <Table
