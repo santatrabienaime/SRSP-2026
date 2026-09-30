@@ -256,28 +256,46 @@ export async function updateDossier(id, data) {
     type_id, objet, demandeur, matricule, division_id, priorite_id, observation,
     demandeur_nom, demandeur_prenom, demandeur_tel, demandeur_email, demandeur_adresse,
   } = data;
+
+  /* `division_id` n'est ÉCRASÉ que s'il est réellement fourni.
+     Il l'était avec `|| null` : un formulaire de modification ne renvoyant pas
+     ce champ — il est optionnel, l'agent ne le voit pas — vidait la division du
+     dossier. Le dossier se retrouvait sans division, donc invisible de la file
+     du chef de division et non couvert par ses statistiques, alors qu'il
+     traversait tout le circuit sans jamais changer de main. Constaté sur le
+     dossier SECOURS-2026-000001, orienté puis dénudé par une simple
+     modification.
+
+     Même traitement pour les identité du demandeur, qui disparaissaient de la
+     même façon : un champ non renvoyé ne doit pas vider la donnée qu'il porte,
+     il doit laisser la donnée en place. C'est la différence entre une valeur
+     absente et une valeur effacée. */
+  const champs = [];
+  const valeurs = [];
+
+  const poser = (colonne, valeur) => { champs.push(`${colonne} = ?`); valeurs.push(valeur); };
+  const poserSiFourni = (colonne, valeur) => {
+    if (valeur !== undefined) { poser(colonne, valeur || null); }
+  };
+
+  poserSiFourni('type_id', type_id);
+  poserSiFourni('objet', objet);
+  poserSiFourni('demandeur', demandeur);
+  poserSiFourni('matricule', matricule);
+  poserSiFourni('division_id', division_id);
+  poserSiFourni('priorite_id', priorite_id);
+  poserSiFourni('observation', observation);
+  poserSiFourni('demandeur_nom', demandeur_nom);
+  poserSiFourni('demandeur_prenom', demandeur_prenom);
+  poserSiFourni('demandeur_tel', demandeur_tel);
+  poserSiFourni('demandeur_email', demandeur_email);
+  poserSiFourni('demandeur_adresse', demandeur_adresse);
+
+  if (!champs.length) return { id, aucune_modification: true };
+
   await db.query(
-    `UPDATE dossiers
-     SET type_id = ?, objet = ?, demandeur = ?, matricule = ?,
-         division_id = ?, priorite_id = ?, observation = ?,
-         demandeur_nom = ?, demandeur_prenom = ?, demandeur_tel = ?,
-         demandeur_email = ?, demandeur_adresse = ?
-     WHERE id = ?`,
-    [
-      type_id ?? null,
-      objet ?? null,
-      demandeur ?? null,
-      matricule || null,
-      division_id || null,
-      priorite_id ?? null,
-      observation || null,
-      demandeur_nom || null,
-      demandeur_prenom || null,
-      demandeur_tel || null,
-      demandeur_email || null,
-      demandeur_adresse || null,
-      id,
-    ]
+    `UPDATE dossiers SET ${champs.join(', ')} WHERE id = ?`,
+    [...valeurs, id]
   );
   return findDossierById(id);
 }

@@ -34,6 +34,9 @@ const attendu = async (libelle, reponse, code) => {
   v(libelle, conforme, conforme ? String(code) : `reçu ${reponse.s} ${JSON.stringify(reponse.b)}`);
 };
 
+// Nombre de dossiers AVANT le test : c'est la reference que l'on doit retrouver.
+const DOSSIERS_AVANT = (await (await import('../src/config/db.js')).default.query('SELECT COUNT(*) AS n FROM dossiers'))[0].n;
+
 const secretaire = await login('secretaire@srsp.mg');
 const chef = await login('chef.secours@srsp.mg');
 const charge = await login('charge.secours@srsp.mg');
@@ -211,7 +214,7 @@ for (const id of [d]) {
   await db.query('DELETE FROM dossiers WHERE id = ?', [id]);
 }
 const restant = await db.query('SELECT COUNT(*) AS n FROM dossiers');
-v('la suite ne laisse aucun residu', restant[0].n === 7, `${restant[0].n} dossier(s)`);
+v('la suite ne laisse aucun residu', restant[0].n === DOSSIERS_AVANT, `${restant[0].n} dossier(s)`);
 await db.pool.end();
 
 console.log(ko === 0 ? '\n  TOUT CONFORME' : `\n  ❌ ${ko} point(s) non conforme(s)`);

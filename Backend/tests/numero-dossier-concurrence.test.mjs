@@ -36,6 +36,8 @@ const v = (libelle, conforme, detail = '') => {
 };
 
 const CLE = 'DOSSIER-4-2026';
+// Nombre de dossiers AVANT le test : c'est la reference que l'on doit retrouver.
+const DOSSIERS_AVANT = (await db.query('SELECT COUNT(*) AS n FROM dossiers'))[0].n;
 const compteurAvant = (await db.query('SELECT valeur FROM compteurs_numerotation WHERE cle = ?', [CLE]))[0]?.valeur || 0;
 
 const creer = (n) => fetch(`${base}/dossiers`, {
@@ -103,7 +105,7 @@ v('le compteur est restitué après le test', compteurApres === compteurAvant,
   `${compteurAvant} -> ${compteurApres}`);
 
 const restant = (await db.query('SELECT COUNT(*) AS n FROM dossiers'))[0].n;
-v('la base retrouve son état de référence', restant === 7, `${restant} dossier(s)`);
+v('la base retrouve son état de référence', restant === DOSSIERS_AVANT, `${restant} dossier(s)`);
 
 await db.pool.end();
 console.log(ko === 0 ? '\n  TOUT CONFORME' : `\n  ${ko} point(s) non conforme(s)`);
