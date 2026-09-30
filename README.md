@@ -1,6 +1,6 @@
 # SRSP Fitovinany — Plateforme de gestion, suivi et traçabilité des dossiers administratifs
 
-Plateforme web de gestion du **Service Régional de la Santé Publique (SRSP) Fitovinany** pour le
+Plateforme web de gestion du **Service Régional de la Solde et des Pensions (SRSP) Fitovinany** pour le
 suivi et la traçabilité des dossiers administratifs (visa, solde, pension, secours), conforme au
 **cahier des charges v2.0** : workflow par type de dossier, RBAC sur 13 postes, 11 statuts,
 numérotation automatique, historique complet, notifications et rapports.
