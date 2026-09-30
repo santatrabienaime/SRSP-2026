@@ -92,6 +92,11 @@ export function Sidebar() {
             }
           : { to: '/dossiers', label: 'Dossiers', icon: 'dossiers' },
         { to: '/courriers', label: 'Courriers', icon: 'courriers', perms: ['manage_courriers'] },
+        /* Le registre des actes est la piece que la secretaire tient au
+           quotidien. Elle le rangeait sur un cahier : sans ecran, la
+           numeroation des notes et des lettres n existe nulle part. */
+        { to: '/chronologie', label: 'Chronologie des actes', icon: 'audit',
+          perms: ['gerer_chronologie_actes'] },
       ],
     },
     /* Section de la Coordinatrice. Ces permissions existaient sans menu ni

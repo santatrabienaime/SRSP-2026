@@ -22,6 +22,7 @@ import { DocumentUploadPage } from '../pages/documents/DocumentUploadPage.jsx';
 import { CourrierListPage } from '../pages/courriers/CourrierListPage.jsx';
 import { CourrierCreatePage } from '../pages/courriers/CourrierCreatePage.jsx';
 import { CourrierDetailPage } from '../pages/courriers/CourrierDetailPage.jsx';
+import { ChronologieActesPage } from '../pages/administratif/ChronologieActesPage.jsx';
 
 import { NotificationsPage } from '../pages/notifications/NotificationsPage.jsx';
 import { HistoriquePage } from '../pages/historique/HistoriquePage.jsx';
@@ -128,6 +129,16 @@ export function AppRouter() {
             element={
               <RoleRoute permissions={['manage_courriers']}>
                 <CourrierDetailPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* Chronologie des actes : Secretariat, Chef de Service, Administrateur */}
+          <Route
+            path="/chronologie"
+            element={
+              <RoleRoute permissions={['gerer_chronologie_actes']}>
+                <ChronologieActesPage />
               </RoleRoute>
             }
           />
