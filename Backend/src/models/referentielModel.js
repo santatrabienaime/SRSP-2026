@@ -16,6 +16,59 @@ import db from '../config/db.js';
  */
 
 /* ------------------------------------------------------------------ */
+/* Données de référence pour les formulaires                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Ces six requirstours existaient avant le référentiel des 325
+ * fonctionnalités, et six écrans en dépendent : formulaire de dossier, de
+ * document, de courrier, d'agent, page des archives, page des immatriculations.
+ *
+ * Elles avaient été écrasées quand ce modèle a été écrit, sans que rien ne le
+ * signale : un import manquant ne casse pas le serveur, il ne casse que
+ * l'écran, à l'ouverture, et le message affiché est un 404 sur `/referentiel`.
+ * Elles sont donc restaurées ici, et la règle s'applique : écrire un fichier
+ * exige de vérifier ce qu'il remplace.
+ */
+export async function getTypesDossiers() {
+  return db.query(
+    `SELECT id, code, libelle, description, actif
+     FROM types_dossiers ORDER BY id`
+  );
+}
+
+export async function getPriorites() {
+  return db.query(
+    'SELECT id, libelle, niveau FROM priorites ORDER BY niveau DESC'
+  );
+}
+
+export async function getFonctions() {
+  return db.query(
+    'SELECT id, libelle, description FROM fonctions ORDER BY libelle'
+  );
+}
+
+export async function getTypesCourriers() {
+  return db.query(
+    'SELECT id, libelle FROM types_courriers ORDER BY libelle'
+  );
+}
+
+export async function getTypesDocuments() {
+  return db.query(
+    `SELECT id, libelle, extensions_autorisees, taille_max
+     FROM types_documents ORDER BY libelle`
+  );
+}
+
+export async function getStatuts() {
+  return db.query(
+    'SELECT id, code, libelle, ordre FROM statuts_dossiers ORDER BY ordre'
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Fonctions                                                           */
 /* ------------------------------------------------------------------ */
 

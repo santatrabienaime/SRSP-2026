@@ -19,7 +19,11 @@ export async function markRead(req, res, next) {
 
 export async function markAllRead(req, res, next) {
   try {
-    await notificationService.markAllAsRead(req.user.id);
+    /* Le service exporte `markAllRead`, sans « As ». L'appeler `markAllAsRead`
+       renvoyait un 500 à chaque clic sur « Tout marquer comme lu » : l'erreur
+       est un nom de fonction, ce qui la rend invisible à la lecture du code et
+       ne se voit qu'en exécutant le bouton. */
+    await notificationService.markAllRead(req.user.id);
     res.json({ message: 'Toutes les notifications sont lues.' });
   } catch (e) { next(e); }
 }
