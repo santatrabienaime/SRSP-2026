@@ -23,12 +23,13 @@ export async function lister(req, res, next) {
       poste_code: req.query.poste,
       section: req.query.section,
       manquantes: req.query.manquantes,
+      document: req.query.document,
     }));
   } catch (e) { next(e); }
 }
 
 export async function bilan(req, res, next) {
-  try { res.json(await M.bilan()); } catch (e) { next(e); }
+  try { res.json(await M.bilan({ document: req.query.document })); } catch (e) { next(e); }
 }
 
 export async function postes(req, res, next) {

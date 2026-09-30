@@ -47,9 +47,15 @@ CREATE TABLE IF NOT EXISTS referentiel_postes (
 CREATE TABLE IF NOT EXISTS referentiel_fonctionnalites (
   id INT(11) NOT NULL AUTO_INCREMENT,
 
-  -- Numéro de la ligne dans le document source : c'est la référence commune
-  -- avec le document du service. « Fonction 118 » se retrouve sans ambiguïté des
-  -- deux côtés.
+  -- Numéro de la ligne DANS son document. La paire (document, numéro) est la
+  -- référence : « fonction 118 du référentiel de l'historique » et « fonction 118
+  -- des fonctionnalités obligatoires » ne désignent pas la même chose.
+  --
+  -- La clé n'était que numero_source, et les 189 fonctionnalités obligatoires
+  -- ont alors ECRASTÉ les 325 de l'historique, ligne par ligne. Deux documents
+  -- qui se détruisent ne peuvent pas coexister : il fallait le voir à la
+  -- migration, pas après.
+  document VARCHAR(60) NOT NULL DEFAULT 'HISTORIQUE',
   numero_source INT(11) NOT NULL,
 
   poste_code VARCHAR(60) NOT NULL,
@@ -82,12 +88,56 @@ CREATE TABLE IF NOT EXISTS referentiel_fonctionnalites (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uk_fonctionnalite_numero (numero_source),
+  UNIQUE KEY uk_fonctionnalite_document_numero (document, numero_source),
   KEY idx_fonctionnalite_poste (poste_code),
+  KEY idx_fonctionnalite_document (document),
   KEY idx_fonctionnalite_nature (nature),
   KEY idx_fonctionnalite_etat (etat),
   KEY idx_fonctionnalite_permission (permission_nom)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Ajout de la colonne `document` sur une table déjà peuplée, et réaffectation
+-- des lignes existantes au référentiel de l'historique. Sans cette étape, une
+-- base migrée avant la correction verrait les anciennes lignes porter un document
+-- vide, et la clé unique ne les séparerait plus des fonctionnalités
+-- obligatoires.
+SET @sql := (
+  SELECT IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'referentiel_fonctionnalites'
+        AND COLUMN_NAME = 'document') = 0,
+    'ALTER TABLE referentiel_fonctionnalites ADD COLUMN document VARCHAR(60) NOT NULL DEFAULT ''HISTORIQUE'' AFTER numero_source',
+    'SELECT 1'
+  )
+);
+PREPARE requete FROM @sql; EXECUTE requete; DEALLOCATE PREPARE requete;
+
+-- L'ancienne clé unique ne peut plus coexister avec la nouvelle.
+SET @sql := (
+  SELECT IF(
+    (SELECT COUNT(*) FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'referentiel_fonctionnalites'
+        AND INDEX_NAME = 'uk_fonctionnalite_numero') = 1,
+    'ALTER TABLE referentiel_fonctionnalites DROP INDEX uk_fonctionnalite_numero',
+    'SELECT 1'
+  )
+);
+PREPARE requete FROM @sql; EXECUTE requete; DEALLOCATE PREPARE requete;
+
+-- La clé unique par (document, numéro) doit exister QUE la table vienne d'être
+-- créée ou qu'elle ait été peuplée avant la correction : sur une table déjà
+-- peuplée, le CREATE TABLE ne rejoue pas, et l'index manquait. Les deux cas
+-- sont donc traités.
+SET @sql := (
+  SELECT IF(
+    (SELECT COUNT(*) FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'referentiel_fonctionnalites'
+        AND INDEX_NAME = 'uk_fonctionnalite_document_numero') = 0,
+    'ALTER TABLE referentiel_fonctionnalites ADD UNIQUE KEY uk_fonctionnalite_document_numero (document, numero_source)',
+    'SELECT 1'
+  )
+);
+PREPARE requete FROM @sql; EXECUTE requete; DEALLOCATE PREPARE requete;
 
 -- Identité institutionnelle du service.
 --
@@ -127,7 +177,8 @@ INSERT INTO referentiel_postes (code, libelle, role_nom, niveau) VALUES
   ('LIQUIDATEUR',      'Liquidateurs Pensions',        'LIQUIDATEUR_PENSION', 3),
   ('CHARGE_SECOURS',   'Chargés de Secours',           'CHARGE_SECOURS', 3),
   ('ACCUEIL',          'Accueil',                      NULL, 3),
-  ('SUIVI_COURRIERS',  'Suivi des courriers',          NULL, 3)
+  ('SUIVI_COURRIERS',  'Suivi des courriers',          NULL, 3),
+  ('OBLIGATOIRE',      'Fonctionnalités obligatoires du projet', NULL, 9)
 ON DUPLICATE KEY UPDATE libelle = VALUES(libelle), role_nom = VALUES(role_nom), niveau = VALUES(niveau);
 
 -- Identité institutionnelle : les informations qui vivaient en dur dans la

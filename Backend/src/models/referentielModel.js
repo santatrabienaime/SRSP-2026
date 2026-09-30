@@ -87,6 +87,11 @@ export async function lister(filtres = {}) {
   if (filtres.nature) { where.push('f.nature = ?'); params.push(filtres.nature); }
   if (filtres.poste_code) { where.push('f.poste_code = ?'); params.push(filtres.poste_code); }
   if (filtres.section) { where.push('f.section_source = ?'); params.push(filtres.section); }
+  /* Le document est un filtre à part entière, et non un détail : « fonction 118 »
+     du référentiel de l'historique et « fonction 118 » des fonctionnalités
+     obligatoires ne désignent pas la même chose. Sans ce filtre, l'écran
+     présenterait les deux sous le même numéro. */
+  if (filtres.document) { where.push('f.document = ?'); params.push(filtres.document); }
 
   /* Le filtre « non livrée » est celui qu'un chef de division consultera en
      premier : il cherche ce qui manque, pas ce qui existe. */
@@ -103,7 +108,7 @@ export async function lister(filtres = {}) {
     params
   );
 
-  return { lignes, total: lignes.length };
+  return { lignes, total: lignes.length, document: filtres.document || null };
 }
 
 /**
@@ -113,12 +118,19 @@ export async function lister(filtres = {}) {
  * distinction, le total mélangerait 184 actions réellement possibles et 41 lignes
  * d'organigramme qu'aucun agent n'accomplira jamais.
  */
-export async function bilan() {
+export async function bilan(filtres = {}) {
+  /* Le bilan porte sur UN document. Mélanger les deux donnerait un total de 514
+     lignes dont personne ne peut dire combien correspondent à une exigence : c'est
+     le défaut classique d'un cumul. */
+  const parDocument = filtres.document || 'OBLIGATOIRE';
+  const etq = 'WHERE document = ?';
   const parEtat = await db.query(
-    'SELECT etat, COUNT(*) AS n FROM referentiel_fonctionnalites GROUP BY etat'
+    `SELECT etat, COUNT(*) AS n FROM referentiel_fonctionnalites ${etq} GROUP BY etat`,
+    [parDocument]
   );
   const parNature = await db.query(
-    'SELECT nature, COUNT(*) AS n FROM referentiel_fonctionnalites GROUP BY nature'
+    `SELECT nature, COUNT(*) AS n FROM referentiel_fonctionnalites ${etq} GROUP BY nature`,
+    [parDocument]
   );
   const parPoste = await db.query(
     `SELECT f.poste_code, p.libelle AS poste_libelle, p.role_nom,
@@ -130,8 +142,10 @@ export async function bilan() {
             SUM(f.etat = 'HORS_PLATEFORME') AS hors_plateforme
      FROM referentiel_fonctionnalites f
      LEFT JOIN referentiel_postes p ON p.code = f.poste_code
+     WHERE f.document = ?
      GROUP BY f.poste_code, p.libelle, p.role_nom
-     ORDER BY p.niveau, p.libelle`
+     ORDER BY p.niveau, p.libelle`,
+    [parDocument]
   );
 
   const total = parEtat.reduce((s, r) => s + Number(r.n), 0);
@@ -141,10 +155,17 @@ export async function bilan() {
      seulement constatée. Le décompte est donc vérifié ici et remonté tel quel. */
   const [sansMotif] = await db.query(
     `SELECT COUNT(*) AS n FROM referentiel_fonctionnalites
-     WHERE etat <> 'LIVREE' AND (motif IS NULL OR motif = '')`
+     WHERE document = ? AND etat <> 'LIVREE' AND (motif IS NULL OR motif = '')`,
+    [parDocument]
+  );
+
+  const documents = await db.query(
+    'SELECT document, COUNT(*) AS n FROM referentiel_fonctionnalites GROUP BY document ORDER BY document'
   );
 
   return {
+    document: parDocument,
+    documents: Object.fromEntries(documents.map((d) => [d.document, Number(d.n)])),
     total,
     par_etat: {
       livree: compte('LIVREE'),
