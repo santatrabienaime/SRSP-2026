@@ -1,10 +1,16 @@
 import { createContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { io } from 'socket.io-client';
 import { notificationService } from '../services/notificationService.js';
 import { useAuth } from '../hooks/useAuth.js';
 
 export const NotificationContext = createContext(null);
 
 const POLL_INTERVAL = 30000; // 30 s
+
+/* Origine du socket : VITE_API_URL (API distante) ou même origine — en
+   développement le proxy Vite relaye /socket.io vers le backend. */
+const API_URL = import.meta.env.VITE_API_URL;
+const SOCKET_URL = API_URL ? new URL(API_URL).origin : undefined;
 
 /* ----------------------------- Toasts ----------------------------- */
 let toastId = 0;

@@ -63,6 +63,12 @@ export const dossierService = {
   verifier: (id, data) => apiClient.post(`/dossiers/${id}/verifier`, data).then((r) => r.data),
   valider: (id, data) => apiClient.post(`/dossiers/${id}/valider`, data).then((r) => r.data),
   signer: (id, data) => apiClient.post(`/dossiers/${id}/signer`, data).then((r) => r.data),
+  /* Actions en masse : le serveur renvoie { reussis, echecs[] } — un échec
+     sur un dossier n'annule pas les autres. */
+  masseValider: (ids, data = {}) =>
+    apiClient.post('/dossiers/masse/valider', { ids, ...data }).then((r) => r.data),
+  masseSigner: (ids, data = {}) =>
+    apiClient.post('/dossiers/masse/signer', { ids, ...data }).then((r) => r.data),
   cloturer: (id) => apiClient.post(`/dossiers/${id}/cloturer`).then((r) => r.data),
   archiver: (id) => apiClient.post(`/dossiers/${id}/archiver`).then((r) => r.data),
   transition: (id, toStatus, details) =>

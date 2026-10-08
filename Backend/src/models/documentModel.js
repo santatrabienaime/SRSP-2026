@@ -29,11 +29,11 @@ export async function findDocumentById(id) {
 }
 
 export async function createDocument(data) {
-  const { dossier_id, courrier_id, type_id, nom_fichier, chemin_stockage, taille, upload_par } = data;
+  const { dossier_id, courrier_id, type_id, nom_fichier, chemin_stockage, taille, description, upload_par } = data;
   const result = await db.query(
-    `INSERT INTO documents (dossier_id, courrier_id, type_id, nom_fichier, chemin_stockage, taille, upload_par)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [dossier_id || null, courrier_id || null, type_id || null, nom_fichier, chemin_stockage, taille, upload_par]
+    `INSERT INTO documents (dossier_id, courrier_id, type_id, nom_fichier, chemin_stockage, taille, description, upload_par)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [dossier_id || null, courrier_id || null, type_id || null, nom_fichier, chemin_stockage, taille, description || null, upload_par]
   );
   return { id: result.insertId };
 }

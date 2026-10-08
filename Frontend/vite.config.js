@@ -17,6 +17,11 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
+      // Temps réel : le socket est relayé vers le backend en développement.
+      '/socket.io': {
+        target: 'http://localhost:5000',
+        ws: true,
+      },
     },
   },
 });

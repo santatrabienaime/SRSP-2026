@@ -1,10 +1,20 @@
 import { Spinner } from './Spinner.jsx';
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 
 /**
  * Table simple avec colonnes configurables.
- * columns : [{ key, label, render?, className?, hideOn? }]
+ * columns : [{ key, label, render?, className?, sortable? }]
+ * sort : { key, dir } — colonne triée actuellement ('asc' | 'desc')
+ * onSort(key) : appelé au clic sur un en-tête triable (tri asc/desc).
  */
-export function Table({ columns = [], data = [], loading = false, emptyLabel = 'Aucune donnée' }) {
+export function Table({
+  columns = [],
+  data = [],
+  loading = false,
+  emptyLabel = 'Aucune donnée',
+  sort = null,
+  onSort = null,
+}) {
   // Premier chargement sans données : spinner plein (rien à afficher).
   // Rechargements suivants : on garde les lignes affichées + barre de progression
   // discrète, sinon le tableau disparaît et revient (effet clignotant).
@@ -38,7 +48,27 @@ export function Table({ columns = [], data = [], loading = false, emptyLabel = '
                   i === 0 ? 'sticky left-0 z-10 bg-slate-50 shadow-[1px_0_0_0_var(--color-slate-200)]' : ''
                 }`}
               >
-                {col.label}
+                {col.sortable && onSort ? (
+                  <button
+                    type="button"
+                    onClick={() => onSort(col.key)}
+                    className="group inline-flex items-center gap-1 uppercase focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    aria-label={`Trier par ${typeof col.label === 'string' ? col.label : col.key}`}
+                  >
+                    {col.label}
+                    {sort?.key === col.key ? (
+                      sort.dir === 'asc' ? (
+                        <ArrowUp className="h-3 w-3 text-primary-500" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3 text-primary-500" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 opacity-30 group-hover:opacity-70" />
+                    )}
+                  </button>
+                ) : (
+                  col.label
+                )}
               </th>
             ))}
           </tr>
