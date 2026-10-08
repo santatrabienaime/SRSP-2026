@@ -36,7 +36,7 @@ export function DocumentList({ dossierId, courrierId, onChanged }) {
   }, [dossierId, courrierId, toastError]);
 
   useEffect(() => {
-    load();
+    Promise.resolve().then(load);
   }, [load]);
 
   const handleDelete = async () => {

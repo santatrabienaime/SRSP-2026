@@ -7,9 +7,16 @@ import { Card } from '../ui/Card.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Input } from '../ui/Input.jsx';
 import { Alert } from '../ui/Alert.jsx';
+import { AmountInput, NumberInput } from '../fields/index.jsx';
 
-const fmt = (n) => new Intl.NumberFormat('fr-FR').format(Number(n || 0)) + ' Ar';
+const fmt = (n) =>
+  new Intl.NumberFormat('fr-FR').format(parseMontant(n)) + ' Ar';
 const field = 'w-full sm:w-40';
+
+/** Extrait la valeur numérique d'un montant formaté (« 1 500 000 »). */
+function parseMontant(v) {
+  return Number(String(v || '').replace(/\D/g, '') || 0);
+}
 
 /**
  * Décompte d'avance (division Solde).
@@ -49,13 +56,16 @@ export function DecompteAvance({ dossierId }) {
     } catch (e) { setError(e); }
   }, [dossierId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { Promise.resolve().then(load); }, [load]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const salaire = Number(form.salaire_mensuel || 0);
-  const retenue = Number(form.retenue_mensuelle || 0);
-  const avance = Number(form.avance_demandee || 0);
+  /** Setter pour les composants de champ (valeur formatée). */
+  const setVal = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const salaire = parseMontant(form.salaire_mensuel);
+  const retenue = parseMontant(form.retenue_mensuelle);
+  const avance = parseMontant(form.avance_demandee);
   const mois = Number(form.mois_rembourses || 0);
   const net = Math.max(0, salaire - retenue);
   const reste = Math.max(0, avance - retenue * mois);
@@ -66,11 +76,11 @@ export function DecompteAvance({ dossierId }) {
     setError(null);
     try {
       const res = await dossierService.saveDecompteAvance(dossierId, {
-        salaire_mensuel: Number(form.salaire_mensuel),
-        indice: form.indice ? Number(form.indice) : null,
-        echelon: form.echelon ? Number(form.echelon) : null,
-        avance_demandee: Number(form.avance_demandee),
-        retenue_mensuelle: Number(form.retenue_mensuelle),
+        salaire_mensuel: parseMontant(form.salaire_mensuel),
+        indice: form.indice === '' ? null : Number(form.indice),
+        echelon: form.echelon === '' ? null : Number(form.echelon),
+        avance_demandee: parseMontant(form.avance_demandee),
+        retenue_mensuelle: parseMontant(form.retenue_mensuelle),
         duree_mois: Number(form.duree_mois),
         mois_rembourses: Number(form.mois_rembourses),
         observation: form.observation,
@@ -89,26 +99,26 @@ export function DecompteAvance({ dossierId }) {
 
       <form onSubmit={submit} className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Input label="Salaire mensuel (Ar)" type="number" min="0"
-                 value={form.salaire_mensuel} onChange={set('salaire_mensuel')}
+          <AmountInput label="Salaire mensuel (Ar)"
+                 value={form.salaire_mensuel} onChange={setVal('salaire_mensuel')}
                  disabled={!canEdit} className={field} />
-          <Input label="Indice" type="number"
-                 value={form.indice} onChange={set('indice')}
+          <NumberInput label="Indice"
+                 value={form.indice} onChange={setVal('indice')}
                  disabled={!canEdit} className={field} />
-          <Input label="Échelon" type="number"
-                 value={form.echelon} onChange={set('echelon')}
+          <NumberInput label="Échelon"
+                 value={form.echelon} onChange={setVal('echelon')}
                  disabled={!canEdit} className={field} />
-          <Input label="Avance demandée (Ar)" type="number" min="0"
-                 value={form.avance_demandee} onChange={set('avance_demandee')}
+          <AmountInput label="Avance demandée (Ar)"
+                 value={form.avance_demandee} onChange={setVal('avance_demandee')}
                  disabled={!canEdit} className={field} />
-          <Input label="Retenue mensuelle (Ar)" type="number" min="0"
-                 value={form.retenue_mensuelle} onChange={set('retenue_mensuelle')}
+          <AmountInput label="Retenue mensuelle (Ar)"
+                 value={form.retenue_mensuelle} onChange={setVal('retenue_mensuelle')}
                  disabled={!canEdit} className={field} />
-          <Input label="Durée (mois)" type="number" min="1" max="60"
-                 value={form.duree_mois} onChange={set('duree_mois')}
+          <NumberInput label="Durée (mois)" min={1} max={60}
+                 value={form.duree_mois} onChange={setVal('duree_mois')}
                  disabled={!canEdit} className={field} />
-          <Input label="Mois déjà remboursés" type="number" min="0"
-                 value={form.mois_rembourses} onChange={set('mois_rembourses')}
+          <NumberInput label="Mois déjà remboursés" min={0}
+                 value={form.mois_rembourses} onChange={setVal('mois_rembourses')}
                  disabled={!canEdit} className={field} />
         </div>
 
@@ -128,7 +138,8 @@ export function DecompteAvance({ dossierId }) {
 
         {canEdit && (
           <>
-            <Input label="Observation" value={form.observation}
+            <Input label="Observation" maxLength={1000}
+                   value={form.observation}
                    onChange={set('observation')} />
             <div className="flex justify-end">
               <Button type="submit" disabled={saving}>

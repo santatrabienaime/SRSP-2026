@@ -92,22 +92,6 @@ export function Sidebar() {
             }
           : { to: '/dossiers', label: 'Dossiers', icon: 'dossiers' },
         { to: '/courriers', label: 'Courriers', icon: 'courriers', perms: ['manage_courriers'] },
-        /* Le registre des actes est la piece que la secretaire tient au
-           quotidien. Elle le rangeait sur un cahier : sans ecran, la
-           numeroation des notes et des lettres n existe nulle part. */
-        { to: '/chronologie', label: 'Chronologie des actes', icon: 'audit',
-          perms: ['gerer_chronologie_actes'] },
-      ],
-    },
-    /* Section de la Coordinatrice. Ces permissions existaient sans menu ni
-       écran : le rôle se connectait et ne trouvait rien à faire. */
-    {
-      label: 'Gestion administrative',
-      items: [
-        { to: '/administratif', label: 'Mon tableau de bord', icon: 'statistiques', perms: ['gerer_immatriculations'] },
-        { to: '/administratif/immatriculations', label: 'Immatriculations', icon: 'agents', perms: ['gerer_immatriculations'] },
-        { to: '/administratif/augure', label: 'Insertions Augure', icon: 'courriers', perms: ['gerer_augure'] },
-        { to: '/administratif/paiements', label: 'Modes de paiement', icon: 'settings', perms: ['gerer_paiements'] },
       ],
     },
     {

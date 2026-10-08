@@ -20,8 +20,6 @@ import { Modal } from '../../components/ui/Modal.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { formatDateString } from '../../utils/formatDate.js';
 
-const TAILLES = [20, 50, 100];
-
 /** Critères vides : sert aussi de « réinitialiser ». */
 const CRITERES_VIDES = {
   q: '', type_id: '', division_id: '', annee: '', date_debut: '', date_fin: '',
@@ -129,7 +127,7 @@ export function ArchivesPage() {
     total: donnees.total || 0,
   };
 
-  useEffect(() => { charger(); }, [charger]);
+  useEffect(() => { Promise.resolve().then(charger); }, [charger]);
 
   useEffect(() => {
     let actif = true;

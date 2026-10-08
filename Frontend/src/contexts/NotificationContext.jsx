@@ -48,13 +48,15 @@ export function NotificationProvider({ children }) {
 
   // Remise à zéro immédiate lors d'un changement d'utilisateur.
   useEffect(() => {
-    setNotifications([]);
-    setUnreadCount(0);
+    Promise.resolve().then(() => {
+      setNotifications([]);
+      setUnreadCount(0);
+    });
   }, [userId]);
 
   useEffect(() => {
     if (!token) return;
-    refresh();
+    Promise.resolve().then(refresh);
     const timer = setInterval(refresh, POLL_INTERVAL);
     return () => clearInterval(timer);
   }, [token, userId, refresh]);

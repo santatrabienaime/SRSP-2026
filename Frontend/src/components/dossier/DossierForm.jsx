@@ -1,13 +1,21 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { dossierService } from '../../services/dossierService.js';
 import { referentielService } from '../../services/referentielService.js';
 import { divisionService } from '../../services/divisionService.js';
 import { Button } from '../ui/Button.jsx';
 import { Input } from '../ui/Input.jsx';
 import { Select } from '../ui/Select.jsx';
-import { Textarea } from '../ui/Textarea.jsx';
 import { Alert } from '../ui/Alert.jsx';
+import {
+  CINInput,
+  PhoneInput,
+  EmailInput,
+  NameInput,
+  FirstNameInput,
+  AddressInput,
+  ObservationInput,
+  TextAreaInput,
+} from '../fields/index.jsx';
 import { todayISO, pourChampDate } from '../../utils/formatDate.js';
 import { validerDossier, validerTout, cinPlausible, compacterCIN } from '../../utils/validationDossier.js';
 import { useNotification } from '../../hooks/useNotification.js';
@@ -51,7 +59,6 @@ const vide = (initial) => ({
  * part de zéro, et ralentiraient la simple correction d'un champ.
  */
 export function DossierForm({ initial = null, onSaved }) {
-  const navigate = useNavigate();
   const { toastSuccess, toastError } = useNotification();
 
   const [referentiel, setReferentiel] = useState({ types_dossiers: [], priorites: [], statuts: [] });
@@ -100,14 +107,14 @@ export function DossierForm({ initial = null, onSaved }) {
     // dossier à un numéro tronqué ne peut rien retourner, et afficherait
     // « inconnu » à chaque frappe.
     if (!cin || !cinPlausible(cin)) {
-      setRecherche(null);
+      Promise.resolve().then(() => setRecherche(null));
       return undefined;
     }
     if (cin === derniereRecherche.current) return undefined;
     derniereRecherche.current = cin;
 
     let actif = true;
-    setVerifEnCours(true);
+    Promise.resolve().then(() => { if (actif) setVerifEnCours(true); });
     dossierService.rechercherParCIN(form.matricule)
       .then((r) => { if (actif) setRecherche(r); })
       .catch(() => { if (actif) setRecherche(null); })
@@ -116,6 +123,10 @@ export function DossierForm({ initial = null, onSaved }) {
   }, [cinDebounce, form.matricule, initial]);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  /** Setter pour les composants de champ (useInputControl) :
+      ils reçoivent la valeur formatée, pas l'événement. */
+  const setVal = (field) => (v) => setForm((f) => ({ ...f, [field]: v }));
 
   /**
    * Reprend les coordonnées déjà connues.
@@ -141,7 +152,7 @@ export function DossierForm({ initial = null, onSaved }) {
     if (initial) return;
     const { demandeur_nom: nom, demandeur_prenom: prenom } = form;
     if (!nom && !prenom) return;
-    setForm((f) => ({ ...f, demandeur: [nom, prenom].filter(Boolean).join(' ') }));
+    Promise.resolve().then(() => setForm((f) => ({ ...f, demandeur: [nom, prenom].filter(Boolean).join(' ') })));
   }, [form.demandeur_nom, form.demandeur_prenom, initial]);
 
   /* La validation vit dans utils/validationDossier.js, donc testable sans
@@ -272,15 +283,23 @@ export function DossierForm({ initial = null, onSaved }) {
           </div>
         </div>
 
-        <Textarea label="Objet" required rows={3} value={form.objet} onChange={set('objet')} placeholder="Objet de la demande…" />
+        <TextAreaInput
+          label="Objet"
+          required
+          rows={3}
+          maxLength={500}
+          value={form.objet}
+          onChange={(v) => setVal('objet')(v.charAt(0).toUpperCase() + v.slice(1))}
+          placeholder="Objet de la demande…"
+        />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Nom" required value={form.demandeur_nom} onChange={set('demandeur_nom')} placeholder="RAKOTO" />
-          <Input label="Prénom" value={form.demandeur_prenom} onChange={set('demandeur_prenom')} placeholder="Jean" />
-          <Input label="Matricule / CIN" value={form.matricule} onChange={set('matricule')} placeholder="101 234 567 890" />
-          <Input label="Téléphone" value={form.demandeur_tel} onChange={set('demandeur_tel')} placeholder="032 12 345 67" />
-          <Input label="Email" type="email" value={form.demandeur_email} onChange={set('demandeur_email')} placeholder="rakoto.jean@email.mg" />
-          <Input label="Adresse" value={form.demandeur_adresse} onChange={set('demandeur_adresse')} placeholder="Ambadiaplay, Manakara" />
+          <NameInput label="Nom" required value={form.demandeur_nom} onChange={setVal('demandeur_nom')} placeholder="RAKOTO" />
+          <FirstNameInput label="Prénom" value={form.demandeur_prenom} onChange={setVal('demandeur_prenom')} placeholder="Jean" />
+          <CINInput label="Matricule / CIN" value={form.matricule} onChange={setVal('matricule')} />
+          <PhoneInput label="Téléphone" value={form.demandeur_tel} onChange={setVal('demandeur_tel')} />
+          <EmailInput label="Email" value={form.demandeur_email} onChange={setVal('demandeur_email')} placeholder="rakoto.jean@email.mg" />
+          <AddressInput value={form.demandeur_adresse} onChange={setVal('demandeur_adresse')} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -288,7 +307,11 @@ export function DossierForm({ initial = null, onSaved }) {
           <Input label="Date limite (optionnel)" type="date" value={form.date_limite} onChange={set('date_limite')} />
         </div>
 
-        <Textarea label="Observation" value={form.observation} onChange={set('observation')} placeholder="Observations éventuelles…" />
+        <ObservationInput
+          value={form.observation}
+          onChange={setVal('observation')}
+        />
+
 
         <div className="flex justify-end gap-2">
           <Button type="submit" loading={saving}>Enregistrer les modifications</Button>
@@ -432,11 +455,13 @@ export function DossierForm({ initial = null, onSaved }) {
       {etape === 2 && (
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input
+            <CINInput
               label="CIN du demandeur"
               value={form.matricule}
-              onChange={(e) => { set('matricule')(e); setRecherche(null); }}
-              placeholder="101 234 567 890"
+              onChange={(v) => {
+                setVal('matricule')(v);
+                setRecherche(null);
+              }}
               hint={verifEnCours ? 'Recherche en cours…' : undefined}
             />
             <div className="flex items-end">
@@ -469,12 +494,12 @@ export function DossierForm({ initial = null, onSaved }) {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Nom" required value={form.demandeur_nom} onChange={set('demandeur_nom')} placeholder="RAKOTO" />
-            <Input label="Prénom" value={form.demandeur_prenom} onChange={set('demandeur_prenom')} placeholder="Jean" />
-            <Input label="Téléphone" value={form.demandeur_tel} onChange={set('demandeur_tel')} placeholder="032 12 345 67" />
-            <Input label="Email" type="email" value={form.demandeur_email} onChange={set('demandeur_email')} placeholder="rakoto.jean@email.mg" />
+            <NameInput label="Nom" required value={form.demandeur_nom} onChange={setVal('demandeur_nom')} placeholder="RAKOTO" />
+            <FirstNameInput label="Prénom" value={form.demandeur_prenom} onChange={setVal('demandeur_prenom')} placeholder="Jean" />
+            <PhoneInput label="Téléphone" value={form.demandeur_tel} onChange={setVal('demandeur_tel')} />
+            <EmailInput label="Email" value={form.demandeur_email} onChange={setVal('demandeur_email')} placeholder="rakoto.jean@email.mg" />
           </div>
-          <Input label="Adresse" value={form.demandeur_adresse} onChange={set('demandeur_adresse')} placeholder="Ambadiaplay, Manakara" />
+          <AddressInput value={form.demandeur_adresse} onChange={setVal('demandeur_adresse')} />
 
           <div className="flex justify-between">
             <Button type="button" variant="ghost" onClick={() => allerA(1)}>
@@ -490,7 +515,15 @@ export function DossierForm({ initial = null, onSaved }) {
       {/* ── Étape 3 : l'objet, la priorité, l'échéance, puis le récapitulatif ── */}
       {etape === 3 && (
         <div className="space-y-4">
-          <Textarea label="Objet" required rows={3} value={form.objet} onChange={set('objet')} placeholder="Demande d'intégration" />
+          <TextAreaInput
+            label="Objet"
+            required
+            rows={3}
+            maxLength={500}
+            value={form.objet}
+            onChange={(v) => setVal('objet')(v.charAt(0).toUpperCase() + v.slice(1))}
+            placeholder="Demande d'intégration"
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <Select label="Priorité" required value={form.priorite_id} onChange={set('priorite_id')}>
               <option value="">Sélectionner…</option>
@@ -500,7 +533,10 @@ export function DossierForm({ initial = null, onSaved }) {
             </Select>
             <Input label="Date limite (optionnel)" type="date" value={form.date_limite} onChange={set('date_limite')} />
           </div>
-          <Textarea label="Observations" value={form.observation} onChange={set('observation')} placeholder="Dossier complet, pièces jointes fournies" />
+          <ObservationInput
+            value={form.observation}
+            onChange={setVal('observation')}
+          />
 
           {/* Récapitulatif : la secrétaire vérifie avant de valider. */}
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">

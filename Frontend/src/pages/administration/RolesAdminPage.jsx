@@ -42,10 +42,6 @@ const PERMISSION_GROUPS = [
     label: 'Division Secours',
     perms: ['preparer_mandatement', 'gerer_ordonnancement', 'suivre_signature', 'depouiller_pieces', 'archiver_pieces'],
   },
-  {
-    label: 'Coordonnatrice',
-    perms: ['gerer_immatriculations', 'gerer_augure', 'gerer_paiements'],
-  },
 ];
 
 /** Gestion des rôles et de la matrice RBAC par rôle. */
@@ -54,7 +50,7 @@ export function RolesAdminPage() {
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [roleDetail, setRoleDetail] = useState(null);
+  const [, setRoleDetail] = useState(null);
   const [checkboxes, setCheckboxes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,7 +71,7 @@ export function RolesAdminPage() {
   }, []);
 
   useEffect(() => {
-    load();
+    Promise.resolve().then(load);
   }, [load]);
 
   const selectRole = async (role) => {
@@ -111,8 +107,6 @@ export function RolesAdminPage() {
 
   if (loading) return <Spinner label="Chargement des rôles…" />;
   if (error) return <Alert type="error">{error.message}</Alert>;
-
-  const permMap = Object.fromEntries(permissions.map((p) => [p.id, p]));
 
   return (
     <div className="space-y-5">

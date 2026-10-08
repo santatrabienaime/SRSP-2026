@@ -74,7 +74,7 @@ export function HistoriquePage() {
     }
   }, [appliques, toastError]);
 
-  useEffect(() => { charger(); }, [charger]);
+  useEffect(() => { Promise.resolve().then(charger); }, [charger]);
 
   // Les listes de filtre ne proposes que ce qui existe réellement au journal.
   useEffect(() => {

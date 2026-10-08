@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { LogIn, MapPin, Phone, Mail, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useNotification } from '../../hooks/useNotification.js';
+import { useInputControl, INPUT_TYPES } from '../../hooks/useInputControl.js';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
@@ -13,8 +14,18 @@ export function LoginPage() {
   const { toastSuccess } = useNotification();
   const navigate = useNavigate();
   const location = useLocation();
-  const [identifiant, setIdentifiant] = useState('');
-  const [password, setPassword] = useState('');
+
+  /* Identifiant : minuscules automatiques, espaces et 2ᵉ @ bloqués.
+     Mot de passe : espaces bloqués, longueur max 128. */
+  const identifiant = useInputControl('', {
+    type: INPUT_TYPES.LOWERCASE,
+    maxLength: 255,
+  });
+  const password = useInputControl('', {
+    type: INPUT_TYPES.PASSWORD,
+    maxLength: 128,
+  });
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,14 +58,14 @@ export function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    const id = identifiant.trim();
-    if (!id || !password) {
+    const id = identifiant.value.trim();
+    if (!id || !password.value) {
       setError({ message: 'Veuillez renseigner votre identifiant et votre mot de passe.' });
       return;
     }
     setLoading(true);
     try {
-      const profil = await login(id, password);
+      const profil = await login(id, password.value);
       toastSuccess('Connexion réussie.');
       // On conduit l'utilisateur vers l'interface qui le concerne, et non vers
       // la page demandée qui pourrait être hors de son périmètre (page vide,
@@ -204,8 +215,7 @@ export function LoginPage() {
                   autoCapitalize="none"
                   spellCheck="false"
                   ref={premierChamp}
-                  value={identifiant}
-                  onChange={(e) => setIdentifiant(e.target.value)}
+                  {...identifiant.inputProps}
                   placeholder="prenom.nom@srsp.mg"
                 />
                 <Input
@@ -215,8 +225,7 @@ export function LoginPage() {
                   type="password"
                   revealPassword
                   autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  {...password.inputProps}
                   placeholder="••••••••"
                 />
                 <Button

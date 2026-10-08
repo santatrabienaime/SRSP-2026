@@ -5,9 +5,9 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Card } from '../ui/Card.jsx';
 import { Button } from '../ui/Button.jsx';
-import { Textarea } from '../ui/Textarea.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import { Spinner } from '../ui/Spinner.jsx';
+import { TextAreaInput } from '../fields/index.jsx';
 import { formatDateTime } from '../../utils/formatDate.js';
 
 /**
@@ -25,6 +25,14 @@ export function CommentairesDossier({ dossierId }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  /* Contrôle de saisie du commentaire (§7.1) : 3 à 1000 caractères. */
+  const commentaireErreur = (() => {
+    if (!texte) return null;
+    if (texte.trim().length < 3) return 'Minimum 3 caractères';
+    if (texte.length > 1000) return 'Maximum 1000 caractères';
+    return null;
+  })();
+
   const charger = useCallback(async () => {
     try {
       setLoading(true);
@@ -37,11 +45,12 @@ export function CommentairesDossier({ dossierId }) {
     }
   }, [dossierId]);
 
-  useEffect(() => { charger(); }, [charger]);
+  useEffect(() => { Promise.resolve().then(charger); }, [charger]);
 
   const envoyer = async (e) => {
     e.preventDefault();
     if (!texte.trim()) return;
+    if (commentaireErreur) return;
     setSaving(true);
     setError(null);
     try {
@@ -75,17 +84,23 @@ export function CommentairesDossier({ dossierId }) {
       {error && <Alert type="error" title="Commentaire">{error.message}</Alert>}
 
       <form onSubmit={envoyer} className="mb-4 space-y-2">
-        <Textarea
+        <TextAreaInput
           value={texte}
-          onChange={(e) => setTexte(e.target.value)}
-          placeholder={`Écrire un commentaire… mentionnez un collègue avec @identifiant`}
+          onChange={setTexte}
+          error={commentaireErreur}
+          maxLength={1000}
           rows={3}
+          placeholder="Écrire un commentaire… mentionnez un collègue avec @identifiant"
         />
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-1 text-xs text-slate-400">
             <AtSign className="h-3 w-3" /> mentionner : @identifiant
           </p>
-          <Button type="submit" loading={saving} disabled={!texte.trim()}>
+          <Button
+            type="submit"
+            loading={saving}
+            disabled={!texte.trim() || Boolean(commentaireErreur)}
+          >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Publier
           </Button>

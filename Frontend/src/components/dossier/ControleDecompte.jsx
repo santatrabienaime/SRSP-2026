@@ -5,9 +5,9 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Card } from '../ui/Card.jsx';
 import { Button } from '../ui/Button.jsx';
-import { Textarea } from '../ui/Textarea.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import { Badge } from '../ui/Badge.jsx';
+import { TextAreaInput } from '../fields/index.jsx';
 
 const CHECKS = [
   { key: 'calculs_verifies', label: 'Calculs vérifiés' },
@@ -40,7 +40,7 @@ export function ControleDecompte({ dossierId }) {
     } catch (e) { setError(e); }
   }, [dossierId, canControl]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { Promise.resolve().then(load); }, [load]);
 
   const decide = async (decision) => {
     setSaving(true);
@@ -95,12 +95,14 @@ export function ControleDecompte({ dossierId }) {
             ))}
           </ul>
 
-          <Textarea
+          <TextAreaInput
             label="Observation"
             value={observation}
-            onChange={(e) => setObservation(e.target.value)}
-            placeholder="Obligatoire pour un retour"
+            onChange={setObservation}
+            error={observation.length > 1000 ? 'Maximum 1000 caractères' : null}
+            maxLength={1000}
             rows={3}
+            placeholder="Obligatoire pour un retour"
           />
 
           <div className="flex flex-wrap justify-end gap-2">

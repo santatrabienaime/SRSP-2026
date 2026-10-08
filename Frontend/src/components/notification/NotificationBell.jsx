@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNotification } from '../../hooks/useNotification.js';

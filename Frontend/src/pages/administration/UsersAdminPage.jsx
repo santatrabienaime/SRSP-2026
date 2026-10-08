@@ -6,13 +6,16 @@ import { useNotification } from '../../hooks/useNotification.js';
 import { Table } from '../../components/ui/Table.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { Button } from '../../components/ui/Button.jsx';
-import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Card } from '../../components/ui/Card.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
+import {
+  UsernameInput,
+  EmailInput,
+  PasswordInput,
+} from '../../components/fields/index.jsx';
 import { usePagination } from '../../hooks/usePagination.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { formatDateTime } from '../../utils/formatDate.js';
@@ -182,10 +185,26 @@ export function UsersAdminPage() {
       >
         <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
           {error && <Alert type="error">{error.message}</Alert>}
-          <Input label="Identifiant" required disabled={Boolean(editing)} value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
-          <Input label="Email" required type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+          <UsernameInput
+            label="Identifiant"
+            required
+            disabled={Boolean(editing)}
+            value={form.username}
+            onChange={(v) => setForm((f) => ({ ...f, username: v }))}
+          />
+          <EmailInput
+            label="Email"
+            required
+            value={form.email}
+            onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+          />
           {!editing && (
-            <Input label="Mot de passe" required type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} hint="8 caractères minimum" />
+            <PasswordInput
+              label="Mot de passe"
+              required
+              value={form.password}
+              onChange={(v) => setForm((f) => ({ ...f, password: v }))}
+            />
           )}
           <Select label="Rôle" required value={form.role_id} onChange={(e) => setForm((f) => ({ ...f, role_id: e.target.value }))}>
             <option value="">Sélectionner…</option>
@@ -211,13 +230,11 @@ export function UsersAdminPage() {
           </>
         }
       >
-        <Input
+        <PasswordInput
           label="Nouveau mot de passe"
-          type="password"
+          required
           value={resetPwd}
-          onChange={(e) => setResetPwd(e.target.value)}
-          hint="8 caractères minimum — communiquez-le à l'utilisateur"
-          autoFocus
+          onChange={(v) => setResetPwd(v)}
         />
       </Modal>
     </div>

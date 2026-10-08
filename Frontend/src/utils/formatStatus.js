@@ -12,7 +12,7 @@ export function statusBadgeClass(status) {
 }
 
 /** Badge prêt à l'emploi (chaîne JSX). */
-export function StatusBadge({ status }) {
+export function StatusBadge() {
   // Éviter l'import circulaire : ce petit composant est aussi exporté par ui/Badge.
   return null;
 }

@@ -82,7 +82,7 @@ export function DossierListPage() {
     }
   }, []);
 
-  useEffect(() => { chargerCompteurs(); }, [chargerCompteurs]);
+  useEffect(() => { Promise.resolve().then(chargerCompteurs); }, [chargerCompteurs]);
 
   const compte = (statuts) =>
     (compteurs && statuts && statuts.reduce((n, c) => n + (compteurs[c] || 0), 0)) ?? null;

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { courrierService } from '../../services/courrierService.js';
 import { referentielService } from '../../services/referentielService.js';
 import { divisionService } from '../../services/divisionService.js';
@@ -8,12 +7,11 @@ import { useNotification } from '../../hooks/useNotification.js';
 import { Button } from '../ui/Button.jsx';
 import { Input } from '../ui/Input.jsx';
 import { Select } from '../ui/Select.jsx';
-import { Textarea } from '../ui/Textarea.jsx';
 import { Alert } from '../ui/Alert.jsx';
+import { TextAreaInput } from '../fields/index.jsx';
 
 /** Formulaire de création d'un courrier entrant/sortant. */
 export function CourrierForm({ onSaved }) {
-  const navigate = useNavigate();
   const { toastSuccess, toastError } = useNotification();
   const [types, setTypes] = useState([]);
   const [divisions, setDivisions] = useState([]);
@@ -51,6 +49,9 @@ export function CourrierForm({ onSaved }) {
   }, []);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  /** Setter pour les composants de champ (valeur formatée). */
+  const setVal = (field) => (v) => setForm((f) => ({ ...f, [field]: v }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,11 +101,18 @@ export function CourrierForm({ onSaved }) {
         </Select>
       </div>
 
-      <Textarea label="Objet" required rows={2} value={form.objet} onChange={set('objet')} />
+      <TextAreaInput
+        label="Objet"
+        required
+        rows={2}
+        maxLength={255}
+        value={form.objet}
+        onChange={(v) => setVal('objet')(v.charAt(0).toUpperCase() + v.slice(1))}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Expéditeur" value={form.expediteur} onChange={set('expediteur')} placeholder={form.sens === 'ENTRANT' ? 'Qui envoie ?' : 'Service émetteur'} />
-        <Input label="Destinataire" value={form.destinataire} onChange={set('destinataire')} placeholder={form.sens === 'SORTANT' ? 'À qui ?' : 'Service destinataire'} />
+        <Input label="Expéditeur" maxLength={255} value={form.expediteur} onChange={set('expediteur')} placeholder={form.sens === 'ENTRANT' ? 'Qui envoie ?' : 'Service émetteur'} />
+        <Input label="Destinataire" maxLength={255} value={form.destinataire} onChange={set('destinataire')} placeholder={form.sens === 'SORTANT' ? 'À qui ?' : 'Service destinataire'} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

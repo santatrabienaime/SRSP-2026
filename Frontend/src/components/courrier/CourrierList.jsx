@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, Mail } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { courrierService } from '../../services/courrierService.js';
 import { usePagination } from '../../hooks/usePagination.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
@@ -58,7 +58,7 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
   // load est stable (dépendances primitives : filterKey, debouncedSearch, sens, statut)
   // → l'effet se déclenche au montage ET à chaque vrai changement de filtre, sans boucle.
   useEffect(() => {
-    load();
+    Promise.resolve().then(load);
   }, [load]);
 
   const pagination = usePagination(data, 10);

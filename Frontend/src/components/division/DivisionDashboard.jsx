@@ -14,7 +14,7 @@ export function DivisionDashboard({ divisionId }) {
 
   useEffect(() => {
     if (!effectiveId) {
-      setLoading(false);
+      Promise.resolve().then(() => setLoading(false));
       return;
     }
     /* Fiche ciblée plutôt que liste complète filtrée : moins de données

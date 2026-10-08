@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, FolderCheck, Clock, AlertTriangle, Users, Archive } from 'lucide-react';
+import { TrendingUp, FolderCheck, Clock, AlertTriangle, Archive } from 'lucide-react';
 import { performanceService } from '../../services/performanceService.js';
 import { StatCard } from '../../components/ui/StatCard.jsx';
 import { Card } from '../../components/ui/Card.jsx';

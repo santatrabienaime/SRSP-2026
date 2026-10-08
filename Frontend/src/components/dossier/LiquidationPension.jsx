@@ -7,11 +7,17 @@ import { Button } from '../ui/Button.jsx';
 import { Input } from '../ui/Input.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import { useNotification } from '../../hooks/useNotification.js';
+import { AmountInput, NumberInput } from '../fields/index.jsx';
 
 const fmt = (n) =>
-  new Intl.NumberFormat('fr-FR').format(Number(n || 0)) + ' Ar';
+  new Intl.NumberFormat('fr-FR').format(parseMontant(n)) + ' Ar';
 
 const field = 'w-full sm:w-40';
+
+/** Extrait la valeur numérique d'un montant formaté (« 1 500 000 »). */
+function parseMontant(v) {
+  return Number(String(v || '').replace(/\D/g, '') || 0);
+}
 
 /**
  * Liquidation de pension (division Pension).
@@ -27,7 +33,7 @@ export function LiquidationPension({ dossierId }) {
     annees_service: '', indice_final: '',
     pension_brute: '', retenues: '', observation: '',
   });
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -48,13 +54,16 @@ export function LiquidationPension({ dossierId }) {
     } catch (e) { setError(e); } finally { setLoading(false); }
   }, [dossierId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { Promise.resolve().then(load); }, [load]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  /** Setter pour les composants de champ (valeur formatée). */
+  const setVal = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
+
   // Aperçu du calcul pendant la saisie (le serveur reste la référence).
-  const brute = Number(form.pension_brute || 0);
-  const retenues = Number(form.retenues || 0);
+  const brute = parseMontant(form.pension_brute);
+  const retenues = parseMontant(form.retenues);
   const netteApercu = Math.max(0, brute - retenues);
 
   const submit = async (e) => {
@@ -64,9 +73,9 @@ export function LiquidationPension({ dossierId }) {
     try {
       const res = await dossierService.saveLiquidationPension(dossierId, {
         annees_service: Number(form.annees_service || 0),
-        indice_final: form.indice_final ? Number(form.indice_final) : null,
-        pension_brute: Number(form.pension_brute),
-        retenues: Number(form.retenues),
+        indice_final: form.indice_final === '' ? null : Number(form.indice_final),
+        pension_brute: parseMontant(form.pension_brute),
+        retenues: parseMontant(form.retenues),
         observation: form.observation,
       });
       setData(res);
@@ -85,17 +94,17 @@ export function LiquidationPension({ dossierId }) {
 
       <form onSubmit={submit} className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Input label="Années de service" type="number" min="0" max="60"
-                 value={form.annees_service} onChange={set('annees_service')}
+          <NumberInput label="Années de service" min={0} max={60}
+                 value={form.annees_service} onChange={setVal('annees_service')}
                  disabled={!canEdit} className={field} />
-          <Input label="Indice final" type="number"
-                 value={form.indice_final} onChange={set('indice_final')}
+          <NumberInput label="Indice final"
+                 value={form.indice_final} onChange={setVal('indice_final')}
                  disabled={!canEdit} className={field} />
-          <Input label="Pension brute (Ar)" type="number" min="0"
-                 value={form.pension_brute} onChange={set('pension_brute')}
+          <AmountInput label="Pension brute (Ar)"
+                 value={form.pension_brute} onChange={setVal('pension_brute')}
                  disabled={!canEdit} className={field} />
-          <Input label="Retenues (Ar)" type="number" min="0"
-                 value={form.retenues} onChange={set('retenues')}
+          <AmountInput label="Retenues (Ar)"
+                 value={form.retenues} onChange={setVal('retenues')}
                  disabled={!canEdit} className={field} />
         </div>
 
@@ -114,7 +123,7 @@ export function LiquidationPension({ dossierId }) {
 
         {canEdit && (
           <>
-            <Input label="Observation" value={form.observation}
+            <Input label="Observation" maxLength={1000} value={form.observation}
                    onChange={set('observation')} />
             <div className="flex justify-end">
               <Button type="submit" disabled={saving}>

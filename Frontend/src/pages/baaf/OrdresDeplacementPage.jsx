@@ -10,11 +10,21 @@ import { Button } from '../../components/ui/Button.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
-import { Textarea } from '../../components/ui/Textarea.jsx';
 import { Table } from '../../components/ui/Table.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
+import {
+  DateInput,
+  AmountInput,
+  ReferenceInput,
+  TextAreaInput,
+  ObservationInput,
+} from '../../components/fields/index.jsx';
+
+/** Extrait la valeur numérique d'un montant formaté (« 1 500 000 »). */
+const parseMontant = (v) =>
+  Number(String(v || '').replace(/\D/g, '') || 0);
 
 /**
  * Pièces de déplacement du Chef BAAF (3.9).
@@ -95,6 +105,9 @@ export function OrdresDeplacementPage() {
 
   const ouvrirCreation = () => { setForm(VIDE); setFormOuvert(true); };
 
+  /** Setter pour les composants de champ (valeur formatée). */
+  const setVal = (key) => (v) => setForm((f) => ({ ...f, [key]: v }));
+
   const soumettreCreation = async (e) => {
     e.preventDefault();
     try {
@@ -103,7 +116,10 @@ export function OrdresDeplacementPage() {
         type_id: Number(form.type_id),
         dossier_id: Number(form.dossier_id),
         agent_id: Number(form.agent_id),
-        montant_avance: form.montant_avance === '' ? null : Number(form.montant_avance),
+        montant_avance:
+          form.montant_avance === '' || parseMontant(form.montant_avance) === 0
+            ? null
+            : parseMontant(form.montant_avance),
       });
       toastSuccess(`Ordre ${resultat.numero} établi.`);
       setFormOuvert(false);
@@ -320,30 +336,32 @@ export function OrdresDeplacementPage() {
           </Select>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Lieu de départ" value={form.lieu_depart}
+            <Input label="Lieu de départ" maxLength={255} value={form.lieu_depart}
               onChange={(e) => setForm({ ...form, lieu_depart: e.target.value })} required />
-            <Input label="Destination" value={form.lieu_destination}
+            <Input label="Destination" maxLength={255} value={form.lieu_destination}
               onChange={(e) => setForm({ ...form, lieu_destination: e.target.value })} required />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input type="date" label="Date de départ" value={form.date_depart}
-              onChange={(e) => setForm({ ...form, date_depart: e.target.value })} required />
-            <Input type="date" label="Date de retour" value={form.date_retour}
-              onChange={(e) => setForm({ ...form, date_retour: e.target.value })} required />
+            <DateInput label="Date de départ" value={form.date_depart}
+              onChange={(v) => setVal('date_depart')(v)} required />
+            <DateInput label="Date de retour" value={form.date_retour}
+              onChange={(v) => setVal('date_retour')(v)} required />
           </div>
 
-          <Input label="Objet de la mission" value={form.objet}
-            onChange={(e) => setForm({ ...form, objet: e.target.value })}
+          <Input label="Objet de la mission" maxLength={255} value={form.objet}
+            onChange={(e) => setForm({ ...form, objet: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1) })}
             placeholder="Ce que l'agent doit faire sur place" required />
 
-          <Input type="number" min="0" step="0.01" label="Avance demandée (ariary)"
+          <AmountInput label="Avance demandée (ariary)"
             value={form.montant_avance}
-            onChange={(e) => setForm({ ...form, montant_avance: e.target.value })}
+            onChange={(v) => setVal('montant_avance')(v)}
             hint="Laisser vide si aucune avance n'est demandée." />
 
-          <Textarea label="Observations" value={form.observations}
-            onChange={(e) => setForm({ ...form, observations: e.target.value })} />
+          <ObservationInput
+            value={form.observations}
+            onChange={(v) => setVal('observations')(v)}
+          />
         </form>
       </Modal>
 
@@ -366,10 +384,10 @@ export function OrdresDeplacementPage() {
             Vous signes <strong>{action?.ordre?.numero}</strong> ({action?.ordre?.type_libelle}).
             La signature engage votre responsabilité.
           </p>
-          <Input
+          <ReferenceInput
             label="Référence de signature"
             value={saisieAction.reference_signature || ''}
-            onChange={(e) => setSaisieAction({ reference_signature: e.target.value })}
+            onChange={(v) => setSaisieAction({ reference_signature: v })}
             placeholder="SIG-2026-0042"
             hint="Obligatoire, et unique : une pièce signée sans référence vérifiable ne prouve rien."
             required
@@ -398,10 +416,11 @@ export function OrdresDeplacementPage() {
               Vérifiez le montant réellement dépensé avant de clôturer.
             </Alert>
           )}
-          <Textarea
+          <TextAreaInput
             label="Motif de clôture"
             value={saisieAction.motif_cloture || ''}
-            onChange={(e) => setSaisieAction({ motif_cloture: e.target.value })}
+            onChange={(v) => setSaisieAction({ motif_cloture: v })}
+            maxLength={1000}
             placeholder="Ce qu'a donné la mission"
           />
         </div>

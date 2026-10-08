@@ -40,7 +40,7 @@ export function CourrierDetail({ id }) {
   }, [id]);
 
   useEffect(() => {
-    load();
+    Promise.resolve().then(load);
   }, [load]);
 
   const handleStatut = async (e) => {

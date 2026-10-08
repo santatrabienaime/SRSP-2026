@@ -73,7 +73,7 @@ export function IdleSessionGuard() {
       if (document.visibilityState === 'visible') replanifier();
     };
 
-    replanifier();
+    Promise.resolve().then(replanifier);
     activite.forEach((e) => window.addEventListener(e, surActivite, { passive: true }));
     document.addEventListener('visibilitychange', visibilite);
 

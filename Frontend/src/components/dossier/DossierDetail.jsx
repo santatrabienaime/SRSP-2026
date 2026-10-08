@@ -85,7 +85,7 @@ export function DossierDetail({ id }) {
     const ancre = (location.hash || '').replace('#', '');
     if (!ancre) return;
     const cible = ONGLETS_PAR_ANCRE[ancre];
-    if (cible) setOnglet(cible);
+    if (cible) Promise.resolve().then(() => setOnglet(cible));
   }, [location.hash]);
 
   if (loading) return <Spinner label="Chargement du dossier…" />;

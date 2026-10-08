@@ -14,7 +14,7 @@ import { formatDateTime } from '../../utils/formatDate.js';
  * CIN du défunt, CIN du bénéficiaire.
  */
 export function DepouillementChecklist({ dossierId }) {
-  const { hasPermission, hasAnyPermission } = useAuth();
+  const { hasAnyPermission } = useAuth();
   const canControl = hasAnyPermission(['depouiller_pieces', 'gerer_ordonnancement', 'preparer_mandatement']);
 
   const [data, setData] = useState(null);
@@ -35,7 +35,7 @@ export function DepouillementChecklist({ dossierId }) {
   }, [dossierId]);
 
   useEffect(() => {
-    load();
+    Promise.resolve().then(load);
   }, [load]);
 
   const toggle = async (piece, presente, observation) => {

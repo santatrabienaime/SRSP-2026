@@ -25,7 +25,7 @@ export function useDossier(id) {
   // Chargement initial : sans cet effet, la page détail reste bloquée sur
   // « Chargement du dossier… » (default export toujours appellable).
   useEffect(() => {
-    load();
+    Promise.resolve().then(load);
   }, [load]);
 
   const refresh = useCallback(async () => {

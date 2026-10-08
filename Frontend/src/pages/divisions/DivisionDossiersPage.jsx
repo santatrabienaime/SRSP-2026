@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, FolderKanban, Loader2 } from 'lucide-react';
+import { ArrowLeft, FolderKanban } from 'lucide-react';
 import { divisionService } from '../../services/divisionService.js';
 import { DossierList } from '../../components/dossier/DossierList.jsx';
-import { Card } from '../../components/ui/Card.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -39,7 +38,7 @@ export function DivisionDossiersPage() {
     }
   }, [code]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { Promise.resolve().then(load); }, [load]);
 
   if (loading) {
     return (

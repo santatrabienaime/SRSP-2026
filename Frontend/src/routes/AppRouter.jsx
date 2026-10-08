@@ -22,7 +22,6 @@ import { DocumentUploadPage } from '../pages/documents/DocumentUploadPage.jsx';
 import { CourrierListPage } from '../pages/courriers/CourrierListPage.jsx';
 import { CourrierCreatePage } from '../pages/courriers/CourrierCreatePage.jsx';
 import { CourrierDetailPage } from '../pages/courriers/CourrierDetailPage.jsx';
-import { ChronologieActesPage } from '../pages/administratif/ChronologieActesPage.jsx';
 
 import { NotificationsPage } from '../pages/notifications/NotificationsPage.jsx';
 import { HistoriquePage } from '../pages/historique/HistoriquePage.jsx';
@@ -32,11 +31,6 @@ import { PerformancePage } from '../pages/statistiques/PerformancePage.jsx';
 import { OrdresDeplacementPage } from '../pages/baaf/OrdresDeplacementPage.jsx';
 import { RapportsPage } from '../pages/rapports/RapportsPage.jsx';
 import { ProfilePage } from '../pages/profile/ProfilePage.jsx';
-
-import { AdministratifDashboard as AdministratifDashboardPage } from '../pages/administratif/AdministratifDashboardPage.jsx';
-import { ImmatriculationsPage } from '../pages/administratif/ImmatriculationsPage.jsx';
-import { AugurePage } from '../pages/administratif/AugurePage.jsx';
-import { PaiementsPage } from '../pages/administratif/PaiementsPage.jsx';
 
 import { UsersAdminPage } from '../pages/administration/UsersAdminPage.jsx';
 import { RolesAdminPage } from '../pages/administration/RolesAdminPage.jsx';
@@ -133,16 +127,6 @@ export function AppRouter() {
             }
           />
 
-          {/* Chronologie des actes : Secretariat, Chef de Service, Administrateur */}
-          <Route
-            path="/chronologie"
-            element={
-              <RoleRoute permissions={['gerer_chronologie_actes']}>
-                <ChronologieActesPage />
-              </RoleRoute>
-            }
-          />
-
           {/* Suivi */}
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route
@@ -153,42 +137,6 @@ export function AppRouter() {
               </RoleRoute>
             }
           />
-          {/* Gestion administrative (Coordinatrice). Ces permissions
-              existaient sans menu ni écran : le rôle se connectait et ne
-              trouvait rien à faire. */}
-          <Route
-            path="/administratif"
-            element={
-              <RoleRoute permissions={['gerer_immatriculations', 'gerer_augure', 'gerer_paiements']}>
-                <AdministratifDashboardPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/administratif/immatriculations"
-            element={
-              <RoleRoute permissions={['gerer_immatriculations']}>
-                <ImmatriculationsPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/administratif/augure"
-            element={
-              <RoleRoute permissions={['gerer_augure']}>
-                <AugurePage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/administratif/paiements"
-            element={
-              <RoleRoute permissions={['gerer_paiements']}>
-                <PaiementsPage />
-              </RoleRoute>
-            }
-          />
-
           <Route
             path="/archives"
             element={
@@ -260,7 +208,6 @@ export function AppRouter() {
               </RoleRoute>
             }
           />
-
           {/* Agents & Divisions */}
           <Route
             path="/agents"

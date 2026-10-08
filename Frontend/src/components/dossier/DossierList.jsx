@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, FolderKanban, UserCheck } from 'lucide-react';
+import { Search, Plus, UserCheck } from 'lucide-react';
 import { dossierService } from '../../services/dossierService.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { usePagination } from '../../hooks/usePagination.js';
@@ -29,7 +29,7 @@ const STATUT_FILTERS = [
  * Liste des dossiers avec filtres côté serveur (statut, type, recherche).
  */
 export function DossierList({ baseFilters = {}, showCreate = true }) {
-  const { hasPermission, user } = useAuth();
+  const { hasPermission } = useAuth();
   // Un agent est automatiquement restreint à SES dossiers par le serveur
   // (permission view_assigned_dossiers sans view_all_dossiers).
   const agentScoped =
@@ -88,7 +88,7 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
   // load est stable (dépendances primitives : filterKey, debouncedSearch, statut, typeFilter)
   // → l'effet se déclenche au montage ET à chaque vrai changement de filtre, sans boucle.
   useEffect(() => {
-    load();
+    Promise.resolve().then(load);
   }, [load]);
 
   const pagination = usePagination(data, 10);

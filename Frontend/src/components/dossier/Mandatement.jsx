@@ -10,8 +10,20 @@ import { Button } from '../ui/Button.jsx';
 import { Input } from '../ui/Input.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import { Badge } from '../ui/Badge.jsx';
+import {
+  AmountInput,
+  NameInput,
+  FirstNameInput,
+  NumberInput,
+} from '../fields/index.jsx';
 
-const fmt = (n) => new Intl.NumberFormat('fr-FR').format(Number(n || 0)) + ' Ar';
+const fmt = (n) =>
+  new Intl.NumberFormat('fr-FR').format(parseMontant(n)) + ' Ar';
+
+/** Extrait la valeur numérique d'un montant formaté (« 1 500 000 »). */
+function parseMontant(v) {
+  return Number(String(v || '').replace(/\D/g, '') || 0);
+}
 
 const ETATS = {
   BROUILLON: 'Brouillon',
@@ -24,7 +36,7 @@ const vide = { nom: '', prenom: '', lien: '', quote_part: '' };
 
 /** Mandatement du dossier de secours (Chef de Division Secours). */
 export function Mandatement({ dossierId }) {
-  const { hasPermission, hasAnyPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const canPrepare = hasPermission('preparer_mandatement');
   const canOrder = hasPermission('gerer_ordonnancement');
   const toast = useNotification();
@@ -46,7 +58,7 @@ export function Mandatement({ dossierId }) {
     } catch (e) { setError(e); }
   }, [dossierId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { Promise.resolve().then(load); }, [load]);
 
   /* Contrôle de cohérence affiché avant envoi (le serveur revérifie).
      Les MONTANTS ne sont plus saisis : ils sont déduits des quotes-parts, comme
@@ -62,7 +74,7 @@ export function Mandatement({ dossierId }) {
   /* Aperçu de la répartition, avec la même règle que le serveur : arrondi à
      l'ariary par distribute, reliquat à la plus grande part. Sans cet aperçu,
      l'agent verrait un total et ne pourrait pas savoir qui touche quoi. */
-  const montantTotalNum = Number(montantTotal) || 0;
+  const montantTotalNum = parseMontant(montantTotal);
   const apercu = (() => {
     const quotes = beneficiaires.map((b) => Number(b.quote_part) || 0);
     const parts = quotes.map((q) => Math.floor((montantTotalNum * q) / 100));
@@ -73,9 +85,11 @@ export function Mandatement({ dossierId }) {
     return parts;
   })();
 
-  const setBenef = (i, key) => (e) =>
+  /* Les composants de champ (useInputControl) reçoivent une valeur,
+     pas un événement. */
+  const setBenef = (i, key) => (v) =>
     setBeneficiaires((list) =>
-      list.map((b, idx) => (idx === i ? { ...b, [key]: e.target.value } : b))
+      list.map((b, idx) => (idx === i ? { ...b, [key]: v } : b))
     );
 
   const save = async () => {
@@ -83,7 +97,7 @@ export function Mandatement({ dossierId }) {
     setError(null);
     try {
       const res = await dossierService.saveMandatement(dossierId, {
-        montant_total: Number(montantTotal),
+        montant_total: parseMontant(montantTotal),
         // Le montant n'est pas transmis : le serveur le calcule depuis la
         // quote-part, qui est la seule donnée saisie.
         beneficiaires: beneficiaires.map((b) => ({
@@ -133,11 +147,10 @@ export function Mandatement({ dossierId }) {
 
       {canPrepare ? (
         <div className="space-y-4">
-          <Input
+          <AmountInput
             label="Montant total du secours (Ar)"
-            type="number" min="0"
             value={montantTotal}
-            onChange={(e) => setMontantTotal(e.target.value)}
+            onChange={setMontantTotal}
           />
 
           <div className="space-y-2">
@@ -159,11 +172,10 @@ export function Mandatement({ dossierId }) {
 
             {beneficiaires.map((b, i) => (
               <div key={i} className="grid gap-2 rounded-md border border-slate-200 p-2 sm:grid-cols-6">
-                <Input className="sm:col-span-2" label="Nom" value={b.nom} onChange={setBenef(i, 'nom')} />
-                <Input label="Prénom" value={b.prenom} onChange={setBenef(i, 'prenom')} />
-                <Input label="Lien" value={b.lien} onChange={setBenef(i, 'lien')} />
-                <Input label="Quote-part %" type="number" min="0" max="100" step="0.01"
-                       value={b.quote_part} onChange={setBenef(i, 'quote_part')} />
+                <NameInput className="sm:col-span-2" label="Nom" value={b.nom} onChange={setBenef(i, 'nom')} />
+                <FirstNameInput label="Prénom" value={b.prenom} onChange={setBenef(i, 'prenom')} />
+                <Input label="Lien" maxLength={100} value={b.lien} onChange={(e) => setBenef(i, 'lien')(e.target.value)} />
+                <NumberInput label="Quote-part %" min={0} max={100} value={b.quote_part} onChange={setBenef(i, 'quote_part')} />
                 {/* Montant calculé, non saisi : l'agent saisit le total et les
                     pourcentages, la plateforme fait la répartition. */}
                 <div className="pb-1">
