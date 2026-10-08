@@ -95,11 +95,15 @@ export function Sidebar() {
       ],
     },
     {
-      /* Section du Chef BAAF. Les entrees sont filtrees par permission : le
+      /* Section du Chef BAAF : ses deux metiers, documents comptables puis
+         pieces de deplacement. Les entrees sont filtrees par permission : le
          Chef de Service ne voit que « Pieces de deplacement » (il signe) et
-         n'ouvre jamais l'ecran d'etablissement. */
+         n'ouvre jamais l'ecran d'etablissement ; Documents comptables
+         n'apparait qu'a qui gere ou televerse les documents. */
       label: 'Chef BAAF',
       items: [
+        { to: '/documents', label: 'Documents comptables', icon: 'documents',
+          perms: ['manage_documents', 'upload_document'] },
         { to: '/baaf/pieces-deplacement', label: 'Pièces de déplacement', icon: 'deplacement',
           perms: ['etablir_pieces_deplacement', 'signer_pieces_deplacement', 'executer_pieces_deplacement'] },
       ],
