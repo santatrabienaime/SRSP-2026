@@ -72,6 +72,59 @@ export async function verifier(req, res, next) {
   } catch (error) { next(error); }
 }
 
+/* ── Actions en masse (référentiel : valider / signer en masse) ──────────
+   La même règle s'applique dossier par dossier qu'en individuel : un lot ne
+   valide que ce qui est en attente de vérification et ne signe que ce qui est
+   validé. Un échec n'annule pas les autres : il est renvoyé identifiant par
+   identifiant pour que l'écran montre exactement ce qui reste à traiter. */
+const MAX_MASSE = 100;
+
+export async function validerMasse(req, res, next) {
+  try {
+    const { ids, commentaire } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'Aucun dossier sélectionné.' });
+    }
+    if (ids.length > MAX_MASSE) {
+      return res.status(400).json({ message: `Maximum ${MAX_MASSE} dossiers par opération.` });
+    }
+    const reussis = [];
+    const echecs = [];
+    for (const id of ids) {
+      try {
+        await dossierService.valider(String(id), { decision: 'VALIDE', commentaire }, req.user.id);
+        reussis.push(id);
+      } catch (e) {
+        echecs.push({ id, message: e.message });
+      }
+    }
+    res.json({ reussis, echecs });
+  } catch (error) { next(error); }
+}
+
+export async function signerMasse(req, res, next) {
+  try {
+    const { ids, reference, observation } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'Aucun dossier sélectionné.' });
+    }
+    if (ids.length > MAX_MASSE) {
+      return res.status(400).json({ message: `Maximum ${MAX_MASSE} dossiers par opération.` });
+    }
+    const reussis = [];
+    const echecs = [];
+    for (const id of ids) {
+      try {
+        await dossierService.signer(String(id), { reference, observation }, req.user.id);
+        reussis.push(id);
+      } catch (e) {
+        echecs.push({ id, message: e.message });
+      }
+    }
+    res.json({ reussis, echecs });
+  } catch (error) { next(error); }
+}
+
 export async function valider(req, res, next) {
   try {
     await dossierService.valider(req.params.id, req.body, req.user.id);

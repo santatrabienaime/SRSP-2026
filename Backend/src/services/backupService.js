@@ -1,4 +1,5 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
+import { createReadStream } from 'node:fs';
 import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -168,6 +169,65 @@ async function archiverPieces(dumpFile) {
 }
 
 /** Liste les sauvegardes existantes, de la plus récente à la plus ancienne. */
+/**
+ * Restauration d'une sauvegarde SQL (opération destructive).
+ *
+ * Trois barrières avant que la base ne soit touchée : nom de fichier
+ * strictement borné au dossier des sauvegardes, existence vérifiée, puis une
+ * sauvegarde de sécurité créée automatiquement — si la restauration se révèle
+ * mauvaise, on revient à l'état d'avant en une opération.
+ *
+ * Le dump est rejoué tel quel par le client mysql (stdin) : il contient les
+ * DROP/CREATE des tables sauvegardées. Les tables créées APRÈS la sauvegarde
+ * ne sont pas dans le dump et survivent à la restauration — c'est volontaire :
+ * effacer une table qui n'existe pas dans le dump serait une perte cachée.
+ */
+export async function restoreBackup(nomFichier, userId) {
+  const nom = path.basename(String(nomFichier || ''));
+  if (!/^srsp-[A-Za-z0-9._-]+\.sql$/.test(nom)) {
+    throw new Error('Nom de sauvegarde invalide.');
+  }
+  const file = path.join(BACKUP_DIR, nom);
+  try {
+    await fs.access(file);
+  } catch {
+    throw new Error('Sauvegarde introuvable.');
+  }
+
+  const securite = await createBackup(userId);
+
+  const args = [
+    `-h${config.db.host || '127.0.0.1'}`,
+    `-P${config.db.port || 3307}`,
+    `-u${config.db.user}`,
+    config.db.name,
+  ];
+  await new Promise((resolve, reject) => {
+    const child = spawn('mysql', args, {
+      env: { ...process.env, MYSQL_PWD: config.db.password || '' },
+    });
+    // EPIPE si mysql échoue avant la fin du flux : le rejet vient du code.
+    child.stdin.on('error', () => {});
+    createReadStream(file).pipe(child.stdin);
+    child.on('error', (err) => reject(new Error(`Client mysql indisponible : ${err.message}`)));
+    child.on('close', (code) =>
+      code === 0 ? resolve() : reject(new Error(`Restauration échouée (mysql, code ${code}).`))
+    );
+  });
+
+  await historiqueModel.log({
+    user_id: userId,
+    action: 'RESTAURATION_DB',
+    details: `Restauration depuis ${nom} (sauvegarde de sécurité créée : ${securite.fichier}).`,
+  });
+
+  return {
+    message: 'Base restaurée.',
+    restaure: nom,
+    sauvegarde_securite: securite.fichier,
+  };
+}
+
 export async function listBackups() {
   try {
     const entries = await fs.readdir(BACKUP_DIR);

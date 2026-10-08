@@ -16,6 +16,12 @@ router.get('/', scopeDossiersMiddleware, ctrl.list);
    comme un identifiant de dossier et répondrait 404. */
 router.get('/rechercher-par-cin', rbacMiddleware('create_dossier'), ctrl.rechercherParCIN);
 
+/* Actions en masse (référentiel) : même permission qu'en individuel, lot de
+   100 maximum, chaque dossier restant soumis à sa propre transition. Déclaré
+   AVANT `/:id/valider` : sinon Express appellerait valider(id='masse'). */
+router.post('/masse/valider', rbacMiddleware(['verifier_dossier', 'valider_dossier']), ctrl.validerMasse);
+router.post('/masse/signer', rbacMiddleware('signer_dossier'), ctrl.signerMasse);
+
 router.get('/:id/tracabilite', assertDossierAccessMiddleware, ctrl.tracabilite);
 router.get('/:id', assertDossierAccessMiddleware, ctrl.getOne);
 router.get('/:id/statut', ctrl.statut);

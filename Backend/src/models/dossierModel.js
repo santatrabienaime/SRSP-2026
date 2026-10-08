@@ -100,6 +100,22 @@ export async function findDossiers(filters = {}) {
     query += ' AND d.agent_responsable_id = ?';
     params.push(filters.agent_id);
   }
+  /* Filtres avancés (référentiel) : priorité par code, période de réception.
+     La priorité se traduit en niveau — priorites n'a pas de colonne code et
+     le niveau est l'ordre réel (1 BASSE … 4 URGENTE). */
+  const NIVEAUX = { BASSE: 1, NORMALE: 2, HAUTE: 3, URGENTE: 4 };
+  if (filters.priorite && NIVEAUX[filters.priorite]) {
+    query += ' AND p.niveau = ?';
+    params.push(NIVEAUX[filters.priorite]);
+  }
+  if (filters.date_debut && /^\d{4}-\d{2}-\d{2}$/.test(filters.date_debut)) {
+    query += ' AND d.date_reception >= ?';
+    params.push(filters.date_debut);
+  }
+  if (filters.date_fin && /^\d{4}-\d{2}-\d{2}$/.test(filters.date_fin)) {
+    query += ' AND d.date_reception <= ?';
+    params.push(filters.date_fin);
+  }
   if (filters.search) {
     /* Les colonnes séparées sont consultées en plus de `demandeur` : une
        personne saisie « Jean RAKOTO » doit être retrouvée par « RAKOTO » comme
@@ -136,6 +152,7 @@ export async function findDossiers(filters = {}) {
     recent: 'd.date_reception DESC, d.id DESC',
     ancien: 'd.date_reception ASC, d.id ASC',
     numero: 'd.numero ASC',
+    numero_desc: 'd.numero DESC',
     echeance: '(CASE WHEN d.date_limite IS NULL THEN 1 ELSE 0 END) ASC, d.date_limite ASC, d.id ASC',
     division: 'dv.nom ASC, p.niveau DESC, d.id ASC',
     agent: '(a.nom IS NULL) ASC, a.nom ASC, p.niveau DESC, d.id ASC',

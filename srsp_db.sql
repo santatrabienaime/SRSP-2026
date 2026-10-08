@@ -648,6 +648,7 @@ CREATE TABLE `documents` (
   `nom_fichier` varchar(255) NOT NULL,
   `chemin_stockage` varchar(500) NOT NULL,
   `taille` int(11) DEFAULT NULL,
+  `description` varchar(500) DEFAULT NULL,
   `valide` tinyint(1) DEFAULT 0,
   `upload_par` int(11) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),

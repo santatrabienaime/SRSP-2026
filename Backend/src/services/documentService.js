@@ -15,6 +15,8 @@ export async function uploadDocument({ file, body, userId }) {
     nom_fichier: file.originalname,
     chemin_stockage: file.path,
     taille: file.size,
+    // Description (§5.4) : 500 caractères, la même borne que le formulaire.
+    description: body.description ? String(body.description).slice(0, 500) : null,
     upload_par: userId,
   });
   await historiqueModel.log({

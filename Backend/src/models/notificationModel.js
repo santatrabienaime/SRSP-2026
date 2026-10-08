@@ -1,4 +1,5 @@
 import db from '../config/db.js';
+import { emitToUser } from '../realtime.js';
 
 /**
  * Notifications personnelles.
@@ -41,7 +42,20 @@ export async function create({ user_id, type, action, message, lien, dossier_id 
      VALUES (?, ?, ?, ?, ?, ?)`,
     [user_id, dossier_id || null, type || null, action || null, message, lien || null]
   );
-  return res.affectedRows > 0;
+  const cree = res.affectedRows > 0;
+  if (cree) {
+    // Signal temps réel : le client recharge son compteur et sa liste sans
+    // attendre le prochain rafraîchissement périodique.
+    emitToUser(user_id, 'notification', {
+      id: res.insertId,
+      type: type || null,
+      action: action || null,
+      message,
+      lien: lien || null,
+      dossier_id: dossier_id || null,
+    });
+  }
+  return cree;
 }
 
 /**

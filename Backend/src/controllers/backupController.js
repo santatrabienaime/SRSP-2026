@@ -16,3 +16,13 @@ export async function list(req, res, next) {
     next(error);
   }
 }
+
+/** Restauration : opération destructive, réservée aux administrateurs. */
+export async function restore(req, res, next) {
+  try {
+    const resultat = await backupService.restoreBackup(req.params.fichier, req.user.id);
+    res.json(resultat);
+  } catch (error) {
+    next(error);
+  }
+}

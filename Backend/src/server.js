@@ -1,6 +1,7 @@
 import app from './app.js';
 import { validateEnv, config } from './config/env.js';
 import { logger } from './config/logger.js';
+import { initRealtime } from './realtime.js';
 
 // Validation des variables d'environnement au démarrage
 validateEnv();
@@ -10,6 +11,9 @@ const server = app.listen(config.port, () => {
   logger.info(`🌍 Environnement : ${config.nodeEnv}`);
   logger.info(`📦 Base de données : ${config.db.name}`);
 });
+
+// Temps réel : notifications poussées au lieu d'attendre le rafraîchissement.
+initRealtime(server);
 
 // Gestion des erreurs non capturées
 process.on('unhandledRejection', (err) => {
