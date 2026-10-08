@@ -2,45 +2,11 @@ import { CheckCircle2, Circle } from 'lucide-react';
 import { WORKFLOW_ORDER, STATUT_LABELS } from '../../config/constants.js';
 
 /**
- * Timeline du workflow (11 statuts v2.0).
+ * Timeline verticale du workflow (11 statuts v2.0).
  * - statut : code actuel ou null
- * - compact : affichage horizontal réduit (détail dossier)
  */
-export function WorkflowTimeline({ statut, compact = false }) {
+export function WorkflowTimeline({ statut }) {
   const currentIndex = WORKFLOW_ORDER.indexOf(statut);
-
-  if (compact) {
-    return (
-      <ol className="flex flex-wrap items-center gap-1">
-        {WORKFLOW_ORDER.map((code, i) => {
-          const done = currentIndex >= 0 && i < currentIndex;
-          const active = code === statut;
-          return (
-            <li key={code} className="flex items-center gap-1">
-              {active ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary-600 px-2.5 py-0.5 text-[11px] font-semibold text-white">
-                  {STATUT_LABELS[code]}
-                </span>
-              ) : (
-                <span
-                  className={`rounded-full border px-2.5 py-0.5 text-[11px] ${
-                    done
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                      : 'border-slate-200 bg-white text-slate-400'
-                  }`}
-                >
-                  {STATUT_LABELS[code]}
-                </span>
-              )}
-              {i < WORKFLOW_ORDER.length - 1 && (
-                <span className="text-slate-300">→</span>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-    );
-  }
 
   return (
     <div>

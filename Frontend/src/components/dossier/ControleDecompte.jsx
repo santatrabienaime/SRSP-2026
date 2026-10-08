@@ -36,7 +36,10 @@ export function ControleDecompte({ dossierId }) {
     // recevait un « Accès refusé » sur un écran qui ne le concernait pas.
     if (!canControl) return;
     try {
-      setHistorique(await dossierService.getControleDecompte(dossierId) || []);
+      const h = await dossierService.getControleDecompte(dossierId);
+      // Garde-fou : la suite (.length, .map) suppose un tableau — une réponse
+      // inattendue ne doit jamais faire tomber le rendu (écran blanc).
+      setHistorique(Array.isArray(h) ? h : []);
     } catch (e) { setError(e); }
   }, [dossierId, canControl]);
 

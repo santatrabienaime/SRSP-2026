@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { dashboardService } from '../../services/dashboardService.js';
 import { dossierService } from '../../services/dossierService.js';
+import { ordreDeplacementService } from '../../services/ordreDeplacementService.js';
+import { useAuth } from '../../hooks/useAuth.js';
 import { StatCard } from '../../components/ui/StatCard.jsx';
 import { Card } from '../../components/ui/Card.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
@@ -15,16 +17,22 @@ import { DivisionChart } from '../../components/dashboard/DivisionChart.jsx';
 import { EvolutionChart } from '../../components/dashboard/EvolutionChart.jsx';
 import { formatDateString } from '../../utils/formatDate.js';
 import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
+import { LIBELLES_STATUT, COULEURS_STATUT } from '../baaf/ordresStatuts.js';
+import { configRole } from './dashboardRoles.js';
 
 /**
- * Tableau de bord adapté au rôle.
+ * Tableau de bord — deux régimes, un seul écran.
  *
- * Le périmètre (agent / division / global) est décidé côté serveur : un agent
- * ne voit que ses dossiers, un chef de division les siens. Les indicateurs
- * affichés correspondent aux écrans décrits dans le cahier des charges.
+ *  - Rôles couverts par la spec UI-DASHBOARDS V2.0 (lot pilote : Chef de
+ *    Service, Secrétaire, Chef BAAF, Coordonnatrice) : titre, KPIs, actions
+ *    rapides et graphiques viennent de `dashboardRoles.js`, tous adossés à
+ *    des données réelles.
+ *  - Autres rôles : le tri par périmètre (agent / division / global)
+ *    existant, inchangé. Le périmètre est décidé côté serveur : un agent ne
+ *    voit que ses dossiers, un chef de division les siens.
  */
 
-/** Jeu d'indicateurs selon le périmètre. */
+/** Jeu d'indicateurs selon le périmètre (rôles hors spec V2.0). */
 function kpiPour(perimetre, s, files) {
   const n = (v) => (typeof v === 'number' ? v : undefined);
 
@@ -66,12 +74,19 @@ const TITRES = {
   GLOBAL: "Tableau de bord du service",
 };
 
+/** Lien « tout voir » des cartes-listes. */
+const LIEN_VOIR = 'flex items-center gap-1 text-xs font-medium text-primary-600 hover:underline';
+
 export function DashboardPage() {
+  const { user, hasAnyPermission } = useAuth();
+  const role = user?.role_nom;
   const [summary, setSummary] = useState(null);
   const [byStatus, setByStatus] = useState([]);
   const [byDivision, setByDivision] = useState([]);
   const [evolution, setEvolution] = useState([]);
   const [recent, setRecent] = useState([]);
+  const [ress, setRess] = useState(null);
+  const [ordres, setOrdres] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -79,24 +94,40 @@ export function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const [s, st, dv, ev, rec] = await Promise.all([
+      /* Les pièces de déplacement ne sont chargées que pour le Chef BAAF :
+         les autres rôles n'ont ni permission ni écran pour les lire. */
+      const promesseOrdres = role === 'CHEF_BAAF'
+        ? Promise.all([
+            ordreDeplacementService.tableauDeBord(),
+            ordreDeplacementService.lister({ limit: 5 }),
+          ]).then(([tableau, liste]) => ({
+            tdb: tableau,
+            liste: Array.isArray(liste) ? liste : [],
+          }))
+        : Promise.resolve(null);
+
+      const [s, st, dv, ev, rec, r, ord] = await Promise.all([
         dashboardService.summary(),
         dashboardService.byStatus(),
         dashboardService.byDivision(),
         dashboardService.evolution(),
         dossierService.list({ limit: 6 }),
+        dashboardService.ressources(),
+        promesseOrdres,
       ]);
       setSummary(s);
       setByStatus(Array.isArray(st) ? st : []);
       setByDivision(Array.isArray(dv) ? dv : []);
       setEvolution(Array.isArray(ev) ? ev : []);
       setRecent(Array.isArray(rec) ? rec.slice(0, 6) : []);
+      setRess(r);
+      setOrdres(ord);
     } catch (e) {
       setError(e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [role]);
 
   useEffect(() => { Promise.resolve().then(load); }, [load]);
 
@@ -127,84 +158,161 @@ export function DashboardPage() {
   }
 
   const perimetre = summary?.perimetre?.type || 'GLOBAL';
-  const kpis = kpiPour(perimetre, summary, summary?.files);
+  const files = summary?.files;
+  /* Rôle couvert par la spec V2.0 → configuration dédiée ; sinon, tri par
+     périmètre (comportement historique, inchangé). */
+  const cfg = configRole(role, { s: summary, files, ress, ordres });
+  const kpis = cfg?.kpis || kpiPour(perimetre, summary, files);
+  const charts = cfg?.charts
+    || (perimetre === 'GLOBAL'
+      ? ['statut', 'division', 'evolution']
+      : ['statut', 'evolution']);
+  const actions = (cfg?.actions || []).filter(
+    (a) => !a.perms || hasAnyPermission(a.perms)
+  );
+  const deuxGraphiques = charts.includes('statut') && charts.includes('division');
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-800">
-          {TITRES[perimetre]}
+          {cfg?.titre || TITRES[perimetre]}
         </h1>
         <p className="text-sm text-slate-500">
-          {perimetre === 'AGENT'
+          {cfg?.sousTitre || (perimetre === 'AGENT'
             ? 'Suivi des dossiers qui vous sont affectés.'
             : perimetre === 'DIVISION'
               ? `Suivi des dossiers de votre division.`
-              : "Vue d'ensemble du suivi des dossiers SRSP Fitovinany."}
+              : "Vue d'ensemble du suivi des dossiers SRSP Fitovinany.")}
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      {/* La spec pilote aligne quatre KPI ; le tri par périmètre en affiche
+          six : la grille change de format pour éviter une rangée creuse. */}
+      <div className={`grid gap-4 sm:grid-cols-2 ${cfg ? 'xl:grid-cols-4' : 'xl:grid-cols-6'}`}>
         {kpis.map((k) => (
           <StatCard key={k.label} {...k} />
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card title="Statut des dossiers">
-          <DossierChart data={byStatus} />
+      {(charts.includes('statut') || charts.includes('division')) && (
+        <div className={`grid gap-5 ${deuxGraphiques ? 'lg:grid-cols-2' : ''}`}>
+          {charts.includes('statut') && (
+            <Card title="Statut des dossiers">
+              <DossierChart data={byStatus} />
+            </Card>
+          )}
+          {charts.includes('division') && (
+            <Card title="Par division">
+              <DivisionChart data={byDivision} />
+            </Card>
+          )}
+        </div>
+      )}
+
+      {charts.includes('evolution') && (
+        <Card title="Évolution (12 mois)">
+          <EvolutionChart data={evolution} />
         </Card>
-        {perimetre === 'GLOBAL' && (
-          <Card title="Par division">
-            <DivisionChart data={byDivision} />
-          </Card>
-        )}
-      </div>
+      )}
 
-      <Card title="Évolution (12 mois)">
-        <EvolutionChart data={evolution} />
-      </Card>
-
-      <Card
-        title={perimetre === 'AGENT' ? 'Mes dossiers récents' : 'Derniers dossiers'}
-        actions={
-          <Link
-            to="/dossiers"
-            className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:underline"
-          >
-            Tout voir <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        }
-      >
-        {recent.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-400">
-            Aucun dossier pour le moment.
-          </p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {recent.map((d) => (
-              <li key={d.id}>
-                <Link
-                  to={`/dossiers/${d.id}`}
-                  className="flex items-center justify-between gap-3 py-2.5 hover:bg-slate-50"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-700">
-                      {d.numero} — {d.objet}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {d.demandeur} · {d.division_nom} · {formatDateString(d.date_reception)}
-                    </p>
-                  </div>
-                  <Badge className={statusBadgeClass(d.statut_code)}>
-                    {formatStatus(d.statut_code)}
-                  </Badge>
-                </Link>
-              </li>
+      {actions.length > 0 && (
+        <Card title="Actions rapides">
+          <div className="flex flex-wrap gap-3">
+            {actions.map((a) => (
+              <Link
+                key={`${a.to}-${a.label}`}
+                to={a.to}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+              >
+                <a.icon className="h-4 w-4 shrink-0" />
+                {a.label}
+              </Link>
             ))}
-          </ul>
-        )}
-      </Card>
+          </div>
+        </Card>
+      )}
+
+      {cfg?.listeOrdres ? (
+        /* Le Chef BAAF suit ses pièces, pas la file dossier : la liste du
+           tableau de bord est son registre de déplacement. */
+        <Card
+          title="Dernières pièces de déplacement"
+          actions={
+            <Link to="/baaf/pieces-deplacement" className={LIEN_VOIR}>
+              Toutes les pièces <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        >
+          {!ordres?.liste?.length ? (
+            <p className="py-6 text-center text-sm text-slate-400">
+              Aucune pièce de déplacement pour le moment.
+            </p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {ordres.liste.map((o) => (
+                <li key={o.id}>
+                  <Link
+                    to="/baaf/pieces-deplacement"
+                    className="flex items-center justify-between gap-3 py-2.5 hover:bg-slate-50"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-700">
+                        {o.numero} — {o.type_libelle}
+                      </p>
+                      <p className="truncate text-xs text-slate-400">
+                        {o.agent_nom} · {o.lieu_depart} → {o.lieu_destination}
+                      </p>
+                    </div>
+                    <Badge className={COULEURS_STATUT[o.statut] || COULEURS_STATUT.REDIGE}>
+                      {LIBELLES_STATUT[o.statut] || o.statut}
+                    </Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      ) : (
+        <Card
+          title={cfg?.liste?.titre
+            || (perimetre === 'AGENT' ? 'Mes dossiers récents' : 'Derniers dossiers')}
+          actions={
+            <Link to="/dossiers" className={LIEN_VOIR}>
+              Tout voir <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        >
+          {recent.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-400">
+              Aucun dossier pour le moment.
+            </p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {recent.map((d) => (
+                <li key={d.id}>
+                  <Link
+                    to={`/dossiers/${d.id}`}
+                    className="flex items-center justify-between gap-3 py-2.5 hover:bg-slate-50"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-700">
+                        {d.numero} — {d.objet}
+                      </p>
+                      <p className="truncate text-xs text-slate-400">
+                        {d.demandeur} · {d.division_nom} · {formatDateString(d.date_reception)}
+                      </p>
+                    </div>
+                    <Badge className={statusBadgeClass(d.statut_code)}>
+                      {formatStatus(d.statut_code)}
+                    </Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

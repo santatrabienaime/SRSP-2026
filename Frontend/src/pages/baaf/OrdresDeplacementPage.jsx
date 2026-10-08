@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MapPin, PenLine, Check, PlayCircle, XCircle, FileText, Clock } from 'lucide-react';
+import { LIBELLES_STATUT, COULEURS_STATUT } from './ordresStatuts.js';
 import { ordreDeplacementService } from '../../services/ordreDeplacementService.js';
 import { agentService } from '../../services/agentService.js';
 import { dossierService } from '../../services/dossierService.js';
@@ -38,20 +39,6 @@ const ETAPES_SUIVANTES = {
   SOUMIS: [{ code: 'SIGNE', label: 'Signer', Icon: PenLine, permission: 'signer_pieces_deplacement' }],
   SIGNE: [{ code: 'EXECUTEE', label: 'Déclarer exécutée', Icon: PlayCircle, permission: 'executer_pieces_deplacement' }],
   EXECUTEE: [{ code: 'CLOTUREE', label: 'Clôturer', Icon: Check, permission: 'executer_pieces_deplacement' }],
-};
-
-const LIBELLES_STATUT = {
-  REDIGE: 'Établi', SOUMIS: 'Soumis', SIGNE: 'Signé',
-  EXECUTEE: 'Exécutée', CLOTUREE: 'Clôturée', REJETEE: 'Annulée',
-};
-
-const COULEURS_STATUT = {
-  REDIGE: 'border-slate-200 bg-slate-100 text-slate-700',
-  SOUMIS: 'border-amber-200 bg-amber-50 text-amber-700',
-  SIGNE: 'border-sky-200 bg-sky-50 text-sky-700',
-  EXECUTEE: 'border-violet-200 bg-violet-50 text-violet-700',
-  CLOTUREE: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  REJETEE: 'border-red-200 bg-red-50 text-red-700',
 };
 
 const VIDE = {

@@ -2,31 +2,9 @@ import db from '../config/db.js';
 
 /**
  * Commentaires internes sur un dossier (article 2.8).
- *
- * Un commentaire peut mentionner des collègues via la syntaxe @identifiant.
- * Les mentions sont résolues vers des utilisateurs réels : une mention
- * inconnue est simplement ignorée, elle ne crée pas de notification fantôme.
+ * Texte libre déposé par un agent — aucune mécanique annexe (pas de
+ * mention, pas de notification dédiée).
  */
-
-/** Identifiants trouvés dans un texte, syntaxe « @identifiant ». */
-export function extraireMentions(contenu) {
-  const trouves = new Set();
-  for (const m of String(contenu || '').matchAll(/@([A-Za-z0-9._-]{2,50})/g)) {
-    trouves.add(m[1]);
-  }
-  return [...trouves];
-}
-
-/** Résout des identifiants en utilisateurs actifs. */
-async function resoudreUtilisateurs(identifiants) {
-  if (!identifiants.length) return [];
-  const rows = await db.query(
-    `SELECT id FROM users
-     WHERE actif = TRUE AND username IN (${identifiants.map(() => '?').join(',')})`,
-    identifiants
-  );
-  return rows.map((r) => r.id);
-}
 
 export async function create({ dossier_id, auteur_id, contenu }) {
   const res = await db.query(
@@ -34,19 +12,7 @@ export async function create({ dossier_id, auteur_id, contenu }) {
      VALUES (?, ?, ?)`,
     [dossier_id, auteur_id, contenu]
   );
-  const commentaireId = res.insertId;
-
-  const identifiants = extraireMentions(contenu);
-  const users = await resoudreUtilisateurs(identifiants);
-  for (const userId of users) {
-    // INSERT IGNORE : un commentaire ne mentionne qu'une fois la même personne
-    await db.query(
-      'INSERT IGNORE INTO commentaire_mentions (commentaire_id, user_id) VALUES (?, ?)',
-      [commentaireId, userId]
-    );
-  }
-
-  return findOne(commentaireId);
+  return findOne(res.insertId);
 }
 
 export async function findOne(id) {
@@ -59,14 +25,7 @@ export async function findOne(id) {
      WHERE c.id = ?`,
     [id]
   );
-  if (!rows[0]) return null;
-  const mentions = await db.query(
-    `SELECT u.username FROM commentaire_mentions cm
-     JOIN users u ON u.id = cm.user_id
-     WHERE cm.commentaire_id = ? ORDER BY u.username`,
-    [id]
-  );
-  return { ...rows[0], mentions: mentions.map((m) => m.username) };
+  return rows[0] || null;
 }
 
 export async function findByDossier(dossier_id) {

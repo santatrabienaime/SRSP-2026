@@ -5,6 +5,7 @@ export const dashboardService = {
   byDivision: () => apiClient.get('/dashboard/by-division').then((r) => r.data),
   byStatus: () => apiClient.get('/dashboard/by-status').then((r) => r.data),
   evolution: () => apiClient.get('/dashboard/evolution').then((r) => r.data),
+  ressources: () => apiClient.get('/dashboard/ressources').then((r) => r.data),
 };
 
 export default dashboardService;

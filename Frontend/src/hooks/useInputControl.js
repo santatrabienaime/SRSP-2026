@@ -158,7 +158,15 @@ export function useInputControl(initialValue = '', config = {}) {
     liveValidation = true,
   } = config;
 
-  const [value, setValue] = useState(initialValue);
+  /* Normalisation en chaîne dès l'entrée : la base renvoie des nombres
+     (bigint pour les montants, int pour indice/durée…) et les composants
+     de champ appellent des méthodes chaîne sur la valeur (.replace dans
+     AmountInput, .trim dans validate). Un nombre faisait planter le rendu
+     au moment où la donnée chargée synchronisait l'état — écran blanc. */
+  const init =
+    initialValue === null || initialValue === undefined ? '' : String(initialValue);
+
+  const [value, setValue] = useState(init);
   const [error, setError] = useState(null);
   const [touched, setTouched] = useState(false);
 
@@ -261,27 +269,28 @@ export function useInputControl(initialValue = '', config = {}) {
   }, [value, validate]);
 
   const reset = useCallback(() => {
-    setValue(initialValue);
+    setValue(init);
     setError(null);
     setTouched(false);
-  }, [initialValue]);
+  }, [init]);
 
   /** Écriture programmatique (avec formatage du type). */
   const setValueFormatted = useCallback(
     (v) => {
+      const s = v === null || v === undefined ? '' : String(v);
       const t = TRANSFORMERS[type];
-      setValue(t ? t(v) : v);
+      setValue(t ? t(s) : s);
     },
     [type]
   );
 
   // Synchronise si la valeur externe change (réinit, chargement…).
   useEffect(() => {
-    if (initialValue !== undefined && initialValue !== value) {
-      setValue(initialValue);
+    if (init !== value) {
+      setValue(init);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialValue]);
+  }, [init]);
 
   return {
     value,

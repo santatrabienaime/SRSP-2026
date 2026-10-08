@@ -275,34 +275,6 @@ UNLOCK TABLES;
 COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 
---
--- Table structure for table `commentaire_mentions`
---
-
-DROP TABLE IF EXISTS `commentaire_mentions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `commentaire_mentions` (
-  `commentaire_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  PRIMARY KEY (`commentaire_id`,`user_id`),
-  KEY `idx_mention_user` (`user_id`),
-  CONSTRAINT `fk_mention_commentaire` FOREIGN KEY (`commentaire_id`) REFERENCES `dossier_commentaires` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_mention_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `commentaire_mentions`
---
-
-SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
-LOCK TABLES `commentaire_mentions` WRITE;
-/*!40000 ALTER TABLE `commentaire_mentions` DISABLE KEYS */;
-/*!40000 ALTER TABLE `commentaire_mentions` ENABLE KEYS */;
-UNLOCK TABLES;
-COMMIT;
-SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 
 --
 -- Table structure for table `compteurs_numerotation`

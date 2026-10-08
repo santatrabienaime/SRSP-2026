@@ -72,11 +72,9 @@ export function libellePerimetre(scope) {
  * Un utilisateur a-t-il légitimement accès à CE dossier ?
  *
  * Mêmes règles que le cloisonnement des listes, pour qu'une information ne
- * puisse pas sortir par un autre chemin que la navigation elle-même. C'est
- * nécessaire pour les notifications : une mention adressée à quelqu'un qui
- * n'a pas accès au dossier lui révélerait son numéro — une fuite
- * inter-division, alors que la notification serait le seul endroit où il la
- * verrait.
+ * puisse pas sortir par un autre chemin que la navigation elle-même : une
+ * notification ou un détail renvoyé à quelqu'un qui n'a pas accès au dossier
+ * lui révélerait son numéro — une fuite inter-division.
  */
 export async function accesDossier(userId, dossierId) {
   if (!userId || !dossierId) return false;

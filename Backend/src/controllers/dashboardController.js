@@ -40,3 +40,9 @@ export async function evolution(req, res, next) {
     res.json(await dashboardService.getEvolution(scope));
   } catch (e) { next(e); }
 }
+
+export async function ressources(req, res, next) {
+  try {
+    res.json(await dashboardService.getRessources());
+  } catch (e) { next(e); }
+}

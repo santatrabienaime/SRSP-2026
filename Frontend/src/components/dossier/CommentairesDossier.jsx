@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MessagesSquare, Send, Trash2, AtSign, Loader2 } from 'lucide-react';
+import { MessagesSquare, Send, Trash2, Loader2 } from 'lucide-react';
 import { dossierService } from '../../services/dossierService.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useNotification } from '../../hooks/useNotification.js';
@@ -12,8 +12,8 @@ import { formatDateTime } from '../../utils/formatDate.js';
 
 /**
  * Commentaires internes du dossier (article 2.8).
- * Un collègue est mentionné avec la syntaxe @identifiant ; il reçoit alors sa
- * propre notification.
+ * Simple échange de texte entre agents — pas de mention, pas de notification
+ * dédiée : le commentaire reste un propos laissé sur le dossier.
  */
 export function CommentairesDossier({ dossierId }) {
   const { user } = useAuth();
@@ -90,12 +90,9 @@ export function CommentairesDossier({ dossierId }) {
           error={commentaireErreur}
           maxLength={1000}
           rows={3}
-          placeholder="Écrire un commentaire… mentionnez un collègue avec @identifiant"
+          placeholder="Écrire un commentaire…"
         />
-        <div className="flex items-center justify-between">
-          <p className="flex items-center gap-1 text-xs text-slate-400">
-            <AtSign className="h-3 w-3" /> mentionner : @identifiant
-          </p>
+        <div className="flex items-center justify-end">
           <Button
             type="submit"
             loading={saving}
@@ -141,18 +138,6 @@ export function CommentairesDossier({ dossierId }) {
                 </span>
               </div>
               <p className="whitespace-pre-wrap text-sm text-slate-600">{c.contenu}</p>
-              {c.mentions?.length > 0 && (
-                <p className="mt-1.5 flex flex-wrap gap-1">
-                  {c.mentions.map((m) => (
-                    <span
-                      key={m}
-                      className="rounded bg-primary-50 px-1.5 py-0.5 text-[11px] text-primary-700"
-                    >
-                      @{m}
-                    </span>
-                  ))}
-                </p>
-              )}
             </li>
           ))}
         </ul>

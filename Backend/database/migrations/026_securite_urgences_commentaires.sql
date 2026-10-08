@@ -11,7 +11,6 @@ ALTER TABLE dossiers
   ADD KEY idx_dossier_echeance (date_limite);
 
 -- 2.8 : commentaires internes sur un dossier --------------------------------
--- Un commentaire peut en mentionner un autre via la table mentions.
 CREATE TABLE IF NOT EXISTS dossier_commentaires (
   id INT(11) NOT NULL AUTO_INCREMENT,
   dossier_id INT(11) NOT NULL,
@@ -27,17 +26,6 @@ CREATE TABLE IF NOT EXISTS dossier_commentaires (
     FOREIGN KEY (auteur_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Mentions « @utilisateur » : un commentaire peut viser plusieurs personnes.
-CREATE TABLE IF NOT EXISTS commentaire_mentions (
-  commentaire_id INT(11) NOT NULL,
-  user_id INT(11) NOT NULL,
-  PRIMARY KEY (commentaire_id, user_id),
-  KEY idx_mention_user (user_id),
-  CONSTRAINT fk_mention_commentaire
-    FOREIGN KEY (commentaire_id) REFERENCES dossier_commentaires (id) ON DELETE CASCADE,
-  CONSTRAINT fk_mention_user
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 4.1 : délégation temporaire des dossiers d'un agent -----------------------
 CREATE TABLE IF NOT EXISTS delegations (

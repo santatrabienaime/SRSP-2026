@@ -1,23 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Download, Trash2, CheckCircle2, XCircle, Eye, FileText } from 'lucide-react';
+import { Download, Trash2, CheckCircle2, XCircle, FileText } from 'lucide-react';
 import { documentService } from '../../services/documentService.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Badge } from '../ui/Badge.jsx';
 import { Table } from '../ui/Table.jsx';
 import { Button } from '../ui/Button.jsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
-import { Modal } from '../ui/Modal.jsx';
-import { DownloadPreview } from './DocumentPreview.jsx';
 import { formatBytes } from '../../utils/fileHandler.js';
 import { formatDateTime } from '../../utils/formatDate.js';
 
-/** Liste des documents d'un dossier (ou courrier). */
+/** Liste des documents d'un dossier (ou courrier). Téléchargement direct. */
 export function DocumentList({ dossierId, courrierId, onChanged }) {
   const { toastSuccess, toastError } = useNotification();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toDelete, setToDelete] = useState(null);
-  const [preview, setPreview] = useState(null);
   const [downloading, setDownloading] = useState(null);
 
   const load = useCallback(async () => {
@@ -124,9 +121,6 @@ export function DocumentList({ dossierId, courrierId, onChanged }) {
       label: 'Actions',
       render: (r) => (
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => setPreview(r)} title="Aperçu">
-            <Eye className="h-4 w-4" />
-          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -154,10 +148,6 @@ export function DocumentList({ dossierId, courrierId, onChanged }) {
   return (
     <>
       <Table columns={columns} data={docs} loading={loading} emptyLabel="Aucun document joint" />
-
-      <Modal open={preview !== null} onClose={() => setPreview(null)} title={preview?.nom_fichier}>
-        {preview && <DownloadPreview document={preview} />}
-      </Modal>
 
       <ConfirmDialog
         open={toDelete !== null}

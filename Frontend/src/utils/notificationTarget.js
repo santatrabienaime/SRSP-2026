@@ -26,7 +26,6 @@ export const FRAGMENTS = {
   DECOMPTE_AVANCE: 'decompte-avance',
   LIQUIDATION_PENSION: 'liquidation-pension',
   // Contenu du dossier.
-  MENTION: 'commentaires',
   COMMENTAIRE: 'commentaires',
   DOCUMENT: 'documents',
 };
@@ -92,7 +91,6 @@ export function libelleAction(notification) {
     case 'VALIDE':
     case 'SIGNE':
       return 'Signer le dossier';
-    case 'MENTION':
     case 'COMMENTAIRE':
       return 'Voir les commentaires';
     case 'DOCUMENT':
