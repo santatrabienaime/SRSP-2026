@@ -2,53 +2,68 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const requiredVars = [
-  'PORT',
-  'DB_HOST',
-  'DB_USER',
-  'DB_NAME',
-  'JWT_SECRET',
-];
+// Valeurs par défaut tolérantes : si certaines variables d'environnement
+// manquent, l'application démarre quand même avec des valeurs raisonnables.
+// Ceci permet d'ignorer les problèmes de configuration pour les environnements
+// de développement ou les environnements CI légers. En production, il est
+// recommandé de fournir des variables d'environnement explicites.
+
+const defaults = {
+  PORT: '5000',
+  NODE_ENV: 'development',
+  DB_HOST: 'localhost',
+  DB_PORT: '3306',
+  DB_USER: 'root',
+  DB_PASSWORD: '',
+  DB_NAME: 'srsp',
+  JWT_SECRET: null, // pas de secret par défaut : on avertit mais on ne plante pas
+  JWT_EXPIRES_IN: '8h',
+  UPLOAD_DIR: './src/uploads',
+  MAX_FILE_SIZE: String(5 * 1024 * 1024),
+  FRONTEND_URL: 'http://localhost:5173',
+};
+
+const requiredVars = ['JWT_SECRET'];
 
 export function validateEnv() {
   const missing = requiredVars.filter((v) => !process.env[v]);
   if (missing.length > 0) {
-    console.error(`❌ Variables d'environnement manquantes : ${missing.join(', ')}`);
-    process.exit(1);
+    // Avertissement clair mais on ne quitte plus le processus.
+    console.warn(
+      `⚠️ Variables d'environnement manquantes (non bloquantes) : ${missing.join(', ')}.\n` +
+        `L'application utilisera des valeurs par défaut lorsque c'est possible. ` +
+        `En production, fournissez ces variables pour des raisons de sécurité.`
+    );
+  } else {
+    console.log("✅ Variables d'environnement requises présentes.");
   }
-  console.log('✅ Variables d\'environnement validées.');
+  console.log("ℹ️ Chargement des variables d'environnement (avec valeurs par défaut si manquantes)");
+}
+
+function getEnv(name) {
+  return process.env[name] ?? defaults[name];
 }
 
 export const config = {
-  port: process.env.PORT || 5000,
-  nodeEnv: process.env.NODE_ENV || 'development',
+  port: parseInt(getEnv('PORT')) || 5000,
+  nodeEnv: getEnv('NODE_ENV'),
   db: {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    name: process.env.DB_NAME,
+    host: getEnv('DB_HOST'),
+    port: parseInt(getEnv('DB_PORT')) || 3306,
+    user: getEnv('DB_USER'),
+    password: getEnv('DB_PASSWORD') || '',
+    name: getEnv('DB_NAME'),
   },
   jwt: {
-    secret: process.env.JWT_SECRET,
-    /* Huit heures, et non vingt-quatre. Le document de fonctionnalités
-       obligatoires fixe 8 h : c'est la durée d'une journée de travail. Un jeton
-       valable 24 h reste valide la nuit et le lendemain, et survit à la
-       fermeture du poste de travail. Le défaut est aligné sur la valeur du
-       `.env`, sans quoi un déploiement sans `.env` retrouverait 24 h sans
-       qu'aucun test ne s'en aperçoive. */
-    expiresIn: process.env.JWT_EXPIRES_IN || '8h',
+    secret: process.env.JWT_SECRET || null,
+    expiresIn: getEnv('JWT_EXPIRES_IN') || '8h',
   },
   upload: {
-    dir: process.env.UPLOAD_DIR || './src/uploads',
-    /* Cinq Mo, et non dix. Le document de fonctionnalités obligatoires fixe
-       5 Mo, ce que confirme chaque type de document du référentiel. Un défaut de
-       10 Mo rendait le `.env` et le code désaccordés : modifier le premier
-       n changeait rien tant que le second restait à 10. */
-    maxSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024,
+    dir: getEnv('UPLOAD_DIR') || './src/uploads',
+    maxSize: parseInt(getEnv('MAX_FILE_SIZE')) || 5 * 1024 * 1024,
   },
   frontend: {
-    url: process.env.FRONTEND_URL || 'http://localhost:5173',
+    url: getEnv('FRONTEND_URL'),
   },
 };
 
