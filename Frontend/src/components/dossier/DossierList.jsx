@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, UserCheck } from 'lucide-react';
+import { Search, Plus, UserCheck, User } from 'lucide-react';
 import { dossierService } from '../../services/dossierService.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { usePagination } from '../../hooks/usePagination.js';
@@ -28,12 +28,11 @@ const STATUT_FILTERS = [
 /**
  * Liste des dossiers avec filtres côté serveur (statut, type, recherche).
  */
-export function DossierList({ baseFilters = {}, showCreate = true }) {
-  const { hasPermission } = useAuth();
+export function DossierList({ baseFilters = {}, showCreate = true, agentPersonnel = false }) {
+  const { hasPermission, user } = useAuth();
   // Un agent est automatiquement restreint à SES dossiers par le serveur
   // (permission view_assigned_dossiers sans view_all_dossiers).
-  const agentScoped =
-    hasPermission('view_assigned_dossiers') && !hasPermission('view_all_dossiers');
+  const agentScoped = agentPersonnel || (hasPermission('view_assigned_dossiers') && !hasPermission('view_all_dossiers'));
   // Si la liste est verrouillée sur un type (page d'une division), le
   // sélecteur de type n'a pas lieu d'être et la barre est allégée.
   const lockedType = baseFilters.type || null;
@@ -52,7 +51,7 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
   /* Tri de la file de travail. « prioritaire » place en tête ce qui doit être
      traité aujourd'hui — urgence, échéance, ancienneté. Un agent qui arrive le
      matin voit ainsi d'abord ce qui l'attend, au lieu du plus récemment reçu. */
-  const [tri, setTri] = useState('prioritaire');
+  const [tri, setTri] = useState(agentPersonnel ? 'echeance' : 'prioritaire');
   const debouncedSearch = useDebounce(search, 350);
 
   // baseFilters est souvent un objet recréé à chaque rendu du parent (ou défaut {} )
@@ -176,8 +175,9 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
   return (
     <div className="space-y-4">
       {agentScoped && (
-        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
-          Vous consultez uniquement les dossiers dont vous êtes le responsable.
+        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 flex items-center gap-2">
+          <User className="h-4 w-4 shrink-0" />
+          <span>Tableau personnel — vous ne voyez que vos propres dossiers (responsable affecté).</span>
         </p>
       )}
       {/* Filtres */}
