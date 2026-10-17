@@ -1,6 +1,7 @@
 import { createContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { authService } from '../services/authService.js';
 import { permissionService } from '../services/permissionService.js';
+import { landingPathFor } from '../utils/landing.js';
 
 export const AuthContext = createContext(null);
 

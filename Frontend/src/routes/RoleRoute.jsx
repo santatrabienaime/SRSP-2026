@@ -37,7 +37,11 @@ export function RoleRoute({
 
   if (okRole && okPerm) return children ?? <Outlet />;
 
-  return <Navigate to={fallback || landingPathFor(user)} replace />;
+  const destination =
+    typeof landingPathFor === 'function'
+      ? landingPathFor(user)
+      : '/';
+  return <Navigate to={fallback || destination} replace />;
 }
 
 export default RoleRoute;
