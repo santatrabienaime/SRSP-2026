@@ -1,0 +1,603 @@
+/* ============================================================================
+   SRSP FITOVINANY - ANIMATIONS ET STYLES MODERNES
+   Éléments visuels mémorables pour une plateforme d'exception
+   ============================================================================
+
+   Ces animations utilisent uniquement des propriétés performantes
+   (transform, opacity) pour éviter les reflows coûteux.
+   ============================================================================ */
+
+/* ---------------------------------------------------------------
+   ANIMATIONS D'ENTRÉE
+   --------------------------------------------------------------- */
+
+/* Apparition avec glissement vertical */
+@keyframes slide-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-slide-in-up {
+  animation: var(--animate-slide-in-up);
+}
+
+/* Apparition par la gauche */
+@keyframes slide-in-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-slide-in-left {
+  animation: var(--animate-slide-in-left);
+}
+
+/* Apparition par la droite */
+@keyframes slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-slide-in-right {
+  animation: var(--animate-slide-in-right);
+}
+
+/* Apparition avec fondu seulement */
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.animate-fade-in {
+  animation: var(--animate-fade-in);
+}
+
+/* Zoom d'entrée */
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-scale-in {
+  animation: var(--animate-scale-in);
+}
+
+/* ---------------------------------------------------------------
+   ANIMATIONS D'AMBIANCE
+   --------------------------------------------------------------- */
+
+/* Flottaison douce pour les éléments décoratifs */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+  100% { transform: translateY(0px); }
+}
+.animate-float {
+  animation: var(--animate-float);
+}
+
+/* Pulsation lumineuse pour les boutons d'action principaux */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+.animate-pulse-glow {
+  animation: var(--animate-pulse-glow);
+}
+
+/* Pulsation bleue pour les nouveaux dossiers */
+@keyframes pulse-blue {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+.animate-pulse-blue {
+  animation: var(--animate-pulse-blue);
+}
+
+/* Rebond subtil */
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.animate-bounce-subtle {
+  animation: var(--animate-bounce-subtle);
+}
+
+/* Rotation lente pour les icônes */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: var(--animate-spin-slow);
+}
+
+/* Brillance sur les boutons et cartes */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  animation: var(--animate-shimmer);
+}
+
+/* Compteur qui s'incrémente visuellement */
+@keyframes count-up {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.animate-count-up {
+  animation: var(--animate-count-up);
+}
+
+/* ---------------------------------------------------------------
+   CLASSES UTILITAIRES D'ANIMATION
+   --------------------------------------------------------------- */
+
+:root {
+  --animate-slide-in-up: slide-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-slide-in-left: slide-in-left 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-slide-in-right: slide-in-right 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fade-in 0.5s ease both;
+  --animate-scale-in: scale-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 2.5s ease-in-out infinite;
+  --animate-pulse-blue: pulse-blue 3s ease-in-out infinite;
+  --animate-bounce-subtle: bounce-subtle 2s ease-in-out infinite;
+  --animate-spin-slow: spin-slow 8s linear infinite;
+  --animate-shimmer: shimmer 3s linear infinite;
+  --animate-count-up: count-up 0.4s ease both;
+}
+
+/* Délais pour animations en cascade */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-700 { animation-delay: 700ms; }
+.delay-1000 { animation-delay: 1000ms; }
+
+/* ---------------------------------------------------------------
+   COMPOSANTS STYLISÉS
+   --------------------------------------------------------------- */
+
+/* Carte en verre dépoli améliorée */
+.glass-card-modern {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0.3)
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.glass-card-modern:hover {
+  transform: translateY(-6px);
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.12);
+}
+
+.dark .glass-card-modern {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+.dark .glass-card-modern:hover {
+  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Bouton principal avec effet shimmer */
+.btn-modern-primary {
+  background: linear-gradient(
+    135deg,
+    #2563eb 0%,
+    #1d4ed8 50%,
+    #1e40af 100%
+  );
+  background-size: 200% 200%;
+  animation: var(--animate-shimmer);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.35);
+}
+
+.btn-modern-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px 0 rgba(37, 99, 235, 0.5);
+  filter: brightness(1.05);
+}
+
+.btn-modern-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px 0 rgba(37, 99, 235, 0.35);
+}
+
+/* Bouton secondaire élégant */
+.btn-modern-secondary {
+  background: rgba(255, 255, 255, 0.9);
+  color: #1e293b;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn-modern-secondary:hover {
+  background: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.dark .btn-modern-secondary {
+  background: rgba(30, 41, 59, 0.8);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .btn-modern-secondary:hover {
+  background: rgba(51, 65, 85, 0.9);
+  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Carte statistique avec effet de soulèvement */
+.stat-card-modern {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #2563eb, #67e8f9, #ec4899);
+  background-size: 200% 100%;
+  animation: var(--animate-defilement);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-card-modern:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-modern:hover::before {
+  opacity: 1;
+}
+
+.dark .stat-card-modern {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Badge qui pulse doucement pour les alertes */
+.badge-pulse {
+  animation: var(--animate-pulse-glow);
+  animation-iteration-count: infinite;
+}
+
+/* Badge bleu pour les nouveaux dossiers */
+.badge-blue {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 0.25rem 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  animation: var(--animate-pulse-blue);
+  animation-iteration-count: infinite;
+}
+
+.dark .badge-blue {
+  background-color: rgba(30, 41, 59, 0.8);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* Carte dossier avec effet de survol */
+.dossier-card-modern {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 1.25rem;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+}
+
+.dossier-card-modern:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.08);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .dossier-card-modern {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Lettre animée pour les statistiques importantes */
+.stat-number {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  transition: all 0.3s ease;
+}
+
+.stat-number:hover {
+  transform: scale(1.05);
+}
+
+/* Ligne décorative sous les titres */
+.section-divider {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.section-divider::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  border-radius: 2px;
+}
+
+/* Bouton d'action flottant */
+.fab-action {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 8px 24px 0 rgba(37, 99, 235, 0.4);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab-action:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 12px 32px 0 rgba(37, 99, 235, 0.6);
+}
+
+.fab-action:active {
+  transform: scale(0.95);
+}
+
+/* Animation d'entrée pour les cartes de dossier */
+.dossier-entry {
+  animation: var(--animate-slide-in-up);
+}
+
+/* Loader circulaire moderne */
+.loader-modern {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(59, 130, 246, 0.2);
+  border-top: 4px solid #2563eb;
+  border-radius: 50%;
+  animation: var(--animate-spin-slow);
+}
+
+/* Texte qui apparaît mot par mot */
+.text-reveal {
+  overflow: hidden;
+}
+
+.text-reveal span {
+  display: inline-block;
+  animation: slide-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Scrollbar moderne */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #1d4ed8, #1e40af);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+}
+
+/* Carte vide avec animation */
+.empty-state-modern {
+  text-align: center;
+  padding: 4rem 2rem;
+  animation: var(--animate-fade-in);
+}
+
+.empty-state-modern .empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+  animation: var(--animate-float);
+}
+
+/* Bouton d'actions rapides avec glow */
+.action-btn-glow {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 0.875rem 1.25rem;
+  font-weight: 500;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(59, 130, 246, 0.1),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.action-btn-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.08);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.action-btn-glow:hover::before {
+  left: 100%;
+}
+
+.dark .action-btn-glow {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+.dark .action-btn-glow:hover {
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.5);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+/* Badge de statut avec bordure animée */
+.status-badge-modern {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.status-badge-modern::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: var(--animate-pulse-blue);
+  animation-iteration-count: infinite;
+}
+
+/* Overlay de chargement de page */
+.page-loader {
+  position: fixed;
+  inset: 0;
+  background: #ffffff;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease;
+}
+
+.dark .page-loader {
+  background: #0f172a;
+}
+
+.page-loader-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Caractère magnétique pour les boutons */
+.magnetic-btn {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}

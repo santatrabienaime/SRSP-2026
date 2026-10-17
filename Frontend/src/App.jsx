@@ -1,11 +1,14 @@
 import AppRouter from './routes/AppRouter.jsx';
 import { Toaster } from './components/ui/Toaster.jsx';
+import { PageLoader } from './components/ui/PageLoader.jsx';
 
 export default function App() {
   return (
     <>
-      <AppRouter />
-      <Toaster />
+      <PageLoader>
+        <AppRouter />
+        <Toaster />
+      </PageLoader>
     </>
   );
 }

@@ -15,6 +15,7 @@ import { Spinner } from '../../components/ui/Spinner.jsx';
 import { DossierChart } from '../../components/dashboard/DossierChart.jsx';
 import { DivisionChart } from '../../components/dashboard/DivisionChart.jsx';
 import { EvolutionChart } from '../../components/dashboard/EvolutionChart.jsx';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 import { formatDateString } from '../../utils/formatDate.js';
 import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
 import { configRole } from './dashboardRoles.js';
@@ -117,7 +118,14 @@ export function DashboardPage() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Spinner label="Chargement du tableau de bord…" />
+        <div className="flex flex-col items-center justify-center gap-3">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center animate-spin-slow shadow-lg shadow-blue-500/40">
+            <FolderKanban className="w-8 h-8 text-white" />
+          </div>
+          <p className="text-lg font-medium text-slate-700 dark:text-slate-200">
+            Chargement du tableau de bord…
+          </p>
+        </div>
       </div>
     );
   }
@@ -157,10 +165,10 @@ export function DashboardPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-slate-800">
+        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
           {cfg?.titre || TITRES[perimetre]}
         </h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           {cfg?.sousTitre || (perimetre === 'AGENT'
             ? 'Suivi des dossiers qui vous sont affectés.'
             : perimetre === 'DIVISION'
@@ -172,90 +180,137 @@ export function DashboardPage() {
       {/* La spec pilote aligne quatre KPI ; le tri par périmètre en affiche
           six : la grille change de format pour éviter une rangée creuse. */}
       <div className={`grid gap-4 sm:grid-cols-2 ${cfg ? 'xl:grid-cols-4' : 'xl:grid-cols-6'}`}>
-        {kpis.map((k) => (
-          <StatCard key={k.label} {...k} />
+        {kpis.map((k, idx) => (
+          <AnimatedCard
+            key={k.label}
+            delay={idx * 80}
+            type="slide-in-up"
+            title={k.label}
+            subtitle={k.sub}
+            Icon={k.icon}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className={`text-xl font-bold ${k.tone === 'primary' ? 'text-blue-600' : k.tone === 'amber' ? 'text-amber-600' : k.tone === 'red' ? 'text-red-600' : k.tone === 'emerald' ? 'text-emerald-600' : k.tone === 'violet' ? 'text-violet-600' : k.tone === 'sky' ? 'text-sky-600' : k.tone === 'blue' ? 'text-blue-600' : 'text-slate-800'} dark:text-white`}>
+                  {k.value ?? '—'}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {k.sub}
+                </p>
+              </div>
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${k.tone === 'primary' ? 'bg-blue-100 text-blue-600' : k.tone === 'amber' ? 'bg-amber-100 text-amber-600' : k.tone === 'red' ? 'bg-red-100 text-red-600' : k.tone === 'emerald' ? 'bg-emerald-100 text-emerald-600' : k.tone === 'violet' ? 'bg-violet-100 text-violet-600' : k.tone === 'sky' ? 'bg-sky-100 text-sky-600' : k.tone === 'blue' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
+                <k.icon className="w-5 h-5" />
+              </div>
+            </div>
+          </AnimatedCard>
         ))}
       </div>
 
       {/* Section dédiée aux nouveaux dossiers reçus (couleur bleue) */}
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <Card title="Nouveaux dossiers" actions={
-          <Link to="/dossiers" className={LIEN_VOIR}>
-            Tout voir <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        }>
-          <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+        <AnimatedCard
+          title="Nouveaux dossiers"
+          subtitle="À traiter en priorité"
+          Icon={Inbox}
+          delay={0}
+        >
+          <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100 dark:bg-blue-900/20 dark:border-blue-500/30">
             <Inbox className="h-8 w-8 text-blue-600 shrink-0" />
             <div>
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider dark:text-blue-400">
                 Nouveaux reçus
               </p>
-              <p className="text-2xl font-bold text-blue-700">
+              <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
                 {files?.aOrienter ?? 0}
               </p>
-              <p className="text-xs text-blue-500">
+              <p className="text-xs text-blue-500 dark:text-blue-400">
                 À traiter en priorité
               </p>
             </div>
           </div>
-        </Card>
+        </AnimatedCard>
 
         {files?.RECU !== undefined && (
-          <Card title="Dossiers reçus (30 jours)">
-            <div className="flex items-center gap-3 p-4 bg-blue-100 rounded-lg border border-blue-200">
-              <Inbox className="h-8 w-8 text-blue-600 shrink-0" />
+          <AnimatedCard
+            title="Dossiers reçus"
+            subtitle="30 derniers jours"
+            Icon={MailPlus}
+            delay={80}
+          >
+            <div className="flex items-center gap-3 p-4 bg-blue-100 rounded-lg border border-blue-200 dark:bg-blue-900/30 dark:border-blue-500/30">
+              <Inbox className="h-8 w-8 text-blue-600 shrink-0 dark:text-blue-400" />
               <div>
-                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider dark:text-blue-400">
                   Réception récente
                 </p>
-                <p className="text-2xl font-bold text-blue-700">
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
                   {files.RECU}
                 </p>
-                <p className="text-xs text-blue-500">
+                <p className="text-xs text-blue-500 dark:text-blue-400">
                   30 derniers jours
                 </p>
               </div>
             </div>
-          </Card>
+          </AnimatedCard>
         )}
       </div>
 
       {(charts.includes('statut') || charts.includes('division')) && (
         <div className={`grid gap-5 ${deuxGraphiques ? 'lg:grid-cols-2' : ''}`}>
           {charts.includes('statut') && (
-            <Card title="Statut des dossiers">
+            <AnimatedCard
+              title="Statut des dossiers"
+              subtitle="Répartition par statut"
+              Icon={FolderKanban}
+              delay={0}
+            >
               <DossierChart data={byStatus} />
-            </Card>
+            </AnimatedCard>
           )}
           {charts.includes('division') && (
-            <Card title="Par division">
+            <AnimatedCard
+              title="Par division"
+              subtitle="Répartition géographique"
+              Icon={ClockIcon}
+              delay={100}
+            >
               <DivisionChart data={byDivision} />
-            </Card>
+            </AnimatedCard>
           )}
         </div>
       )}
 
       {charts.includes('evolution') && (
-        <Card title="Évolution (12 mois)">
+        <AnimatedCard
+          title="Évolution (12 mois)"
+          subtitle="Tendance des dossiers"
+          Icon={ClockIcon}
+          delay={0}
+        >
           <EvolutionChart data={evolution} />
-        </Card>
+        </AnimatedCard>
       )}
 
       {actions.length > 0 && (
-        <Card title="Actions rapides">
+        <AnimatedCard
+          title="Actions rapides"
+          subtitle="Accès direct aux fonctions principales"
+          Icon={Send}
+          delay={0}
+        >
           <div className="flex flex-wrap gap-3">
             {actions.map((a) => (
               <Link
                 key={`${a.to}-${a.label}`}
                 to={a.to}
-                className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+                className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300"
               >
                 <a.icon className="h-4 w-4 shrink-0" />
                 {a.label}
               </Link>
             ))}
           </div>
-        </Card>
+        </AnimatedCard>
       )}
 
       <Card
@@ -268,22 +323,25 @@ export function DashboardPage() {
         }
       >
         {recent.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-400">
-            Aucun dossier pour le moment.
-          </p>
+          <div className="empty-state-modern">
+            <div className="empty-icon">📭</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              Aucun dossier pour le moment.
+            </p>
+          </div>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-700">
             {recent.map((d) => (
-              <li key={d.id}>
+              <li key={d.id} className="animate-fade-in">
                 <Link
                   to={`/dossiers/${d.id}`}
-                  className="flex items-center justify-between gap-3 py-2.5 hover:bg-slate-50"
+                  className="flex items-center justify-between gap-3 py-3 px-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-700">
+                    <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                       {d.numero} — {d.objet}
                     </p>
-                    <p className="truncate text-xs text-slate-400">
+                    <p className="truncate text-xs text-slate-400 dark:text-slate-400">
                       {d.demandeur} · {d.division_nom} · {formatDateString(d.date_reception)}
                     </p>
                   </div>

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./animations-modernes.css";
 
 /* Mode sombre piloté par la classe « dark » sur <html> : c'est ce qui permet à
    l'écran de connexion d'appliquer le thème avant le premier rendu, et à
