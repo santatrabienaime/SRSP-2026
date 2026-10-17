@@ -21,12 +21,7 @@
 
 /** Fragment de route qui amène directement à la section visée sur la fiche. */
 export const FRAGMENTS = {
-  // Panneaux financiers : ils ont leur propre carte sur la fiche.
-  CONTROLE_DECOMPTE: 'controle-decompte',
-  DECOMPTE_AVANCE: 'decompte-avance',
-  LIQUIDATION_PENSION: 'liquidation-pension',
   // Contenu du dossier.
-  COMMENTAIRE: 'commentaires',
   DOCUMENT: 'documents',
 };
 
@@ -91,14 +86,8 @@ export function libelleAction(notification) {
     case 'VALIDE':
     case 'SIGNE':
       return 'Signer le dossier';
-    case 'COMMENTAIRE':
-      return 'Voir les commentaires';
     case 'DOCUMENT':
       return 'Voir les documents';
-    case 'CONTROLE_DECOMPTE':
-      return 'Contrôler le décompte';
-    case 'DECOMPTE_AVANCE':
-      return 'Voir le décompte';
     default:
       return 'Ouvrir le dossier';
   }

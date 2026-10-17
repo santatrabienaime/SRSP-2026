@@ -18,11 +18,13 @@ initRealtime(server);
 // Gestion des erreurs non capturées
 process.on('unhandledRejection', (err) => {
   logger.error('UnhandledRejection :', err.message);
+  server.closeAllConnections?.();
   server.close(() => process.exit(1));
 });
 
 process.on('uncaughtException', (err) => {
   logger.error('UncaughtException :', err.message);
+  server.closeAllConnections?.();
   process.exit(1);
 });
 

@@ -11,8 +11,3 @@ export function statusBadgeClass(status) {
   return STATUT_BADGE_CLASSES[status] || 'bg-slate-100 text-slate-700 border-slate-300';
 }
 
-/** Badge prêt à l'emploi (chaîne JSX). */
-export function StatusBadge() {
-  // Éviter l'import circulaire : ce petit composant est aussi exporté par ui/Badge.
-  return null;
-}

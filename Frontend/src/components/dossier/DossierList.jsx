@@ -149,7 +149,8 @@ export function DossierList({ baseFilters = {}, showCreate = true }) {
   // File « À affecter » : le chef de division agit sans ouvrir chaque fiche.
   // Le bouton n'apparait que pour un dossier qui attend son affectation et
   // pour un role autorise a affecter.
-  const fileAAffecter = baseFilters.statut === 'A_AFFECTER';
+  const fileAAffecter =
+    baseFilters.statut === STATUTS.ENREGISTRE || baseFilters.statut === STATUTS.ORIENTE;
   const peutAffecter = hasPermission('affecter_dossier');
   if (fileAAffecter && peutAffecter) {
     columns.push({

@@ -9,32 +9,6 @@ export const dossierService = {
   saveDepouillement: (id, data) =>
     apiClient.post(`/dossiers/${id}/depouillement`, data).then((r) => r.data),
 
-  // Liquidation de pension (division Pension)
-  getLiquidationPension: (id) =>
-    apiClient.get(`/dossiers/${id}/liquidation-pension`).then((r) => r.data),
-  saveLiquidationPension: (id, data) =>
-    apiClient.post(`/dossiers/${id}/liquidation-pension`, data).then((r) => r.data),
-
-  // Décompte d'avance (division Solde)
-  getDecompteAvance: (id) =>
-    apiClient.get(`/dossiers/${id}/decompte-avance`).then((r) => r.data),
-  saveDecompteAvance: (id, data) =>
-    apiClient.post(`/dossiers/${id}/decompte-avance`, data).then((r) => r.data),
-
-  // Contrôle du décompte (Chef de Division Solde)
-  getControleDecompte: (id) =>
-    apiClient.get(`/dossiers/${id}/controle-decompte`).then((r) => r.data),
-  saveControleDecompte: (id, data) =>
-    apiClient.post(`/dossiers/${id}/controle-decompte`, data).then((r) => r.data),
-
-  // Commentaires internes
-  getCommentaires: (id) =>
-    apiClient.get(`/dossiers/${id}/commentaires`).then((r) => r.data),
-  addCommentaire: (id, contenu) =>
-    apiClient.post(`/dossiers/${id}/commentaires`, { contenu }).then((r) => r.data),
-  deleteCommentaire: (id, cid) =>
-    apiClient.delete(`/dossiers/${id}/commentaires/${cid}`).then((r) => r.data),
-
   // Mandatement (division Secours)
   getMandatement: (id) => apiClient.get(`/dossiers/${id}/mandatement`).then((r) => r.data),
   saveMandatement: (id, data) =>
@@ -45,6 +19,15 @@ export const dossierService = {
     apiClient.post(`/dossiers/${id}/mandatement/ordonnancer`, {}).then((r) => r.data),
   liquiderMandatement: (id) =>
     apiClient.post(`/dossiers/${id}/mandatement/liquider`, {}).then((r) => r.data),
+
+  // Commentaires internes (article 2.8)
+  getCommentaires: (id) =>
+    apiClient.get(`/dossiers/${id}/commentaires`).then((r) => r.data),
+  addCommentaire: (id, contenu) =>
+    apiClient.post(`/dossiers/${id}/commentaires`, { contenu }).then((r) => r.data),
+  deleteCommentaire: (id, cid) =>
+    apiClient.delete(`/dossiers/${id}/commentaires/${cid}`).then((r) => r.data),
+
   create: (data) => apiClient.post('/dossiers', data).then((r) => r.data),
 
   /**

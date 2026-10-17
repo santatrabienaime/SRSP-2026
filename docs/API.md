@@ -36,7 +36,7 @@ La plupart des routes exigent le header :
 Authorization: Bearer <token>
 ```
 
-Le token s'obtient via `POST /auth/login` (1 jour de validité par défaut).
+Le token s'obtient via `POST /auth/login` (8 heures de validité par défaut).
 
 ---
 

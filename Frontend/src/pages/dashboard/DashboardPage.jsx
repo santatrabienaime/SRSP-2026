@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { dashboardService } from '../../services/dashboardService.js';
 import { dossierService } from '../../services/dossierService.js';
-import { ordreDeplacementService } from '../../services/ordreDeplacementService.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { StatCard } from '../../components/ui/StatCard.jsx';
 import { Card } from '../../components/ui/Card.jsx';
@@ -17,7 +16,6 @@ import { DivisionChart } from '../../components/dashboard/DivisionChart.jsx';
 import { EvolutionChart } from '../../components/dashboard/EvolutionChart.jsx';
 import { formatDateString } from '../../utils/formatDate.js';
 import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
-import { LIBELLES_STATUT, COULEURS_STATUT } from '../baaf/ordresStatuts.js';
 import { configRole } from './dashboardRoles.js';
 
 /**
@@ -42,7 +40,7 @@ function kpiPour(perimetre, s, files) {
       { icon: PencilRuler, label: 'À traiter', value: n(files?.aTraiter), tone: 'amber', sub: 'Affectés, pas commencés' },
       { icon: Clock, label: 'En cours', value: n(files?.enCours), tone: 'sky', sub: 'Traitement en cours' },
       { icon: AlertTriangle, label: 'À corriger', value: n(files?.aCorriger), tone: 'red', sub: 'Retournés par le chef' },
-      { icon: Send, label: 'À soumettre', value: n(files?.aCorriger), tone: 'violet', sub: 'Après correction' },
+      { icon: Send, label: 'À soumettre', value: n(files?.aValider), tone: 'violet', sub: 'Soumis à vérification' },
       { icon: CheckCircle2, label: 'Terminés', value: n(files?.termines), tone: 'emerald', sub: 'Signés ou clôturés' },
     ];
   }
@@ -86,7 +84,6 @@ export function DashboardPage() {
   const [evolution, setEvolution] = useState([]);
   const [recent, setRecent] = useState([]);
   const [ress, setRess] = useState(null);
-  const [ordres, setOrdres] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -94,26 +91,13 @@ export function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      /* Les pièces de déplacement ne sont chargées que pour le Chef BAAF :
-         les autres rôles n'ont ni permission ni écran pour les lire. */
-      const promesseOrdres = role === 'CHEF_BAAF'
-        ? Promise.all([
-            ordreDeplacementService.tableauDeBord(),
-            ordreDeplacementService.lister({ limit: 5 }),
-          ]).then(([tableau, liste]) => ({
-            tdb: tableau,
-            liste: Array.isArray(liste) ? liste : [],
-          }))
-        : Promise.resolve(null);
-
-      const [s, st, dv, ev, rec, r, ord] = await Promise.all([
+      const [s, st, dv, ev, rec, r] = await Promise.all([
         dashboardService.summary(),
         dashboardService.byStatus(),
         dashboardService.byDivision(),
         dashboardService.evolution(),
         dossierService.list({ limit: 6 }),
         dashboardService.ressources(),
-        promesseOrdres,
       ]);
       setSummary(s);
       setByStatus(Array.isArray(st) ? st : []);
@@ -121,7 +105,6 @@ export function DashboardPage() {
       setEvolution(Array.isArray(ev) ? ev : []);
       setRecent(Array.isArray(rec) ? rec.slice(0, 6) : []);
       setRess(r);
-      setOrdres(ord);
     } catch (e) {
       setError(e);
     } finally {
@@ -143,8 +126,7 @@ export function DashboardPage() {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-4">
         <p className="flex items-center gap-2 text-sm text-red-700">
-          <Info className="h-4 w-4" />
-          Impossible de charger le tableau de bord : {error.message}
+          <Info className="h-4 w-4" /> Impossible de charger le tableau de bord : {error.message}
         </p>
         <button
           type="button"
@@ -161,7 +143,7 @@ export function DashboardPage() {
   const files = summary?.files;
   /* Rôle couvert par la spec V2.0 → configuration dédiée ; sinon, tri par
      périmètre (comportement historique, inchangé). */
-  const cfg = configRole(role, { s: summary, files, ress, ordres });
+  const cfg = configRole(role, { s: summary, files, ress });
   const kpis = cfg?.kpis || kpiPour(perimetre, summary, files);
   const charts = cfg?.charts
     || (perimetre === 'GLOBAL'
@@ -233,86 +215,44 @@ export function DashboardPage() {
         </Card>
       )}
 
-      {cfg?.listeOrdres ? (
-        /* Le Chef BAAF suit ses pièces, pas la file dossier : la liste du
-           tableau de bord est son registre de déplacement. */
-        <Card
-          title="Dernières pièces de déplacement"
-          actions={
-            <Link to="/baaf/pieces-deplacement" className={LIEN_VOIR}>
-              Toutes les pièces <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          }
-        >
-          {!ordres?.liste?.length ? (
-            <p className="py-6 text-center text-sm text-slate-400">
-              Aucune pièce de déplacement pour le moment.
-            </p>
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {ordres.liste.map((o) => (
-                <li key={o.id}>
-                  <Link
-                    to="/baaf/pieces-deplacement"
-                    className="flex items-center justify-between gap-3 py-2.5 hover:bg-slate-50"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-700">
-                        {o.numero} — {o.type_libelle}
-                      </p>
-                      <p className="truncate text-xs text-slate-400">
-                        {o.agent_nom} · {o.lieu_depart} → {o.lieu_destination}
-                      </p>
-                    </div>
-                    <Badge className={COULEURS_STATUT[o.statut] || COULEURS_STATUT.REDIGE}>
-                      {LIBELLES_STATUT[o.statut] || o.statut}
-                    </Badge>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      ) : (
-        <Card
-          title={cfg?.liste?.titre
-            || (perimetre === 'AGENT' ? 'Mes dossiers récents' : 'Derniers dossiers')}
-          actions={
-            <Link to="/dossiers" className={LIEN_VOIR}>
-              Tout voir <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          }
-        >
-          {recent.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-400">
-              Aucun dossier pour le moment.
-            </p>
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {recent.map((d) => (
-                <li key={d.id}>
-                  <Link
-                    to={`/dossiers/${d.id}`}
-                    className="flex items-center justify-between gap-3 py-2.5 hover:bg-slate-50"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-700">
-                        {d.numero} — {d.objet}
-                      </p>
-                      <p className="truncate text-xs text-slate-400">
-                        {d.demandeur} · {d.division_nom} · {formatDateString(d.date_reception)}
-                      </p>
-                    </div>
-                    <Badge className={statusBadgeClass(d.statut_code)}>
-                      {formatStatus(d.statut_code)}
-                    </Badge>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      )}
+      <Card
+        title={cfg?.liste?.titre
+          || (perimetre === 'AGENT' ? 'Mes dossiers récents' : 'Derniers dossiers')}
+        actions={
+          <Link to="/dossiers" className={LIEN_VOIR}>
+            Tout voir <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        }
+      >
+        {recent.length === 0 ? (
+          <p className="py-6 text-center text-sm text-slate-400">
+            Aucun dossier pour le moment.
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {recent.map((d) => (
+              <li key={d.id}>
+                <Link
+                  to={`/dossiers/${d.id}`}
+                  className="flex items-center justify-between gap-3 py-2.5 hover:bg-slate-50"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-700">
+                      {d.numero} — {d.objet}
+                    </p>
+                    <p className="truncate text-xs text-slate-400">
+                      {d.demandeur} · {d.division_nom} · {formatDateString(d.date_reception)}
+                    </p>
+                  </div>
+                  <Badge className={statusBadgeClass(d.statut_code)}>
+                    {formatStatus(d.statut_code)}
+                  </Badge>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }

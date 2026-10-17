@@ -33,16 +33,3 @@ export async function listPieces(req, res, next) {
   } catch (e) { next(e); }
 }
 
-/* --- Correspondances --- */
-
-export async function getCorrespondances(req, res, next) {
-  try {
-    res.json(await service.getCorrespondances(req.query.dossier_id || null));
-  } catch (e) { next(e); }
-}
-
-export async function createCorrespondance(req, res, next) {
-  try {
-    res.status(201).json(await service.creerCorrespondance(req.body || {}, req.user.id));
-  } catch (e) { next(e); }
-}

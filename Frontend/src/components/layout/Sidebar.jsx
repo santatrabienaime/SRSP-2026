@@ -2,8 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, FolderKanban, FileText, Mail, History, Archive,
   BarChart3, FileBarChart2, Settings, Users, Shield, Bell,
-  UserCog, Building2, ScrollText, PanelLeftClose, PanelLeftOpen, TrendingUp,
-  MapPinned,
+  UserCog, Building2, ScrollText, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
@@ -24,8 +23,6 @@ const ICONS = {
   personnel: UserCog,
   divisions: Building2,
   audit: ScrollText,
-  performance: TrendingUp,
-  deplacement: MapPinned,
 };
 
 /**
@@ -95,17 +92,10 @@ export function Sidebar() {
       ],
     },
     {
-      /* Section du Chef BAAF : ses deux metiers, documents comptables puis
-         pieces de deplacement. Les entrees sont filtrees par permission : le
-         Chef de Service ne voit que « Pieces de deplacement » (il signe) et
-         n'ouvre jamais l'ecran d'etablissement ; Documents comptables
-         n'apparait qu'a qui gere ou televerse les documents. */
       label: 'Chef BAAF',
       items: [
         { to: '/documents', label: 'Documents comptables', icon: 'documents',
           perms: ['manage_documents', 'upload_document'] },
-        { to: '/baaf/pieces-deplacement', label: 'Pièces de déplacement', icon: 'deplacement',
-          perms: ['etablir_pieces_deplacement', 'signer_pieces_deplacement', 'executer_pieces_deplacement'] },
       ],
     },
     {
@@ -121,14 +111,16 @@ export function Sidebar() {
 
            La page « Statistiques » ci-dessous reste, elle, réservée à view_stats
            parce qu'elle porte sur le SERVICE entier. */
-        { to: '/performance', label: 'Mes statistiques', icon: 'performance' },
         { to: '/statistiques', label: 'Statistiques', icon: 'statistiques', perms: ['view_stats'] },
         { to: '/rapports', label: 'Rapports', icon: 'rapports', perms: ['view_stats', 'consolidate_reports', 'export_data'] },
       ],
     },
   ];
 
-  if (adminOnly || hasAnyPermission(['manage_users', 'manage_roles', 'view_audit', 'manage_personnel', 'manage_divisions'])) {
+  /* La section Administration est strictement réservée au rôle Administrateur :
+     les routes correspondantes exigent eux aussi ROLES.ADMIN (RoleRoute) ;
+     la simple présence d'une permission ne doit pas ouvrir le menu. */
+  if (adminOnly) {
     sections.push({
       label: 'Administration',
       items: [
@@ -147,6 +139,13 @@ export function Sidebar() {
         ...(show({ perms: ['manage_divisions'] })
           ? [{ to: '/divisions', label: 'Divisions', icon: 'divisions' }]
           : []),
+        (myDivision && show({ roles: ['ADMIN'] }) ? [
+          {
+            to: `/divisions/${myDivision}/dashboard`,
+            label: 'Tableau de bord de division',
+            icon: 'divisions',
+          },
+        ] : []),
         ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
           ? [{ to: '/administration/parametres', label: 'Paramètres', icon: 'settings' }]
           : []),

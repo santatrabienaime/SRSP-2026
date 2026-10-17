@@ -9,7 +9,6 @@ import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage.jsx';
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage.jsx';
 
 import { DashboardPage } from '../pages/dashboard/DashboardPage.jsx';
-
 import { DossierListPage } from '../pages/dossiers/DossierListPage.jsx';
 import { DossierCreatePage } from '../pages/dossiers/DossierCreatePage.jsx';
 import { DossierDetailPage } from '../pages/dossiers/DossierDetailPage.jsx';
@@ -27,8 +26,6 @@ import { NotificationsPage } from '../pages/notifications/NotificationsPage.jsx'
 import { HistoriquePage } from '../pages/historique/HistoriquePage.jsx';
 import { ArchivesPage } from '../pages/archives/ArchivesPage.jsx';
 import { StatistiquesPage } from '../pages/statistiques/StatistiquesPage.jsx';
-import { PerformancePage } from '../pages/statistiques/PerformancePage.jsx';
-import { OrdresDeplacementPage } from '../pages/baaf/OrdresDeplacementPage.jsx';
 import { RapportsPage } from '../pages/rapports/RapportsPage.jsx';
 import { ProfilePage } from '../pages/profile/ProfilePage.jsx';
 
@@ -145,17 +142,7 @@ export function AppRouter() {
               </RoleRoute>
             }
           />
-          {/* Mes statistiques : accessible a tout utilisateur authentifie.
-              Le server fait le cloisonnement lui-meme — un agent ne recoit que
-              ses chiffres, un chef de division que sa division. La page n'a donc
-              besoin d'aucune permission RoleRoute, et un agent sans view_stats
-              voit malgre tout son propre travail. */}
-          <Route path="/performance" element={<PerformancePage />} />
-          {/* Pieces de deplacement du Chef BAAF. La lecture est ouverte a
-              quiconque peut consulter un dossier ; l'ecran n'affiche ensuite
-              que les actions que le serveur autorisera, filtrees par
-              permission. Le Chef de Service y signe, le BAAF y etablit. */}
-          <Route path="/baaf/pieces-deplacement" element={<OrdresDeplacementPage />} />
+          {/* Statistiques du service : répartition, évolution et indicateurs. */}
           <Route
             path="/statistiques"
             element={

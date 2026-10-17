@@ -11,7 +11,7 @@ export function AgentCreatePage() {
         <p className="text-sm text-slate-500">Ajouter un agent au personnel du SRSP.</p>
       </div>
       <Card title="Informations de l'agent">
-        <AgentForm onSaved={() => navigate('/administration/parametres')} />
+        <AgentForm onSaved={() => navigate('/agents')} />
       </Card>
     </div>
   );

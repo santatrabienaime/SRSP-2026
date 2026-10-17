@@ -1,5 +1,5 @@
 import { execFile, spawn } from 'node:child_process';
-import { createReadStream } from 'node:fs';
+import { createReadStream, default as fsSync } from 'node:fs';
 import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -8,6 +8,23 @@ import * as historiqueModel from '../models/historiqueModel.js';
 import db from '../config/db.js';
 
 const execFileAsync = promisify(execFile);
+
+function findBin(name) {
+  const envVar = `${name.toUpperCase()}_PATH`;
+  if (process.env[envVar] && fsSync.existsSync(process.env[envVar])) {
+    return process.env[envVar];
+  }
+  const windowsCandidates = [
+    `C:\\xampp\\mysql\\bin\\${name}.exe`,
+    `C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\${name}.exe`,
+    `C:\\laragon\\bin\\mysql\\current\\bin\\${name}.exe`,
+    `C:\\wamp64\\bin\\mysql\\current\\bin\\${name}.exe`,
+  ];
+  for (const candidate of windowsCandidates) {
+    if (fsSync.existsSync(candidate)) return candidate;
+  }
+  return name;
+}
 
 /** Dossier de stockage des sauvegardes. */
 export const BACKUP_DIR = process.env.BACKUP_DIR || path.resolve(process.cwd(), 'backups');
@@ -72,7 +89,7 @@ export async function createBackup(userId) {
   let dump;
   try {
     // MYSQL_PWD évite d'exposer le mot de passe dans la ligne de commande.
-    const { stdout } = await execFileAsync('mysqldump', args, {
+    const { stdout } = await execFileAsync(findBin('mysqldump'), args, {
       env: { ...process.env, MYSQL_PWD: config.db.password || '' },
       maxBuffer: 1024 * 1024 * 100,
     });
@@ -203,7 +220,7 @@ export async function restoreBackup(nomFichier, userId) {
     config.db.name,
   ];
   await new Promise((resolve, reject) => {
-    const child = spawn('mysql', args, {
+    const child = spawn(findBin('mysql'), args, {
       env: { ...process.env, MYSQL_PWD: config.db.password || '' },
     });
     // EPIPE si mysql échoue avant la fin du flux : le rejet vient du code.

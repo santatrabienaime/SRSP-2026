@@ -1,16 +1,51 @@
-# React + Vite
+# Backend — API REST SRSP Fitovinany
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+API Express (ESM) qui expose le back-office de la plateforme SRSP Fitovinany :
+gestion des dossiers, workflow métier, documents, mandatement, ordonnancement,
+dépouillement, rapports et notifications.
 
-Currently, two official plugins are available:
+## Prérequis
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 18+
+- MariaDB (instance projet : port 3307 par défaut, schéma dans `srsp_db.sql`)
 
-## React Compiler
+## Installation
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+cd Backend
+npm install
+cp .env.example .env   # puis définir JWT_SECRET
+```
 
-## Expanding the Oxlint configuration
+## Variables d'environnement
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+| Variable | Obligatoire | Description |
+|---|---|---|
+| `JWT_SECRET` | ✅ oui | Clé de signature des tokens (min. 32 caractères en production). Sans elle, le démarrage est refusé. |
+| `JWT_EXPIRES_IN` | non | Durée de validité du token (défaut : `8h`). |
+| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | non | Connexion MariaDB (défauts : `localhost:3306`, `srsp_db`). |
+| `PORT` | non | Port HTTP (défaut : `5000`). |
+| `FRONTEND_URL` | non | Origine CORS autorisée (défaut : `http://localhost:5173`). |
+
+## Démarrage
+
+```bash
+npm run dev    # développement (nodemon)
+npm start      # production
+```
+
+- Health check : `GET /api/health`
+- Socket.IO : `ws://localhost:5000`
+
+## Modules principaux
+
+- `src/routes` — routeurs Express (un par domaine : dossiers, workflow, documents, …)
+- `src/controllers` / `src/services` / `src/models` — logique métier et accès données
+- `src/middlewares` — auth, RBAC, scope (périmètre division/agent), upload, rate limit
+- `src/realtime` — notifications temps réel
+
+## Tests
+
+```bash
+npm test
+```

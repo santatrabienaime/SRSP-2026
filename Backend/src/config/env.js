@@ -2,12 +2,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Valeurs par défaut tolérantes : si certaines variables d'environnement
-// manquent, l'application démarre quand même avec des valeurs raisonnables.
-// Ceci permet d'ignorer les problèmes de configuration pour les environnements
-// de développement ou les environnements CI légers. En production, il est
-// recommandé de fournir des variables d'environnement explicites.
-
 const defaults = {
   PORT: '5000',
   NODE_ENV: 'development',
@@ -16,7 +10,7 @@ const defaults = {
   DB_USER: 'root',
   DB_PASSWORD: '',
   DB_NAME: 'srsp',
-  JWT_SECRET: null, // pas de secret par défaut : on avertit mais on ne plante pas
+  JWT_SECRET: null, // pas de secret par défaut : obligatoire en production
   JWT_EXPIRES_IN: '8h',
   UPLOAD_DIR: './src/uploads',
   MAX_FILE_SIZE: String(5 * 1024 * 1024),
@@ -28,16 +22,13 @@ const requiredVars = ['JWT_SECRET'];
 export function validateEnv() {
   const missing = requiredVars.filter((v) => !process.env[v]);
   if (missing.length > 0) {
-    // Avertissement clair mais on ne quitte plus le processus.
-    console.warn(
-      `⚠️ Variables d'environnement manquantes (non bloquantes) : ${missing.join(', ')}.\n` +
-        `L'application utilisera des valeurs par défaut lorsque c'est possible. ` +
-        `En production, fournissez ces variables pour des raisons de sécurité.`
-    );
-  } else {
-    console.log("✅ Variables d'environnement requises présentes.");
+    // Un secret JWT manquant doit faire échouer le démarrage : signer des
+    // tokens avec une valeur nulle ou inventée est une faille de sécurité.
+    console.error(`❌ Variables d'environnement manquantes : ${missing.join(', ')}`);
+    console.error("L'application ne démarre pas sans ces variables.");
+    process.exit(1);
   }
-  console.log("ℹ️ Chargement des variables d'environnement (avec valeurs par défaut si manquantes)");
+  console.log("✅ Variables d'environnement requises présentes.");
 }
 
 function getEnv(name) {

@@ -6,7 +6,6 @@
 #   ./start.sh restart    → redémarre les deux
 #   ./start.sh stop       → arrête les deux
 #   ./start.sh status     → état des services
-#   ./start.sh init       → réinitialise la base (idempotent) puis démarre
 # =============================================================================
 set -u
 
@@ -28,7 +27,7 @@ step()  { echo; echo "${C_BOLD}### ${1}${C_OFF}"; }
 # PID du processus écoutant sur un port (via ss), vide si aucun.
 pid_on_port() { ss -ltnp "sport = :$1" 2>/dev/null | sed -nE 's/.*pid=([0-9]+).*/\1/p' | head -1; }
 
-is_up() { curl -s -m 2 -o /dev/null "http://localhost:$1/" 2>/dev/null; }
+is_up() { local path="${2:-/}"; curl -s -m 2 -o /dev/null "http://localhost:$1$path" 2>/dev/null; }
 
 # Extraction des variables depuis Backend/.env (sans source, préserve les \)
 env_val() { sed -n "s/^$1=//p" "$BACKEND_DIR/.env" 2>/dev/null | head -1; }
@@ -105,8 +104,8 @@ start_backend() {
     step "Démarrage du backend sur :5000 (DB port $dbp)"
     # setsid : nouvelle session → le service survit à la fin du terminal/script
     (cd "$BACKEND_DIR" && setsid env DB_PORT="$dbp" node src/server.js > "$BACK_LOG" 2>&1 < /dev/null &)
-    for _ in $(seq 1 30); do is_up 5000 && break; sleep 1; done
-    if is_up 5000; then info "  ✅ Backend : http://localhost:5000  → /api/health OK"
+    for _ in $(seq 1 30); do is_up 5000 /api/health && break; sleep 1; done
+    if is_up 5000 /api/health; then info "  ✅ Backend : http://localhost:5000  → /api/health OK"
     else err "  ❌ Backend KO. Dernières lignes du log ($BACK_LOG) :"; tail -15 "$BACK_LOG" 2>/dev/null | sed 's/^/     /'; return 1; fi
   fi
 }
@@ -139,17 +138,10 @@ show_status() {
   local bpid fpid dbpid
   bpid="$(pid_on_port 5000)"; fpid="$(pid_on_port 5173)"; dbpid="$(pid_on_port 3307)"
   [[ -n "$dbpid" ]] && info "  ✅ MariaDB   :3307 (PID $dbpid) — instance projet" || warn "  ❌ MariaDB   :3307 — arrêté (start_db le relancera)"
-  [[ -n "$bpid" ]] && is_up 5000 && info "  ✅ Backend  :5000 (PID $bpid) — /api/health OK" || err "  ❌ Backend  :5000 — arrêté"
+  [[ -n "$bpid" ]] && is_up 5000 /api/health && info "  ✅ Backend  :5000 (PID $bpid) — /api/health OK" || err "  ❌ Backend  :5000 — arrêté"
   [[ -n "$fpid" ]] && is_up 5173 && info "  ✅ Frontend :5173 (PID $fpid) — HTTP OK"        || err "  ❌ Frontend :5173 — arrêté"
   local dbp; dbp="$(detect_db_port)"
   if [[ "$dbp" != "$(env_val DB_PORT)" ]]; then warn "  ℹ  DB utilisée : port $dbp (pensez à aligner DB_PORT dans Backend/.env)"; fi
-}
-
-init_db() {
-  local dbp; dbp="$(detect_db_port)"
-  step "Initialisation de la base srsp_db (port $dbp, idempotent)"
-  (cd "$BACKEND_DIR" && DB_PORT="$dbp" node database/init.js) || { err "  ❌ Init DB échouée. Vérifier DB_PASSWORD dans Backend/.env"; return 1; }
-  info "  ✅ Base prête (14 comptes, 13 rôles, 11 statuts…)"
 }
 
 # ---- Dispatch -------------------------------------------------------------------
@@ -176,12 +168,8 @@ case "${1:-start}" in
   status)
     show_status
     ;;
-  init)
-    init_db || exit 1
-    exec "$0" start
-    ;;
   *)
-    echo "Usage : $0 {start|restart|stop|status|init}"
+    echo "Usage : $0 {start|restart|stop|status}"
     exit 1
     ;;
 esac

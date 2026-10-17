@@ -15,7 +15,6 @@ frontend) d'un seul coup :
 ./start.sh restart  # redémarre backend + frontend (la base reste active)
 ./start.sh stop     # arrête backend + frontend
 ./start.sh status   # état des services (MariaDB, backend, frontend)
-./start.sh init     # réinitialise la base (idempotent) puis démarre
 ```
 
 - Backend → `http://localhost:5000` (`/api/health`)
@@ -63,30 +62,24 @@ Puis éditer `.env` :
 | `DB_USER` | `root` | Utilisateur MySQL |
 | `DB_PASSWORD` | *(à renseigner)* | Mot de passe MySQL |
 | `DB_NAME` | `srsp_db` | Nom de la base (créée automatiquement) |
-| `JWT_SECRET` | *(à changer en prod)* | Secret de signature des jetons |
-| `JWT_EXPIRES_IN` | `1d` | Durée de validité des jetons |
+| `JWT_SECRET` | *(obligatoire)* | Secret de signature des jetons — le serveur refuse de démarrer sans. |
+| `JWT_EXPIRES_IN` | `8h` | Durée de validité des jetons |
 | `MAX_FILE_SIZE` | `10485760` (10 Mo) | Taille max des uploads |
 | `RATE_LIMIT_ENABLED` | activé hors développement | `true`/`false` — **désactivé par défaut en dev** (le message « Trop de requêtes » n'apparaît plus) |
 | `RATE_LIMIT_MAX` | `200` | Requêtes autorisées par fenêtre |
 | `RATE_LIMIT_WINDOW_MS` | `900000` (15 min) | Fenêtre de limitation |
 | `FRONTEND_URL` | `http://localhost:5173` | Origine autorisée en CORS |
 
-### 2.2 Initialisation de la base (création + seeds)
+### 2.2 Base de données
 
-```bash
-# Depuis le dossier Backend — adapter DB_PORT si la base écoute sur un autre port
-DB_PORT=3306 node database/init.js
-```
+> ⚠️ Ce dépôt ne fournit aucune commande de création du schéma. La base
+> `srsp_db` (schéma, données de référence et comptes de démonstration) doit être
+> créée et initialisée par l'administrateur avant le premier lancement.
 
-Ce script :
-1. Crée la base `srsp_db` (si absente) avec `utf8mb4_unicode_ci` ;
-2. Applique le schéma (tables, index, contraintes) — **idempotent** ;
-3. Insère les données de référence (13 rôles, 11 statuts, 4 types de dossiers, 4 priorités,
-   4 divisions, fonctions, types de courriers/documents, permissions) — **idempotent** grâce
-   aux clés `UNIQUE` ;
-4. Crée les **14 comptes** de démonstration (§ 4 ci-dessous) ainsi que les agents rattachés.
-
-> ✅ La commande peut être relancée autant de fois que nécessaire : elle ne duplique rien.
+Le schéma et les données de référence sont supposés **idempotents** : relancer une
+initialisation manuelle ne doit jamais dupliquer les données. Tous les scripts du
+projet sont conçus pour être réutilisés sans effet de bord sur les données déjà
+enregistrées.
 
 ---
 
@@ -156,7 +149,7 @@ L'identifiant peut être le **username** **ou** **l'email** (champ « identifian
 
 | Action | Commande |
 |--------|----------|
-| Réinitialiser la base | `cd Backend && DB_PORT=3306 node database/init.js` (idempotent) |
+| Réinitialiser la base | non disponible — aucune commande ne recrée le schéma |
 | Reconstruire le frontend | `cd Frontend && npm run build` |
 | Vérifier l'API | `curl http://localhost:5000/api/health` |
 | Tester un login | `curl -X POST http://localhost:5000/api/auth/login -H 'Content-Type: application/json' -d '{"identifiant":"admin@srsp.mg","password":"Admin123!"}'` |

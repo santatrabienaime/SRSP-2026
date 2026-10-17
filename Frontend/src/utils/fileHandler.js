@@ -28,16 +28,6 @@ export function isAllowedExtension(name, extensionsList) {
   return allowed.includes(getExtension(name));
 }
 
-/** Construit un FormData pour upload (fichier + champs). */
-export function buildFormData(file, fields = {}) {
-  const fd = new FormData();
-  if (file) fd.append('fichier', file);
-  for (const [k, v] of Object.entries(fields)) {
-    if (v !== undefined && v !== null && v !== '') fd.append(k, String(v));
-  }
-  return fd;
-}
-
 /** Déclenche le téléchargement d'un blob côté navigateur. */
 export function downloadBlob(blob, filename) {
   if (!blob) return;

@@ -88,7 +88,7 @@ export function NotificationList({ compact = false, onNavigate = null }) {
           );
         })}
       </div>
-      {!compact && (
+      {compact && (
         <div className="mt-3 text-center">
           <Link
             to="/notifications"

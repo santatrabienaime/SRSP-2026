@@ -16,7 +16,7 @@ numérotation automatique, historique complet, notifications et rapports.
 
 | Brique      | Technologie                                              |
 |-------------|----------------------------------------------------------|
-| API         | Node.js (ESM), Express 4, JWT, bcryptjs, Helmet, CORS    |
+| API         | Node.js (ESM), Express 4, JWT, bcryptjs, CORS                    |
 | Base        | MariaDB/MySQL 8, `mysql2` (pool), schéma idempotent      |
 | Upload      | multer (documents, courriers) — stockage local           |
 | Rapports    | PDFKit (PDF), ExcelJS (XLSX)                             |
@@ -47,7 +47,6 @@ numérotation automatique, historique complet, notifications et rapports.
 ./start.sh status   # état des services
 ./start.sh restart  # redémarre les deux
 ./start.sh stop     # arrête les deux
-./start.sh init     # réinitialise la base (idempotent) puis démarre
 ```
 
 - Backend → `http://localhost:5000` · Frontend → `http://localhost:5173`
@@ -57,13 +56,14 @@ numérotation automatique, historique complet, notifications et rapports.
 
 Prérequis : **Node.js ≥ 20** et **MariaDB/MySQL** en local.
 
+> ⚠️ Aucune commande de création du schéma n'est fournie par ce dépôt : la base
+> `srsp_db` (schéma, données de référence et comptes de démonstration) doit être
+> créée et initialisée par l'administrateur avant le premier lancement.
+
 ```bash
-# 1. Base de données (création du schéma + données de référence + 14 comptes)
+# 1. Lancement de l'API
 cd Backend
 cp .env.example .env        # puis renseigner les identifiants DB et JWT_SECRET
-DB_PORT=3306 node database/init.js     # idempotent : peut être relancé sans risque
-
-# 2. API
 npm install
 npm start                   # → http://localhost:5000  (vérifier /api/health)
 
@@ -110,13 +110,12 @@ L'identifiant peut être le **username** ou **l'email**.
 ```
 SRSP-2026/
 ├── Backend/
-│   ├── database/          # schema.sql, seeds/ (idempotents), init.js
 │   ├── src/
 │   │   ├── config/        # env, db, cors, multer, logger
 │   │   ├── controllers/   # logique métier par ressource
 │   │   ├── middleware/    # auth, RBAC, validation, erreurs
 │   │   ├── models/        # accès MySQL
-│   │   ├── routes/        # 16 routeurs REST
+│   │   ├── routes/        # 28 routeurs REST (dossiers, workflow, documents, mandatement…)
 │   │   ├── services/      # workflow, rapport, référentiel…
 │   │   └── app.js         # configuration Express
 │   └── package.json

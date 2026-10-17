@@ -17,58 +17,6 @@
 /*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
 
 --
--- Table structure for table `actes`
---
-
-DROP TABLE IF EXISTS `actes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `actes` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `numero` varchar(50) NOT NULL,
-  `type_acte_id` int(11) NOT NULL,
-  `annee` smallint(5) NOT NULL,
-  `date_acte` date NOT NULL,
-  `objet` varchar(255) NOT NULL,
-  `destinataire` varchar(150) DEFAULT NULL,
-  `expediteur` varchar(150) DEFAULT NULL,
-  `dossier_id` int(11) DEFAULT NULL,
-  `division_id` int(11) DEFAULT NULL,
-  `created_by` int(11) DEFAULT NULL,
-  `statut` varchar(20) NOT NULL DEFAULT 'ENREGISTRE',
-  `observations` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_acte_numero` (`numero`),
-  KEY `idx_acte_type` (`type_acte_id`),
-  KEY `idx_acte_annee` (`annee`),
-  KEY `idx_acte_dossier` (`dossier_id`),
-  KEY `idx_acte_date` (`date_acte`),
-  KEY `idx_acte_statut` (`statut`),
-  KEY `fk_acte_division` (`division_id`),
-  KEY `fk_acte_auteur` (`created_by`),
-  CONSTRAINT `fk_acte_auteur` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_acte_division` FOREIGN KEY (`division_id`) REFERENCES `divisions` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_acte_dossier` FOREIGN KEY (`dossier_id`) REFERENCES `dossiers` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_acte_type` FOREIGN KEY (`type_acte_id`) REFERENCES `types_actes` (`id`),
-  CONSTRAINT `ck_acte_statut` CHECK (`statut` in ('ENREGISTRE','ANNULE'))
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `actes`
---
-
-SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
-LOCK TABLES `actes` WRITE;
-/*!40000 ALTER TABLE `actes` DISABLE KEYS */;
-/*!40000 ALTER TABLE `actes` ENABLE KEYS */;
-UNLOCK TABLES;
-COMMIT;
-SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
-
---
 -- Table structure for table `affectations`
 --
 
@@ -1223,97 +1171,6 @@ COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 
 --
--- Table structure for table `immatriculations`
---
-
-DROP TABLE IF EXISTS `immatriculations`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `immatriculations` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `numero` varchar(50) NOT NULL,
-  `nom` varchar(100) NOT NULL,
-  `prenom` varchar(100) NOT NULL,
-  `cin` varchar(50) DEFAULT NULL,
-  `date_naissance` date DEFAULT NULL,
-  `corps` varchar(100) DEFAULT NULL,
-  `grade` varchar(100) DEFAULT NULL,
-  `indice` int(11) DEFAULT NULL,
-  `date_entree` date DEFAULT NULL,
-  `division_id` int(11) DEFAULT NULL,
-  `statut` enum('EN_ATTENTE','ACTIVE','REJETEE') NOT NULL DEFAULT 'EN_ATTENTE',
-  `observations` text DEFAULT NULL,
-  `created_by` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_immatriculation_numero` (`numero`),
-  KEY `idx_immatriculation_cin` (`cin`),
-  KEY `idx_immatriculation_statut` (`statut`),
-  KEY `fk_imm_division` (`division_id`),
-  KEY `fk_imm_user` (`created_by`),
-  CONSTRAINT `fk_imm_division` FOREIGN KEY (`division_id`) REFERENCES `divisions` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_imm_user` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `immatriculations`
---
-
-SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
-LOCK TABLES `immatriculations` WRITE;
-/*!40000 ALTER TABLE `immatriculations` DISABLE KEYS */;
-/*!40000 ALTER TABLE `immatriculations` ENABLE KEYS */;
-UNLOCK TABLES;
-COMMIT;
-SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
-
---
--- Table structure for table `insertions_augure`
---
-
-DROP TABLE IF EXISTS `insertions_augure`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `insertions_augure` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `immatriculation_id` int(11) NOT NULL,
-  `matricule_augure` varchar(50) DEFAULT NULL,
-  `situation_familiale` varchar(100) DEFAULT NULL,
-  `adresse` varchar(255) DEFAULT NULL,
-  `telephone` varchar(30) DEFAULT NULL,
-  `date_naissance` date DEFAULT NULL,
-  `indice_base` int(11) DEFAULT NULL,
-  `salaire_base` decimal(14,2) DEFAULT NULL,
-  `statut` enum('A_INSERER','INSERE','REJETE') NOT NULL DEFAULT 'A_INSERER',
-  `observations` text DEFAULT NULL,
-  `insere_par` int(11) DEFAULT NULL,
-  `insere_le` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_augure_immatriculation` (`immatriculation_id`),
-  KEY `idx_augure_statut` (`statut`),
-  KEY `fk_augure_user` (`insere_par`),
-  CONSTRAINT `fk_augure_imm` FOREIGN KEY (`immatriculation_id`) REFERENCES `immatriculations` (`id`),
-  CONSTRAINT `fk_augure_user` FOREIGN KEY (`insere_par`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `insertions_augure`
---
-
-SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
-LOCK TABLES `insertions_augure` WRITE;
-/*!40000 ALTER TABLE `insertions_augure` DISABLE KEYS */;
-/*!40000 ALTER TABLE `insertions_augure` ENABLE KEYS */;
-UNLOCK TABLES;
-COMMIT;
-SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
-
---
 -- Table structure for table `liquidations_pension`
 --
 
@@ -1480,48 +1337,6 @@ COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 
 --
--- Table structure for table `modes_paiement`
---
-
-DROP TABLE IF EXISTS `modes_paiement`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `modes_paiement` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `immatriculation_id` int(11) NOT NULL,
-  `mode` enum('VIREMENT','CHEQUE','ESPECES','MANDAT') NOT NULL,
-  `banque` varchar(100) DEFAULT NULL,
-  `compte_bancaire` varchar(50) DEFAULT NULL,
-  `motif` text NOT NULL,
-  `pieces_verifiees` tinyint(1) NOT NULL DEFAULT 0,
-  `statut` enum('EN_ATTENTE','APPROUVE','REJETE') NOT NULL DEFAULT 'EN_ATTENTE',
-  `observations` text DEFAULT NULL,
-  `traite_par` int(11) DEFAULT NULL,
-  `traite_le` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_paiement_immatriculation` (`immatriculation_id`),
-  KEY `idx_paiement_statut` (`statut`),
-  KEY `fk_paiement_user` (`traite_par`),
-  CONSTRAINT `fk_paiement_imm` FOREIGN KEY (`immatriculation_id`) REFERENCES `immatriculations` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_paiement_user` FOREIGN KEY (`traite_par`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `modes_paiement`
---
-
-SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
-LOCK TABLES `modes_paiement` WRITE;
-/*!40000 ALTER TABLE `modes_paiement` DISABLE KEYS */;
-/*!40000 ALTER TABLE `modes_paiement` ENABLE KEYS */;
-UNLOCK TABLES;
-COMMIT;
-SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
-
---
 -- Table structure for table `notifications`
 --
 
@@ -1593,68 +1408,6 @@ COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 
 --
--- Table structure for table `ordres_deplacement`
---
-
-DROP TABLE IF EXISTS `ordres_deplacement`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `ordres_deplacement` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `numero` varchar(50) NOT NULL,
-  `type_id` int(11) NOT NULL,
-  `dossier_id` int(11) NOT NULL,
-  `agent_id` int(11) NOT NULL,
-  `cin_agent` varchar(20) DEFAULT NULL,
-  `lieu_depart` varchar(200) NOT NULL,
-  `lieu_destination` varchar(200) NOT NULL,
-  `date_depart` date NOT NULL,
-  `date_retour` date NOT NULL,
-  `objet` varchar(500) NOT NULL,
-  `observations` text DEFAULT NULL,
-  `montant_avance` decimal(15,2) DEFAULT NULL,
-  `statut` enum('REDIGE','SOUMIS','SIGNE','EXECUTEE','CLOTUREE','REJETEE') NOT NULL DEFAULT 'REDIGE',
-  `reference_signature` varchar(100) DEFAULT NULL,
-  `signe_par` int(11) DEFAULT NULL,
-  `signe_le` datetime DEFAULT NULL,
-  `executee_le` date DEFAULT NULL,
-  `montant_reel` decimal(15,2) DEFAULT NULL,
-  `motif_cloture` varchar(500) DEFAULT NULL,
-  `cree_par` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_ordre_dep_numero` (`numero`),
-  KEY `idx_ordre_dep_type` (`type_id`),
-  KEY `idx_ordre_dep_dossier` (`dossier_id`),
-  KEY `idx_ordre_dep_agent` (`agent_id`),
-  KEY `idx_ordre_dep_statut` (`statut`),
-  KEY `idx_ordre_dep_dates` (`date_depart`,`date_retour`),
-  KEY `fk_ordre_dep_signe_par` (`signe_par`),
-  KEY `fk_ordre_dep_cree_par` (`cree_par`),
-  CONSTRAINT `fk_ordre_dep_agent` FOREIGN KEY (`agent_id`) REFERENCES `agents` (`id`),
-  CONSTRAINT `fk_ordre_dep_cree_par` FOREIGN KEY (`cree_par`) REFERENCES `users` (`id`),
-  CONSTRAINT `fk_ordre_dep_dossier` FOREIGN KEY (`dossier_id`) REFERENCES `dossiers` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_ordre_dep_signe_par` FOREIGN KEY (`signe_par`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_ordre_dep_type` FOREIGN KEY (`type_id`) REFERENCES `types_pieces_deplacement` (`id`),
-  CONSTRAINT `ck_ordre_dep_dates` CHECK (`date_retour` >= `date_depart`),
-  CONSTRAINT `ck_ordre_dep_montants` CHECK (`montant_avance` is null or `montant_avance` >= 0)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `ordres_deplacement`
---
-
-SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
-LOCK TABLES `ordres_deplacement` WRITE;
-/*!40000 ALTER TABLE `ordres_deplacement` DISABLE KEYS */;
-/*!40000 ALTER TABLE `ordres_deplacement` ENABLE KEYS */;
-UNLOCK TABLES;
-COMMIT;
-SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
-
---
 -- Table structure for table `permissions`
 --
 
@@ -1706,22 +1459,14 @@ INSERT INTO `permissions` VALUES
 (25,'export_data','Exporter les données (PDF/Excel)','2026-10-05 07:24:40'),
 (26,'consolidate_reports','Consolider les rapports d\'activité','2026-10-05 07:24:40'),
 (27,'controler_decomptes','Contrôler les décomptes','2026-10-05 07:24:40'),
-(28,'approuver_bons','Approuver les bons de caisse','2026-10-05 07:24:40'),
-(29,'calculer_avances','Calculer les décomptes d\'avance','2026-10-05 07:24:40'),
 (30,'gerer_correspondances','Gérer les correspondances de la division','2026-10-05 07:24:40'),
-(31,'suivre_oppositions','Suivre les oppositions','2026-10-05 07:24:40'),
 (32,'liquider_pension','Liquider les pensions','2026-10-05 07:24:40'),
-(33,'gerer_dossiers_meres','Gérer les dossiers mères','2026-10-05 07:24:40'),
 (34,'preparer_mandatement','Préparer le mandatement','2026-10-05 07:24:40'),
 (35,'gerer_ordonnancement','Gérer l\'ordonnancement','2026-10-05 07:24:40'),
 (36,'suivre_signature','Suivre la signature des pièces','2026-10-05 07:24:40'),
 (37,'depouiller_pieces','Dépouiller les pièces','2026-10-05 07:24:40'),
-(38,'archiver_pieces','Archiver les pièces justificatives','2026-10-05 07:24:40'),
 (83,'view_archives','Consulter les archives','2026-10-05 07:24:41'),
 (84,'view_journal','Consulter le journal global des actions','2026-10-05 07:24:41'),
-(85,'etablir_pieces_deplacement','Etablir les ordres de route, ordres de mission, autorisations de retrait de bon de caisse et notes d interim.','2026-10-05 07:24:41'),
-(86,'signer_pieces_deplacement','Signer une piece de deplacement et y apposer la reference de signature.','2026-10-05 07:24:41'),
-(87,'executer_pieces_deplacement','Declarer une piece de deplacement executee et la cloturer au retour.','2026-10-05 07:24:41'),
 (88,'enregistrer_visa_cf','Enregistrer et contrôler le visa du contrôle financier : numéro, signature et date.','2026-10-05 07:24:41'),
 (89,'generer_etat_emargement','Préparer les références du logiciel secours et générer l\'état d\'émargement des bénéficiaires.','2026-10-05 07:24:41'),
 (90,'apposer_cachet','Apposer le cachet, le titre et la date de l\'ordonnateur sur les pièces de mandatement.','2026-10-05 07:24:41'),
@@ -1875,16 +1620,12 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (34,'HISTORIQUE',34,'CHEF_DIV_SOLDE','Vérifier les décomptes d’avance de Solde','Table decomptes_avance','Division Solde','METIER','controler_decomptes','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (35,'HISTORIQUE',35,'CHEF_DIV_SOLDE','Vérifier les états de décompte des Soldes trop perçus',NULL,'Division Solde','METIER','controler_decomptes','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (36,'HISTORIQUE',36,'CHEF_DIV_SOLDE','Vérifier les Bons de caisse à retourner à la Trésorerie Générale',NULL,'Division Solde','METIER','verifier_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(37,'HISTORIQUE',37,'CHEF_DIV_SOLDE','Approuver les bons de caisse « Vu Bon à payer »',NULL,'Division Solde','METIER','approuver_bons','INERTE','La permission existe mais aucune route ne s’y réfère : elle ne donne accès à rien.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (38,'HISTORIQUE',38,'CHEF_DIV_SOLDE','Classer les demandes de Domiciliation irrévocable de salaire',NULL,'Division Solde','METIER','view_all_dossiers','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (39,'HISTORIQUE',39,'VERIF_SOLDE','Préparer les fiches de contrôle de Solde',NULL,'Division Solde','METIER',NULL,'NON_CONSTRUITE','Aucune table de fiche de contrôle. Le document ne décrit pas les rubriques à saisir.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(40,'HISTORIQUE',40,'VERIF_SOLDE','Préparer les dossiers mères (changement de localité)',NULL,'Division Solde','METIER','gerer_dossiers_meres','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (41,'HISTORIQUE',41,'VERIF_SOLDE','Expédier les dossiers mères aux SRSP concernés',NULL,'Division Solde','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (42,'HISTORIQUE',42,'VERIF_SOLDE','Préparer les dossiers de mandatement pour envoi au niveau central',NULL,'Division Solde','METIER','preparer_mandatement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (43,'HISTORIQUE',43,'VERIF_SOLDE','Mettre à jour les fiches de contrôle de la Solde',NULL,'Division Solde','METIER',NULL,'NON_CONSTRUITE','Dépend de la fonction 39, non construite.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (44,'HISTORIQUE',44,'VERIF_SOLDE','Réceptionner les fiches de contrôle',NULL,'Division Solde','METIER',NULL,'NON_CONSTRUITE','Dépend de la fonction 39, non construite.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(45,'HISTORIQUE',45,'VERIF_SOLDE','Créer les dossiers mères des agents affectés dans la Région Fitovinany',NULL,'Division Solde','METIER','gerer_dossiers_meres','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(46,'HISTORIQUE',46,'VERIF_SOLDE','Calculer les décomptes d’avances de Solde',NULL,'Division Solde','METIER','calculer_avances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (47,'HISTORIQUE',47,'VERIF_SOLDE','Présenter les décomptes pour vérification et signature',NULL,'Division Solde','METIER','soumettre_verification','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (48,'HISTORIQUE',48,'CHEF_DIV_PENSION','Traiter les dossiers de retraite',NULL,'Division Pension','METIER','traiter_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (49,'HISTORIQUE',49,'CHEF_DIV_PENSION','Garantir une transition fluide pour les fonctionnaires quittant le service actif',NULL,'Division Pension','METIER','liquider_pension','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -1892,12 +1633,7 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (51,'HISTORIQUE',51,'CHEF_DIV_PENSION','Vérifier les dossiers soumis pour liquidation',NULL,'Division Pension','METIER','verifier_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (52,'HISTORIQUE',52,'CHEF_DIV_PENSION','Rédiger les Lettres de prescription',NULL,'Division Pension','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (53,'HISTORIQUE',53,'CHEF_DIV_PENSION','Rédiger les demandes de dossier mère',NULL,'Division Pension','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(54,'HISTORIQUE',54,'CHEF_DIV_PENSION','Envoyer au niveau central les demandes d’opposition sur Pension',NULL,'Division Pension','METIER','suivre_oppositions','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(55,'HISTORIQUE',55,'CHEF_DIV_PENSION','Gérer les oppositions : Pension alimentaire',NULL,'Division Pension','METIER','suivre_oppositions','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(56,'HISTORIQUE',56,'CHEF_DIV_PENSION','Gérer les oppositions : cession volontaire',NULL,'Division Pension','METIER','suivre_oppositions','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(57,'HISTORIQUE',57,'CHEF_DIV_PENSION','Gérer les oppositions : saisie arrêt',NULL,'Division Pension','METIER','suivre_oppositions','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (58,'HISTORIQUE',58,'CHEF_DIV_PENSION','Transmettre les Derniers arrérages',NULL,'Division Pension','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(59,'HISTORIQUE',59,'LIQUIDATEUR','Archiver le dossier mère de Pensions',NULL,'Division Pension','METIER','gerer_dossiers_meres','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (60,'HISTORIQUE',60,'LIQUIDATEUR','Gérer les bons de caisse en retour',NULL,'Division Pension','METIER','gerer_ordonnancement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (61,'HISTORIQUE',61,'LIQUIDATEUR','Établir les demandes de Certificats de Cessation de Paiement',NULL,'Division Pension','METIER','liquider_pension','PARTIELLE','La donnée de cessation est gérée. La production du certificat imprimable n’existe pas.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (62,'HISTORIQUE',62,'LIQUIDATEUR','Traiter les demandes de secours au décès',NULL,'Division Pension','METIER','liquider_pension','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -1941,11 +1677,6 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (100,'HISTORIQUE',100,'CHARGE_SECOURS','Dépouiller les dossiers (État de décompte)',NULL,'Division Secours','METIER','depouiller_pieces','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (101,'HISTORIQUE',101,'CHARGE_SECOURS','Dépouiller les dossiers (CCETPP)','Certificat de Cessation d’Emploi et de Traitement','Division Secours','METIER','depouiller_pieces','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (102,'HISTORIQUE',102,'CHARGE_SECOURS','Dépouiller les dossiers (Demande de l’intéressé)',NULL,'Division Secours','METIER','depouiller_pieces','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(103,'HISTORIQUE',103,'CHARGE_SECOURS','Archiver les Actes de décès',NULL,'Division Secours','METIER','archiver_pieces','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(104,'HISTORIQUE',104,'CHARGE_SECOURS','Archiver les Actes de Mariage',NULL,'Division Secours','METIER','archiver_pieces','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(105,'HISTORIQUE',105,'CHARGE_SECOURS','Archiver les Certificats de NSC','Non-Salarié Civil','Division Secours','METIER','archiver_pieces','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(106,'HISTORIQUE',106,'CHARGE_SECOURS','Archiver les Certificats de NDiv','Non-Divorcé','Division Secours','METIER','archiver_pieces','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(107,'HISTORIQUE',107,'CHARGE_SECOURS','Archiver les CIN','Du défunt et du bénéficiaire','Division Secours','METIER','archiver_pieces','INERTE','Permission existante, aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (108,'HISTORIQUE',108,'CHARGE_SECOURS','Faire cacheter et parapher les documents par le CF','Le CF signe la pièce papier','Division Secours','METIER',NULL,'HORS_PLATEFORME','Le cachet du contrôle financier est apposé sur la pièce physique. La plateforme ne peut que tracer la demande de cachet.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (109,'HISTORIQUE',109,'CHEF_SERVICE','Représenter le SRSP auprès du Ministère','Rapports et statistiques du service','Chef de Service','METIER','consolidate_reports','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (110,'HISTORIQUE',110,'CHEF_SERVICE','Valider l’ensemble des dossiers traités',NULL,'Chef de Service','METIER','valider_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -1972,32 +1703,12 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (131,'HISTORIQUE',131,'CHEF_BAAF','Superviser l’établissement de la comptabilité-matière','Inventaire du matériel','Chef BAAF','METIER',NULL,'NON_CONSTRUITE','Aucun inventaire de matériel. Entrées, sorties et stock n’existent pas.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (132,'HISTORIQUE',132,'CHEF_BAAF','Superviser les travaux de secrétariat',NULL,'Chef BAAF','METIER','view_all_dossiers','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (133,'HISTORIQUE',133,'CHEF_BAAF','Résoudre les difficultés rencontrées au sein du Bureau',NULL,'Chef BAAF','METIER',NULL,'NON_CONSTRUITE','Aucun circuit d’escalade au niveau du bureau.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(134,'HISTORIQUE',134,'CHEF_BAAF','Établir les ordres de route',NULL,'Chef BAAF','METIER','etablir_pieces_deplacement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(135,'HISTORIQUE',135,'CHEF_BAAF','Établir les ordres de mission',NULL,'Chef BAAF','METIER','etablir_pieces_deplacement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(136,'HISTORIQUE',136,'CHEF_BAAF','Établir les autorisations de retrait de BC',NULL,'Chef BAAF','METIER','etablir_pieces_deplacement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(137,'HISTORIQUE',137,'CHEF_BAAF','Établir les Notes d’intérim',NULL,'Chef BAAF','METIER','etablir_pieces_deplacement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(138,'HISTORIQUE',138,'COORDONNATRICE','Créer les numéros d’immatriculation',NULL,'Coordonnatrice','METIER','gerer_immatriculations','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(139,'HISTORIQUE',139,'COORDONNATRICE','Attribuer les numéros aux nouveaux fonctionnaires',NULL,'Coordonnatrice','METIER','gerer_immatriculations','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(140,'HISTORIQUE',140,'COORDONNATRICE','Attribuer les numéros aux employés du secteur public',NULL,'Coordonnatrice','METIER','gerer_immatriculations','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(141,'HISTORIQUE',141,'COORDONNATRICE','Vérifier l’enregistrement correct de chaque individu',NULL,'Coordonnatrice','METIER','gerer_immatriculations','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(142,'HISTORIQUE',142,'COORDONNATRICE','Garantir un identifiant unique (salaires)',NULL,'Coordonnatrice','METIER','gerer_immatriculations','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(143,'HISTORIQUE',143,'COORDONNATRICE','Garantir un identifiant unique (pensions)',NULL,'Coordonnatrice','METIER','gerer_immatriculations','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(144,'HISTORIQUE',144,'COORDONNATRICE','Gérer les insertions augurales',NULL,'Coordonnatrice','METIER','gerer_augure','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(145,'HISTORIQUE',145,'COORDONNATRICE','Intégrer les nouveaux arrivants dans les systèmes de paie',NULL,'Coordonnatrice','METIER','gerer_augure','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(146,'HISTORIQUE',146,'COORDONNATRICE','Intégrer les nouveaux arrivants dans les systèmes de pensions',NULL,'Coordonnatrice','METIER','gerer_augure','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(147,'HISTORIQUE',147,'COORDONNATRICE','Prendre en compte les données personnelles',NULL,'Coordonnatrice','METIER','gerer_augure','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(148,'HISTORIQUE',148,'COORDONNATRICE','Prendre en compte les informations salariales',NULL,'Coordonnatrice','METIER','gerer_augure','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(149,'HISTORIQUE',149,'COORDONNATRICE','Prendre en compte les informations de pension',NULL,'Coordonnatrice','METIER','gerer_augure','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (150,'HISTORIQUE',150,'COORDONNATRICE','Préparer les rapports d’activité pour le Chef de Service',NULL,'Coordonnatrice','METIER','consolidate_reports','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (151,'HISTORIQUE',151,'COORDONNATRICE','Préparer les rapports d’activité pour la direction centrale',NULL,'Coordonnatrice','METIER','consolidate_reports','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (152,'HISTORIQUE',152,'COORDONNATRICE','Rapporter le nombre de nouveaux dossiers traités',NULL,'Coordonnatrice','METIER','view_stats','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (153,'HISTORIQUE',153,'COORDONNATRICE','Rapporter les changements de statut',NULL,'Coordonnatrice','METIER','view_stats','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (154,'HISTORIQUE',154,'COORDONNATRICE','Rapporter les problèmes rencontrés',NULL,'Coordonnatrice','METIER','view_stats','PARTIELLE','Les indicateurs sont calculés, mais aucun dispositif de remontée de problème n’existe. Un agent ne peut pas signaler un blocage autrement que par un commentaire de dossier.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (155,'HISTORIQUE',155,'COORDONNATRICE','Rapporter les mesures prises pour résoudre les problèmes',NULL,'Coordonnatrice','METIER','view_stats','PARTIELLE','Dépend de la fonction 154, elle-même partielle.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(156,'HISTORIQUE',156,'COORDONNATRICE','Traiter les demandes de mode de paiement (fonctionnaires)',NULL,'Coordonnatrice','METIER','gerer_paiements','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(157,'HISTORIQUE',157,'COORDONNATRICE','Traiter les demandes de mode de paiement (retraités)',NULL,'Coordonnatrice','METIER','gerer_paiements','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(158,'HISTORIQUE',158,'COORDONNATRICE','Coordonner les démarches administratives',NULL,'Coordonnatrice','METIER','gerer_paiements','PARTIELLE','Les démarches de changement de paiement sont traitées. Le suivi de leur avancement auprès des autres services n’existe pas.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(159,'HISTORIQUE',159,'COORDONNATRICE','Veiller à la mise à jour correcte des informations dans les systèmes',NULL,'Coordonnatrice','METIER','gerer_augure','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (160,'HISTORIQUE',160,'SECRETARIAT','Effectuer tous les travaux de secrétariat du Service',NULL,'Secrétaire','METIER','manage_courriers','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (161,'HISTORIQUE',161,'SECRETARIAT','Réceptionner les dossiers',NULL,'Secrétaire','METIER','create_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (162,'HISTORIQUE',162,'SECRETARIAT','Réceptionner les courriers',NULL,'Secrétaire','METIER','manage_courriers','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -2032,7 +1743,6 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (191,'HISTORIQUE',191,'CHEF_DIV_SOLDE','Vérifier les Bons de caisse à retourner à la Trésorerie Générale',NULL,'Chef Division Solde','METIER','verifier_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (192,'HISTORIQUE',192,'CHEF_DIV_SOLDE','Assurer l’interlocution avec le Chef de Service',NULL,'Chef Division Solde','METIER',NULL,'NON_CONSTRUITE','Aucun circuit de demande de besoin matériel.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (193,'HISTORIQUE',193,'CHEF_DIV_SOLDE','Résoudre les difficultés rencontrées au sein de la division',NULL,'Chef Division Solde','METIER','view_all_dossiers','PARTIELLE','Un chef de division voit les indicateurs de sa division, mais aucun dispositif ne permet de signaler un dossier bloqué.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(194,'HISTORIQUE',194,'CHEF_DIV_SOLDE','Approuver les bons de caisse « Vu Bon à payer »',NULL,'Chef Division Solde','METIER','approuver_bons','INERTE','La permission existe mais aucune route ne s’y réfère : elle ne donne accès à rien.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (195,'HISTORIQUE',195,'CHEF_DIV_SOLDE','Classer les demandes de Domiciliation irrévocable de salaire',NULL,'Chef Division Solde','METIER','view_all_dossiers','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (196,'HISTORIQUE',196,'CHEF_DIV_SOLDE','Produire le rapport d’activités mensuel',NULL,'Chef Division Solde','METIER','view_stats','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (197,'HISTORIQUE',197,'CHEF_DIV_SOLDE','Produire le rapport d’activités trimestriel',NULL,'Chef Division Solde','METIER','view_stats','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -2050,7 +1760,6 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (209,'HISTORIQUE',209,'CHEF_DIV_PENSION','Produire le rapport d’activités annuel',NULL,'Chef Division Pension','METIER','view_stats','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (210,'HISTORIQUE',210,'CHEF_DIV_PENSION','Rédiger toute correspondance d’usage (Lettre de prescription)',NULL,'Chef Division Pension','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (211,'HISTORIQUE',211,'CHEF_DIV_PENSION','Rédiger toute correspondance d’usage (demande de dossier mère)',NULL,'Chef Division Pension','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(212,'HISTORIQUE',212,'CHEF_DIV_PENSION','Envoyer au niveau central les demandes d’opposition sur Pension',NULL,'Chef Division Pension','METIER','suivre_oppositions','INERTE','La permission existe mais aucune route ne s’y réfère : elle ne donne accès à rien.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (213,'HISTORIQUE',213,'CHEF_DIV_PENSION','Envoyer les Derniers arrérages',NULL,'Chef Division Pension','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (214,'HISTORIQUE',214,'CHEF_DIV_PENSION','Représenter la Division au sein des réunions',NULL,'Chef Division Pension','METIER',NULL,'HORS_PLATEFORME','La représentation se prépare par les rapports, mais la réunion relève du service.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (215,'HISTORIQUE',215,'CHEF_DIV_PENSION','Proposer toutes mesures devant être prises et matérialisées par actes',NULL,'Chef Division Pension','METIER',NULL,'NON_CONSTRUITE','Aucun circuit de proposition d’une mesure administrative à la hiérarchie.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -2087,20 +1796,16 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (246,'HISTORIQUE',246,'VERIF_SOLDE','Soumettre les dossiers pour vérification du Chef de Division',NULL,'Vérificateurs Solde','METIER','soumettre_verification','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (247,'HISTORIQUE',247,'VERIF_SOLDE','Soumettre les dossiers pour signature du Chef de Service',NULL,'Vérificateurs Solde','METIER','soumettre_verification','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (248,'HISTORIQUE',248,'VERIF_SOLDE','Préparer les fiches de contrôle de Solde',NULL,'Vérificateurs Solde','METIER',NULL,'NON_CONSTRUITE','Aucune table de fiche de contrôle. Le document ne décrit pas les rubriques à saisir.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(249,'HISTORIQUE',249,'VERIF_SOLDE','Préparer les dossiers mères (changement de localité)',NULL,'Vérificateurs Solde','METIER','gerer_dossiers_meres','INERTE','La permission existe mais aucune route ne s’y réfère : elle ne donne accès à rien.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (250,'HISTORIQUE',250,'VERIF_SOLDE','Expédier les dossiers mères aux SRSP concernés',NULL,'Vérificateurs Solde','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (251,'HISTORIQUE',251,'VERIF_SOLDE','Préparer les dossiers de mandatement pour envoi au niveau central',NULL,'Vérificateurs Solde','METIER','preparer_mandatement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (252,'HISTORIQUE',252,'VERIF_SOLDE','Mettre à jour les fiches de contrôle de la Solde',NULL,'Vérificateurs Solde','METIER',NULL,'NON_CONSTRUITE','Dépend de la fonction 248, non construite.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (253,'HISTORIQUE',253,'VERIF_SOLDE','Réceptionner les fiches de contrôle',NULL,'Vérificateurs Solde','METIER',NULL,'NON_CONSTRUITE','Dépend de la fonction 248, non construite.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(254,'HISTORIQUE',254,'VERIF_SOLDE','Créer les dossiers mères des agents affectés dans la Région Fitovinany',NULL,'Vérificateurs Solde','METIER','gerer_dossiers_meres','INERTE','La permission existe mais aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(255,'HISTORIQUE',255,'VERIF_SOLDE','Calculer les décomptes d’avances de Solde',NULL,'Vérificateurs Solde','METIER','calculer_avances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (256,'HISTORIQUE',256,'VERIF_SOLDE','Présenter les décomptes pour vérification du Chef de Division',NULL,'Vérificateurs Solde','METIER','soumettre_verification','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (257,'HISTORIQUE',257,'VERIF_SOLDE','Présenter les décomptes pour signature du Chef de Service',NULL,'Vérificateurs Solde','METIER','soumettre_verification','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (258,'HISTORIQUE',258,'LIQUIDATEUR','Exploiter tous les dossiers soumis pour liquidation',NULL,'Liquidateurs Pensions','METIER','traiter_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (259,'HISTORIQUE',259,'LIQUIDATEUR','Soumettre les dossiers pour vérification du Chef de Division',NULL,'Liquidateurs Pensions','METIER','soumettre_verification','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (260,'HISTORIQUE',260,'LIQUIDATEUR','Traiter les demandes de secours au décès',NULL,'Liquidateurs Pensions','METIER','liquider_pension','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (261,'HISTORIQUE',261,'LIQUIDATEUR','Préparer les demandes de secours pour envoi au SRSP Haute Matsiatra',NULL,'Liquidateurs Pensions','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(262,'HISTORIQUE',262,'LIQUIDATEUR','Archiver le dossier mère de Pensions',NULL,'Liquidateurs Pensions','METIER','gerer_dossiers_meres','INERTE','La permission existe mais aucune route ne s’y réfère : elle ne donne accès à rien.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (263,'HISTORIQUE',263,'LIQUIDATEUR','Gérer les bons de caisse en retour',NULL,'Liquidateurs Pensions','METIER','gerer_ordonnancement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (264,'HISTORIQUE',264,'LIQUIDATEUR','Établir les demandes de Certificats de Cessation de Paiement',NULL,'Liquidateurs Pensions','METIER','liquider_pension','PARTIELLE','La donnée de cessation est gérée. La production du certificat imprimable n’existe pas.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (265,'HISTORIQUE',265,'CHARGE_SECOURS','Traiter les dossiers de secours de décès',NULL,'Chargés de Secours','METIER','traiter_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -2110,11 +1815,6 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (269,'HISTORIQUE',269,'CHARGE_SECOURS','Dépouiller les dossiers (État de décompte)',NULL,'Chargés de Secours','METIER','depouiller_pieces','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (270,'HISTORIQUE',270,'CHARGE_SECOURS','Dépouiller les dossiers (CCETPP)',NULL,'Chargés de Secours','METIER','depouiller_pieces','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (271,'HISTORIQUE',271,'CHARGE_SECOURS','Dépouiller les dossiers (Demande de l’intéressé)',NULL,'Chargés de Secours','METIER','depouiller_pieces','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(272,'HISTORIQUE',272,'CHARGE_SECOURS','Archiver les Actes de décès',NULL,'Chargés de Secours','METIER','archiver_pieces','INERTE','La permission existe mais aucune route ne s’y réfère : elle ne donne accès à rien.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(273,'HISTORIQUE',273,'CHARGE_SECOURS','Archiver les Actes de Mariage',NULL,'Chargés de Secours','METIER','archiver_pieces','INERTE','La permission existe mais aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(274,'HISTORIQUE',274,'CHARGE_SECOURS','Archiver les Certificats de NSC',NULL,'Chargés de Secours','METIER','archiver_pieces','INERTE','La permission existe mais aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(275,'HISTORIQUE',275,'CHARGE_SECOURS','Archiver les Certificats de NDiv',NULL,'Chargés de Secours','METIER','archiver_pieces','INERTE','La permission existe mais aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(276,'HISTORIQUE',276,'CHARGE_SECOURS','Archiver les CIN',NULL,'Chargés de Secours','METIER','archiver_pieces','INERTE','La permission existe mais aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (277,'HISTORIQUE',277,'CHARGE_SECOURS','Faire cacheter et parapher les documents par le CF',NULL,'Chargés de Secours','METIER',NULL,'HORS_PLATEFORME','Le cachet du contrôle financier est apposé sur la pièce physique. La plateforme ne peut que tracer la demande de cachet.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (278,'HISTORIQUE',278,'MINISTERE','Direction de la Communication','Ligne de l’organigramme du Ministère','Organigramme','STRUCTURE',NULL,'HORS_PLATEFORME','Ligne d’organigramme officiel. Ce n’est pas une action du logiciel : le SRSP ne gère pas les autres directions du Ministère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (279,'HISTORIQUE',279,'MINISTERE','Cabinet du Ministère','Ligne de l’organigramme du Ministère','Organigramme','STRUCTURE',NULL,'HORS_PLATEFORME','Ligne d’organigramme officiel. Ce n’est pas une action du logiciel : le SRSP ne gère pas les autres directions du Ministère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -2305,11 +2005,8 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (464,'OBLIGATOIRE',139,'OBLIGATOIRE','Division Solde — gérer le mandatement','Fonctionnalité obligatoire : Divisions','Divisions','METIER','preparer_mandatement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (465,'OBLIGATOIRE',140,'OBLIGATOIRE','Division Solde — vérifier les certificats de cessation','Fonctionnalité obligatoire : Divisions','Divisions','METIER','verifier_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (466,'OBLIGATOIRE',141,'OBLIGATOIRE','Division Solde — vérifier les décomptes d’avance','Fonctionnalité obligatoire : Divisions','Divisions','METIER','controler_decomptes','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(467,'OBLIGATOIRE',142,'OBLIGATOIRE','Division Solde — approuver les bons de caisse','Fonctionnalité obligatoire : Divisions','Divisions','METIER','approuver_bons','INERTE','La permission existe mais aucune route ne s’y réfère : elle ne donne accès à rien.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(468,'OBLIGATOIRE',143,'OBLIGATOIRE','Division Solde — gérer les dossiers mères','Fonctionnalité obligatoire : Divisions','Divisions','METIER','gerer_dossiers_meres','INERTE','La permission existe mais aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (469,'OBLIGATOIRE',144,'OBLIGATOIRE','Division Pension — gérer la liquidation','Fonctionnalité obligatoire : Divisions','Divisions','METIER','liquider_pension','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (470,'OBLIGATOIRE',145,'OBLIGATOIRE','Division Pension — lettres de prescription','Fonctionnalité obligatoire : Divisions','Divisions','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(471,'OBLIGATOIRE',146,'OBLIGATOIRE','Division Pension — gérer les oppositions','Fonctionnalité obligatoire : Divisions','Divisions','METIER','suivre_oppositions','INERTE','La permission existe mais aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (472,'OBLIGATOIRE',147,'OBLIGATOIRE','Division Pension — transmettre les derniers arrérages','Fonctionnalité obligatoire : Divisions','Divisions','METIER','gerer_correspondances','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (473,'OBLIGATOIRE',148,'OBLIGATOIRE','Division Pension — certificats de cessation','Fonctionnalité obligatoire : Divisions','Divisions','METIER','liquider_pension','PARTIELLE','La donnée de cessation est gérée. La production du certificat imprimable n’existe pas.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (474,'OBLIGATOIRE',149,'OBLIGATOIRE','Division Secours — réceptionner les dossiers du CF','Fonctionnalité obligatoire : Divisions','Divisions','METIER','enregistrer_visa_cf','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -2317,7 +2014,6 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (476,'OBLIGATOIRE',151,'OBLIGATOIRE','Division Secours — gérer l’ordonnancement','Fonctionnalité obligatoire : Divisions','Divisions','METIER','gerer_ordonnancement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (477,'OBLIGATOIRE',152,'OBLIGATOIRE','Division Secours — imprimer les huit pièces','Fonctionnalité obligatoire : Divisions','Divisions','METIER','preparer_mandatement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (478,'OBLIGATOIRE',153,'OBLIGATOIRE','Division Secours — dépouiller les dossiers','Fonctionnalité obligatoire : Divisions','Divisions','METIER','depouiller_pieces','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(479,'OBLIGATOIRE',154,'OBLIGATOIRE','Division Secours — archiver les pièces','Fonctionnalité obligatoire : Divisions','Divisions','METIER','archiver_pieces','INERTE','La permission existe mais aucune route ne s’y réfère.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (480,'OBLIGATOIRE',155,'OBLIGATOIRE','Chef de Service — valider les dossiers','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','valider_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (481,'OBLIGATOIRE',156,'OBLIGATOIRE','Chef de Service — signer les dossiers','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','signer_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (482,'OBLIGATOIRE',157,'OBLIGATOIRE','Chef de Service — clôturer les dossiers','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','cloturer_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -2327,16 +2023,11 @@ INSERT INTO `referentiel_fonctionnalites` VALUES
 (486,'OBLIGATOIRE',161,'OBLIGATOIRE','Secrétaire — créer les dossiers','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','create_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (487,'OBLIGATOIRE',162,'OBLIGATOIRE','Secrétaire — enregistrer les dossiers','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','create_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (488,'OBLIGATOIRE',163,'OBLIGATOIRE','Secrétaire — orienter les dossiers','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','orienter_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(489,'OBLIGATOIRE',164,'OBLIGATOIRE','Secrétaire — gérer la chronologie des actes','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','gerer_chronologie_actes','LIVREE','Registre des actes construit : numérotation atomique par famille et par année au format {PRÉFIXE}-{ANNEE}-{6CAR}, recherche, annulation motivée qui ne libère pas le numéro, et détection des numéros manquants. Les types d’actes sont dans une table, trois types sont amorcés : le document ne décrit pas la nomenclature complète, et le reste s’ajoute sans migration.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (490,'OBLIGATOIRE',165,'OBLIGATOIRE','Chef BAAF — gérer les documents comptables','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','manage_documents','PARTIELLE','Le dépôt et l’archivage des documents fonctionnent. L’analyse des pièces comptables elle-même n’existe pas.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (491,'OBLIGATOIRE',166,'OBLIGATOIRE','Chef BAAF — saisir sur SIIGFP','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER',NULL,'HORS_PLATEFORME','SIIGFP est un système financier externe du Ministère. La plateforme prépare les données, elle n’y écrit pas.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (492,'OBLIGATOIRE',167,'OBLIGATOIRE','Chef BAAF — saisir sur SIIGMP','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER',NULL,'HORS_PLATEFORME','SIIGMP est un système externe. Même limite que pour SIIGFP.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (493,'OBLIGATOIRE',168,'OBLIGATOIRE','Chef BAAF — produire les situations FCC/BCSE','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER',NULL,'NON_CONSTRUITE','La nomenclature FCC/BCSE n’est décrite nulle part. Un état produit sans elle ne serait conforme à rien.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (494,'OBLIGATOIRE',169,'OBLIGATOIRE','Chef BAAF — gérer le personnel','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','manage_personnel','PARTIELLE','La gestion des agents existe. Congés et permissions non : le droit du travail malgache n’est pas documenté et les droits ne peuvent pas être inventés.','2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(495,'OBLIGATOIRE',170,'OBLIGATOIRE','Chef BAAF — établir les pièces de déplacement','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','etablir_pieces_deplacement','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(496,'OBLIGATOIRE',171,'OBLIGATOIRE','Coordonnatrice — créer les immatriculations','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','gerer_immatriculations','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(497,'OBLIGATOIRE',172,'OBLIGATOIRE','Coordonnatrice — gérer les insertions Augure','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','gerer_augure','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
-(498,'OBLIGATOIRE',173,'OBLIGATOIRE','Coordonnatrice — traiter les changements de paiement','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','gerer_paiements','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (499,'OBLIGATOIRE',174,'OBLIGATOIRE','Coordonnatrice — préparer les rapports','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','consolidate_reports','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (500,'OBLIGATOIRE',175,'OBLIGATOIRE','Chefs de Division — affecter les dossiers','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','affecter_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
 (501,'OBLIGATOIRE',176,'OBLIGATOIRE','Chefs de Division — vérifier les dossiers','Fonctionnalité obligatoire : Par rôle','Par rôle','METIER','verifier_dossier','LIVREE',NULL,'2026-10-05 07:24:41','2026-10-05 07:24:41'),
@@ -2580,18 +2271,10 @@ INSERT INTO `role_permissions` VALUES
 (3,26),
 (1,27),
 (8,27),
-(1,28),
-(8,28),
-(1,29),
-(9,29),
 (1,30),
 (10,30),
-(1,31),
-(10,31),
 (1,32),
 (11,32),
-(1,33),
-(11,33),
 (1,34),
 (12,34),
 (1,35),
@@ -2600,17 +2283,9 @@ INSERT INTO `role_permissions` VALUES
 (12,36),
 (1,37),
 (13,37),
-(1,38),
-(13,38),
 (1,83),
 (3,83),
 (1,84),
-(1,85),
-(3,85),
-(1,86),
-(2,86),
-(1,87),
-(3,87),
 (1,88),
 (1,89),
 (1,90),
@@ -2898,43 +2573,6 @@ COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 
 --
--- Table structure for table `types_actes`
---
-
-DROP TABLE IF EXISTS `types_actes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `types_actes` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `code` varchar(30) NOT NULL,
-  `libelle` varchar(120) NOT NULL,
-  `prefixe` varchar(10) NOT NULL,
-  `description` text DEFAULT NULL,
-  `actif` tinyint(1) NOT NULL DEFAULT 1,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_type_acte_code` (`code`),
-  UNIQUE KEY `uk_type_acte_prefixe` (`prefixe`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `types_actes`
---
-
-SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
-LOCK TABLES `types_actes` WRITE;
-/*!40000 ALTER TABLE `types_actes` DISABLE KEYS */;
-INSERT INTO `types_actes` VALUES
-(1,'BON_ENTREE','Bon d’entrée','BE','Enregistrement d’une pièce ou d’un courrier reçu.',1,'2026-10-05 07:24:42'),
-(2,'NOTE','Note de service','NOT','Note adressée à un agent, une division ou l’administration.',1,'2026-10-05 07:24:42'),
-(3,'LETTRE','Lettre','LET','Correspondance formelle sortante.',1,'2026-10-05 07:24:42');
-/*!40000 ALTER TABLE `types_actes` ENABLE KEYS */;
-UNLOCK TABLES;
-COMMIT;
-SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
-
---
 -- Table structure for table `types_courriers`
 --
 
@@ -3079,41 +2717,6 @@ INSERT INTO `types_pieces` VALUES
 (9,'CCETPP','CCETPP',1,'DEPOUILLEMENT',30,'SECOURS'),
 (10,'DEMANDE_INTERESSE','Demande de l\'intéressé(e)',1,'DEPOUILLEMENT',40,'SECOURS');
 /*!40000 ALTER TABLE `types_pieces` ENABLE KEYS */;
-UNLOCK TABLES;
-COMMIT;
-SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
-
---
--- Table structure for table `types_pieces_deplacement`
---
-
-DROP TABLE IF EXISTS `types_pieces_deplacement`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `types_pieces_deplacement` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `code` varchar(30) NOT NULL,
-  `libelle` varchar(150) NOT NULL,
-  `description` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_type_piece_dep_code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `types_pieces_deplacement`
---
-
-SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
-LOCK TABLES `types_pieces_deplacement` WRITE;
-/*!40000 ALTER TABLE `types_pieces_deplacement` DISABLE KEYS */;
-INSERT INTO `types_pieces_deplacement` VALUES
-(1,'ORDRE_ROUTE','Ordre de route','Autorisation de ciruler pour une mission hors du ressort.','2026-10-05 07:24:41'),
-(2,'ORDRE_MISSION','Ordre de mission','Instruction de se rendre sur un lieu et d y accomplir une tache.','2026-10-05 07:24:41'),
-(3,'AUTORISATION_BC','Autorisation de retrait de bon de caisse','Retrait d un bon de caisse pour une depense de mission.','2026-10-05 07:24:41'),
-(4,'NOTE_INTERIM','Note d interim','Assurance temporaire d un agent absent.','2026-10-05 07:24:41');
-/*!40000 ALTER TABLE `types_pieces_deplacement` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;

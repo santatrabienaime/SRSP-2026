@@ -4,8 +4,9 @@ import { statistiqueService } from '../../services/statistiqueService.js';
 import { dashboardService } from '../../services/dashboardService.js';
 import { StatCard } from '../../components/ui/StatCard.jsx';
 import { Card } from '../../components/ui/Card.jsx';
-import { BarChart } from '../../components/charts/BarChart.jsx';
 import { PieChart } from '../../components/charts/PieChart.jsx';
+import { BarChart } from '../../components/charts/BarChart.jsx';
+import { Alert } from '../../components/ui/Alert.jsx';
 import { STATUT_LABELS } from '../../config/constants.js';
 
 export function StatistiquesPage() {
@@ -13,20 +14,27 @@ export function StatistiquesPage() {
   const [byStatus, setByStatus] = useState([]);
   const [byDivision, setByDivision] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     Promise.all([
       statistiqueService.get({}),
       dashboardService.byStatus(),
       dashboardService.byDivision(),
     ])
       .then(([s, st, dv]) => {
+        if (cancelled) return;
         setStats(s);
         setByStatus(Array.isArray(st) ? st : []);
         setByDivision(Array.isArray(dv) ? dv : []);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!cancelled) setError('Impossible de charger les statistiques.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
   }, []);
 
   const statusRows = byStatus.map((d) => ({
@@ -46,6 +54,12 @@ export function StatistiquesPage() {
         <p className="text-sm text-slate-500">Indicateurs de performance du traitement des dossiers.</p>
       </div>
 
+      {error && (
+        <Alert type="error" title="Statistiques indisponibles">
+          {error}
+        </Alert>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={Files} label="Dossiers totaux" value={stats?.total} tone="primary" loading={loading} />
         <StatCard icon={Target} label="Validés" value={stats?.valides} tone="emerald" loading={loading} />
@@ -54,9 +68,6 @@ export function StatistiquesPage() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card title="Dossiers par statut">
-          <BarChart data={statusRows} nameKey="name" dataKey="total" color="#8b5cf6" />
-        </Card>
         <Card title="Répartition par statut">
           <PieChart data={statusRows} nameKey="name" dataKey="total" height={300} />
         </Card>

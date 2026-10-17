@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, FolderKanban, Info, FileText, History, MessageSquare, Calculator } from 'lucide-react';
+import { ArrowLeft, FolderKanban, Info, FileText, History, MessageSquare } from 'lucide-react';
 import { useDossier } from '../../hooks/useDossier.js';
 import { Badge } from '../ui/Badge.jsx';
 import { Card } from '../ui/Card.jsx';
@@ -12,11 +12,8 @@ import { WorkflowTimeline } from './WorkflowTimeline.jsx';
 import { TracabiliteTimeline } from './TracabiliteTimeline.jsx';
 import { DepouillementChecklist } from './DepouillementChecklist.jsx';
 import { Mandatement } from './Mandatement.jsx';
-import { LiquidationPension } from './LiquidationPension.jsx';
-import { DecompteAvance } from './DecompteAvance.jsx';
-import { ControleDecompte } from './ControleDecompte.jsx';
-import { CommentairesDossier } from './CommentairesDossier.jsx';
 import { HistoriqueDossier } from './HistoriqueDossier.jsx';
+import { CommentairesDossier } from './CommentairesDossier.jsx';
 import { dossierService } from '../../services/dossierService.js';
 import { DocumentList } from '../document/DocumentList.jsx';
 import { DocumentUpload } from '../document/DocumentUpload.jsx';
@@ -65,20 +62,10 @@ export function DossierDetail({ id }) {
     [id, refreshKey]
   );
 
-  /* Une notification peut ouvrir la fiche sur une ancre (#commentaires,
-     #documents, #liquidation-pension…). En onglets, l'ancre seule ne
-     suffirait pas : la section visée resterait masquée. On ouvre donc l'onglet
-     correspondant, sinon l'utilisateur atterrirait sur une fiche qui ne montre
-     pas ce que la notification lui annonçait. */
   const ONGLETS_PAR_ANCRE = {
     commentaires: 'commentaires',
     documents: 'documents',
     historique: 'historique',
-    liquidation: 'calculs',
-    'liquidation-pension': 'calculs',
-    'decompte-avance': 'calculs',
-    'controle-decompte': 'calculs',
-    calculs: 'calculs',
   };
 
   useEffect(() => {
@@ -99,20 +86,19 @@ export function DossierDetail({ id }) {
   if (!dossier) return <Alert type="warning">Dossier introuvable.</Alert>;
 
   const statusClass = statusBadgeClass(dossier.statut_code);
-
-  /* Les quatre onglets du document, plus « Calculs » qui n'existe que pour les
-     types qui ont des panneaux financiers. Un onglet vide serait un clic qui ne
-     mène nulle part. */
-  const TYPES_AVEC_CALCULS = ['PENSION', 'SOLDE', 'SECOURS'];
   const nombreActions = historique.data?.actions?.length || 0;
+
+  /* Onglets de la fiche dossier : les quatre onglets du document, plus les
+     panneaux métier réservés au type de dossier (ex. Secours : dépouillement
+     et mandatement). Un onglet vide serait un clic qui ne mène nulle part. */
   const onglets = [
     { cle: 'infos', label: 'Informations', icon: Info },
-    ...(TYPES_AVEC_CALCULS.includes(dossier.type_code)
-      ? [{ cle: 'calculs', label: 'Calculs', icon: Calculator }]
-      : []),
     { cle: 'documents', label: 'Documents', icon: FileText },
     { cle: 'historique', label: 'Historique', icon: History },
     { cle: 'commentaires', label: 'Commentaires', icon: MessageSquare },
+    ...(dossier.type_code === 'SECOURS'
+      ? [{ cle: 'secours', label: 'Secours', icon: FileText }]
+      : []),
   ];
 
   return (
@@ -212,35 +198,6 @@ export function DossierDetail({ id }) {
         </div>
       )}
 
-      {/* Onglet Calculs — selon le type de dossier.
-          Les identifiants servent d'ancre : une notification de contrôle du
-          décompte ramène directement au panneau concerné. */}
-      {onglet === 'calculs' && (
-        <div className="space-y-5">
-          {dossier.type_code === 'PENSION' && (
-            <div id="liquidation-pension" className="scroll-mt-20">
-              <LiquidationPension dossierId={dossier.id} />
-            </div>
-          )}
-          {dossier.type_code === 'SOLDE' && (
-            <>
-              <div id="decompte-avance" className="scroll-mt-20">
-                <DecompteAvance dossierId={dossier.id} />
-              </div>
-              <div id="controle-decompte" className="scroll-mt-20">
-                <ControleDecompte dossierId={dossier.id} />
-              </div>
-            </>
-          )}
-          {dossier.type_code === 'SECOURS' && (
-            <>
-              <DepouillementChecklist dossierId={dossier.id} />
-              <Mandatement dossierId={dossier.id} />
-            </>
-          )}
-        </div>
-      )}
-
       {/* Onglet Documents */}
       {onglet === 'documents' && (
         <div id="documents" className="scroll-mt-20">
@@ -300,10 +257,22 @@ export function DossierDetail({ id }) {
         </div>
       )}
 
-      {/* Onglet Commentaires (article 2.8) */}
+      {/* Onglet Commentaires internes (article 2.8) */}
       {onglet === 'commentaires' && (
-        <div id="commentaires" className="scroll-mt-20">
+        <div className="space-y-5">
           <CommentairesDossier dossierId={dossier.id} />
+        </div>
+      )}
+
+      {/* Onglet Secours : dépouillement et mandatement (division Secours) */}
+      {onglet === 'secours' && (
+        <div className="space-y-5">
+          <Card title="Dépouillement">
+            <DepouillementChecklist dossierId={dossier.id} />
+          </Card>
+          <Card title="Mandatement">
+            <Mandatement dossierId={dossier.id} />
+          </Card>
         </div>
       )}
     </div>

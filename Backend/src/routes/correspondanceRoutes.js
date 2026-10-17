@@ -1,5 +1,5 @@
 import express from 'express';
-import * as ctrl from '../controllers/mandatementController.js';
+import * as ctrl from '../controllers/correspondanceController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { rbacMiddleware } from '../middlewares/rbacMiddleware.js';
 

@@ -1,6 +1,6 @@
 import {
   FolderKanban, FileText, Stamp, ShieldCheck, FileBarChart2, BarChart3,
-  FilePlus2, MailPlus, Compass, Upload, Clock, AlertTriangle, Route, Inbox,
+  FilePlus2, MailPlus, Compass, Upload, Clock, AlertTriangle, Inbox,
 } from 'lucide-react';
 
 /**
@@ -69,21 +69,18 @@ const CONFIG = {
      documents comptables, pièces de déplacement, secrétariat. */
   CHEF_BAAF: {
     titre: 'Tableau de bord — Chef BAAF',
-    sousTitre: 'Documents comptables, pièces de déplacement et secrétariat.',
-    kpis: ({ ress, ordres }) => [
+    sousTitre: 'Documents comptables et secrétariat.',
+    kpis: ({ ress }) => [
       { icon: FileText, label: 'Documents', value: n(ress?.documents?.total), tone: 'primary', sub: 'Documents comptables' },
-      { icon: Route, label: 'Pièces de déplacement', value: n(ordres?.tdb?.total), tone: 'sky', sub: "Ordres et notes d'intérim" },
-      { icon: Stamp, label: 'Ordres à signer', value: n(ordres?.tdb?.a_signer), tone: 'amber', sub: 'En attente du Chef de Service' },
+      { icon: Stamp, label: 'Ordres à signer', value: n(ress?.courriers?.a_signer ?? 0), tone: 'amber', sub: 'En attente du Chef de Service' },
       { icon: MailPlus, label: 'Courriers', value: n(ress?.courriers?.total), tone: 'violet', sub: 'Courriers du service' },
     ],
     actions: [
-      { to: '/baaf/pieces-deplacement', label: 'Établir une pièce', icon: FileText, perms: ['etablir_pieces_deplacement'] },
       { to: '/documents/upload', label: 'Déposer un document', icon: Upload, perms: ['upload_document'] },
       { to: '/courriers/nouveau', label: 'Nouveau courrier', icon: MailPlus, perms: ['manage_courriers'] },
       { to: '/rapports', label: 'Rapports', icon: FileBarChart2, perms: ['consolidate_reports'] },
     ],
     charts: ['statut'],
-    listeOrdres: true,
   },
 
   /* Spec §5, sans immatriculation/Augure/paiement (pages supprimées) :
@@ -112,8 +109,7 @@ const CONFIG = {
  * Renvoie null pour un rôle non couvert (le tri par périmètre prend le relais).
  *
  * Données : s (summary), files (files d'attente du summary),
- * ress (comptes courriers/documents), ordres (tableau de bord + liste des
- * pièces de déplacement, Chef BAAF uniquement).
+ * ress (comptes courriers/documents).
  */
 export function configRole(role, data) {
   const cfg = CONFIG[role];

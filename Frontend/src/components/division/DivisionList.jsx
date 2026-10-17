@@ -7,19 +7,24 @@ import { Pagination } from '../ui/Pagination.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { EmptyState } from '../ui/EmptyState.jsx';
+import { Alert } from '../ui/Alert.jsx';
 import { DivisionForm } from './DivisionForm.jsx';
 import { Modal } from '../ui/Modal.jsx';
 
 export function DivisionList() {
   const [divisions, setDivisions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const rows = await divisionService.list();
       setDivisions(Array.isArray(rows) ? rows : []);
+    } catch (e) {
+      setError(e);
     } finally {
       setLoading(false);
     }
@@ -54,6 +59,11 @@ export function DivisionList() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <Alert type="error" title="Impossible de charger les divisions">
+          {error.message || String(error)}
+        </Alert>
+      )}
       <div className="flex justify-end">
         <Button onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" /> Nouvelle division

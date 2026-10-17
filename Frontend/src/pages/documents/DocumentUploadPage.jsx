@@ -1,27 +1,72 @@
+import { useEffect, useState } from 'react';
 import { DocumentList } from '../../components/document/DocumentList.jsx';
 import { DocumentUpload } from '../../components/document/DocumentUpload.jsx';
 import { Card } from '../../components/ui/Card.jsx';
-import { useState } from 'react';
+import { Select } from '../../components/ui/Select.jsx';
+import { dossierService } from '../../services/dossierService.js';
+import { courrierService } from '../../services/courrierService.js';
 
 /**
- * Page d'upload de documents sans dossier prédéfini :
- * le fichier est rattaché directement (courrier ou dossier indiqué dans la liste).
+ * Page d'upload de documents : le fichier peut être rattaché à un dossier ou
+ * à un courrier, comme indiqué ici (le composant accepte les deux identifiants).
  */
 export function DocumentUploadPage() {
   const [key, setKey] = useState(0);
+  const [dossiers, setDossiers] = useState([]);
+  const [courriers, setCourriers] = useState([]);
+  const [dossierId, setDossierId] = useState('');
+  const [courrierId, setCourrierId] = useState('');
+
+  useEffect(() => {
+    Promise.all([
+      dossierService.list({}).catch(() => []),
+      courrierService.list({}).catch(() => []),
+    ]).then(([ds, cs]) => {
+      setDossiers(Array.isArray(ds) ? ds : []);
+      setCourriers(Array.isArray(cs) ? cs : []);
+    });
+  }, []);
+
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-800">Téléverser un document</h1>
         <p className="text-sm text-slate-500">
-          Joindre un document au registre (rattaché à un dossier ou un courrier depuis la page concernée).
+          Joindre un document au registre (rattaché à un dossier ou un courrier).
         </p>
       </div>
       <Card title="Nouveau document">
-        <DocumentUpload onUploaded={() => setKey((k) => k + 1)} />
-        <p className="mt-2 text-xs text-slate-400">
-          Conseil : joignez vos documents depuis la fiche du dossier ou du courrier pour les rattacher automatiquement.
-        </p>
+        <DocumentUpload
+          dossierId={dossierId || undefined}
+          courrierId={courrierId || undefined}
+          onUploaded={() => setKey((k) => k + 1)}
+        />
+        <div className="mt-4 space-y-1">
+          <Select
+            label="Rattacher à un dossier"
+            value={dossierId}
+            onChange={(e) => setDossierId(e.target.value)}
+          >
+            <option value="">Aucun (document indépendant)</option>
+            {dossiers.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.numero} — {d.objet}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Rattacher à un courrier"
+            value={courrierId}
+            onChange={(e) => setCourrierId(e.target.value)}
+          >
+            <option value="">Aucun (document non rattaché)</option>
+            {courriers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.numero} — {c.objet}
+              </option>
+            ))}
+          </Select>
+        </div>
       </Card>
       <Card title="Documents récents">
         <DocumentList key={key} />
