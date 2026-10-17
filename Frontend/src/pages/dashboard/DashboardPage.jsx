@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   FolderKanban, CheckCircle2, Clock, AlertTriangle, ArrowRight,
   UserCheck, Send, ShieldCheck, Stamp, Archive, PencilRuler, Inbox, Info,
+  MailPlus, Clock as ClockIcon,
 } from 'lucide-react';
 import { dashboardService } from '../../services/dashboardService.js';
 import { dossierService } from '../../services/dossierService.js';
@@ -30,7 +31,6 @@ import { configRole } from './dashboardRoles.js';
  *    voit que ses dossiers, un chef de division les siens.
  */
 
-/** Jeu d'indicateurs selon le périmètre (rôles hors spec V2.0). */
 function kpiPour(perimetre, s, files) {
   const n = (v) => (typeof v === 'number' ? v : undefined);
 
@@ -62,7 +62,7 @@ function kpiPour(perimetre, s, files) {
     { icon: Stamp, label: 'À signer', value: n(files?.aSigner), tone: 'amber', sub: 'Validés' },
     { icon: Archive, label: 'À clôturer', value: n(files?.aCloturer), tone: 'sky', sub: 'Signés' },
     { icon: AlertTriangle, label: 'En retard', value: n(s?.enRetard), tone: 'red', sub: '> 30 jours' },
-    { icon: Inbox, label: 'À orienter', value: n(files?.aOrienter), tone: 'primary', sub: 'Reçus / enregistrés' },
+    { icon: Inbox, label: 'Nouveaux / reçus', value: n(files?.aOrienter), tone: 'blue', sub: 'Nouveaux dossiers reçus' },
   ];
 }
 
@@ -175,6 +175,49 @@ export function DashboardPage() {
         {kpis.map((k) => (
           <StatCard key={k.label} {...k} />
         ))}
+      </div>
+
+      {/* Section dédiée aux nouveaux dossiers reçus (couleur bleue) */}
+      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <Card title="Nouveaux dossiers" actions={
+          <Link to="/dossiers" className={LIEN_VOIR}>
+            Tout voir <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        }>
+          <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+            <Inbox className="h-8 w-8 text-blue-600 shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                Nouveaux reçus
+              </p>
+              <p className="text-2xl font-bold text-blue-700">
+                {files?.aOrienter ?? 0}
+              </p>
+              <p className="text-xs text-blue-500">
+                À traiter en priorité
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {files?.RECU !== undefined && (
+          <Card title="Dossiers reçus (30 jours)">
+            <div className="flex items-center gap-3 p-4 bg-blue-100 rounded-lg border border-blue-200">
+              <Inbox className="h-8 w-8 text-blue-600 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
+                  Réception récente
+                </p>
+                <p className="text-2xl font-bold text-blue-700">
+                  {files.RECU}
+                </p>
+                <p className="text-xs text-blue-500">
+                  30 derniers jours
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
 
       {(charts.includes('statut') || charts.includes('division')) && (

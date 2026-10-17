@@ -17,6 +17,7 @@ export function StatCard({
     violet: 'bg-violet-50 text-violet-600',
     sky: 'bg-sky-50 text-sky-600',
     slate: 'bg-slate-100 text-slate-600',
+    blue: 'bg-blue-50 text-blue-600',
   };
 
   return (

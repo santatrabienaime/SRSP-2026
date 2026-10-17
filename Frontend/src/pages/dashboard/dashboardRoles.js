@@ -34,6 +34,7 @@ const CONFIG = {
       { icon: FolderKanban, label: 'Total dossiers', value: n(s?.total), tone: 'primary', sub: 'Toutes divisions' },
       { icon: ShieldCheck, label: 'À valider', value: n(files?.aValider), tone: 'violet', sub: 'Soumis à vérification' },
       { icon: Stamp, label: 'À signer', value: n(files?.aSigner), tone: 'amber', sub: 'Validés' },
+      { icon: Inbox, label: 'Nouveaux reçus', value: n(files?.aOrienter), tone: 'blue', sub: 'Nouveaux dossiers reçus' },
       { icon: AlertTriangle, label: 'En retard', value: n(s?.enRetard), tone: 'red', sub: '> 30 jours' },
     ],
     actions: [
@@ -51,7 +52,7 @@ const CONFIG = {
     titre: 'Tableau de bord — Secrétaire',
     sousTitre: 'Réception, enregistrement et orientation des dossiers.',
     kpis: ({ s, files, ress }) => [
-      { icon: Inbox, label: 'Reçus', value: n(s?.RECU), tone: 'primary', sub: "En attente d'enregistrement" },
+      { icon: Inbox, label: 'Nouveaux reçus', value: n(s?.RECU), tone: 'blue', sub: "En attente d'enregistrement" },
       { icon: Compass, label: 'À orienter', value: n(files?.aOrienter), tone: 'amber', sub: 'Enregistrés / orientés' },
       { icon: MailPlus, label: 'Courriers', value: n(ress?.courriers?.total), tone: 'sky', sub: `Reçus : ${ress?.courriers?.recus ?? 0}` },
       { icon: FolderKanban, label: 'Total dossiers', value: n(s?.total), tone: 'violet', sub: 'Tous statuts' },
@@ -83,13 +84,14 @@ const CONFIG = {
     charts: ['statut'],
   },
 
-  /* Spec §5, sans immatriculation/Augure/paiement (pages supprimées) :
-     elle suit désormais les dossiers et produit les statistiques. */
+  /* Spec §5, sans immatriculation/Augure/paiement (supprimés ou non construits) :
+     elle suit désormais les dossiers et produit la statistique. */
   COORDINATRICE: {
     titre: 'Tableau de bord — Coordonnatrice',
     sousTitre: 'Suivi des dossiers du service et production statistique.',
     kpis: ({ s, files }) => [
       { icon: FolderKanban, label: 'Total dossiers', value: n(s?.total), tone: 'primary', sub: 'Toutes divisions' },
+      { icon: Inbox, label: 'Nouveaux reçus', value: n(s?.RECU), tone: 'blue', sub: "Dossiers reçus récents" },
       { icon: Clock, label: 'En traitement', value: n(files?.enCours), tone: 'sky', sub: 'Dossiers en cours' },
       { icon: AlertTriangle, label: 'À corriger', value: n(files?.aCorriger), tone: 'red', sub: 'Retours en attente' },
       { icon: AlertTriangle, label: 'En retard', value: n(s?.enRetard), tone: 'amber', sub: '> 30 jours' },

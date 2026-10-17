@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, UserCheck, Clock, Archive, User } from 'lucide-react';
+import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, UserCheck, Clock, Archive, User, MailPlus } from 'lucide-react';
 import { DossierList } from '../../components/dossier/DossierList.jsx';
 import { dashboardService } from '../../services/dashboardService.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -15,10 +15,13 @@ const ROLES_GLOBAUX = [
  * Ensembles de dossiers pour le tri par avancement.
  * Chaque groupe définit des filtres serveur : la liste ne charge que ce qui
  * est affiché.
+ *
+ * Couleurs : bleu = dossiers nouveaux / reçus (à traiter en priorité),
+ * amber = en cours, emerald = terminés, red = urgents, slate = archivés.
  */
 const GROUPES = [
   {
-    code: 'NOUVEAUX', label: 'Nouveaux', icon: Inbox, color: 'bg-sky-500',
+    code: 'NOUVEAUX', label: 'Nouveaux', icon: Inbox, color: 'bg-blue-500',
     hint: 'Reçus ou enregistrés, pas encore orientés',
     filters: { recus_depuis_jours: 30, statut: 'RECU,ENREGISTRE' },
     statuts: ['RECU', 'ENREGISTRE'],
