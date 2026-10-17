@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import { useNavigate, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar.jsx';
 import { Topbar } from './Topbar.jsx';
 import { Footer } from './Footer.jsx';
@@ -18,15 +17,7 @@ import { IdleSessionGuard } from '../../hooks/useIdleSession.jsx';
 export function AppLayout() {
   const { user } = useAuth();
   const { barreRepliee } = useUI();
-  const navigate = useNavigate();
   const userId = user?.id ?? 'anon';
-
-  // Un changement de compte renvoie à l'accueil : on ne reste pas sur une page
-  // construite pour le rôle précédent.
-  useEffect(() => {
-    if (userId !== 'anon') navigate('/', { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
 
   return (
     /* overflow-x-hidden : filet de sécurité. Un tableau trop large ou un mot
@@ -37,20 +28,19 @@ export function AppLayout() {
     <div className="min-h-screen overflow-x-hidden bg-slate-100">
       <Sidebar />
       {/* La marge suit la largeur réelle de la barre, repliée ou non. Même
-          durée et même easing que la barre elle-même : si les deux.divergaient,
+          durée et même easing que la barre elle-même : si les deux divergent,
           le contenu accompagnerait la barre avec un décalage visible. */}
       <div
         className={`transition-[padding] duration-[250ms] ease-[cubic-bezier(.32,.72,0,1)] will-change-[padding] motion-reduce:transition-none ${
           barreRepliee ? 'pl-[4.5rem]' : 'pl-64'
-        }`}
-      >
+        }`}>
         <Topbar />
         <main className="px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
           <Outlet key={userId} />
         </main>
         <Footer />
       </div>
-      {/* Deconnexion automatique apres inactivite, avec avertissement. */}
+      {/* Déconnexion automatique après inactivité, avec avertissement. */}
       <IdleSessionGuard />
     </div>
   );
