@@ -24,6 +24,7 @@ import { CourrierCreatePage } from '../pages/courriers/CourrierCreatePage.jsx';
 import { CourrierDetailPage } from '../pages/courriers/CourrierDetailPage.jsx';
 
 import { NotificationsPage } from '../pages/notifications/NotificationsPage.jsx';
+import { MessagesPage } from '../pages/messages/MessagesPage.jsx';
 import { HistoriquePage } from '../pages/historique/HistoriquePage.jsx';
 import { ArchivesPage } from '../pages/archives/ArchivesPage.jsx';
 import { StatistiquesPage } from '../pages/statistiques/StatistiquesPage.jsx';
@@ -127,6 +128,7 @@ export function AppRouter() {
 
           {/* Suivi */}
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
           <Route
             path="/historique"
             element={

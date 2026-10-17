@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
+import { useState, useEffect } from 'react';
+import { messageService } from '../../services/messageService.js';
 
 const ICONS = {
   dashboard: LayoutDashboard,
@@ -74,6 +76,13 @@ export function Sidebar() {
     return true;
   };
 
+  const [nbMessagesNonLus, setNbMessagesNonLus] = useState(0);
+
+  // Charger le nombre de messages non lus au démarrage
+  useEffect(() => {
+    messageService.countUnread().then(setNbMessagesNonLus).catch(() => {});
+  }, []);
+
   const sections = [
     {
       label: 'Pilotage',
@@ -102,6 +111,7 @@ export function Sidebar() {
       label: 'Suivi',
       items: [
         { to: '/notifications', label: 'Notifications', icon: 'notifications' },
+        { to: '/messages', label: 'Messages', icon: 'courriers', badge: nbMessagesNonLus },
         { to: '/historique', label: 'Historique', icon: 'historique', perms: ['view_journal', 'view_audit'] },
         { to: '/archives', label: 'Archives', icon: 'archives', perms: ['view_archives'] },
         /* « Mes statistiques » est ouvert à tout le monde, sans permission.
@@ -288,6 +298,11 @@ export function Sidebar() {
                         style={{ transitionDelay: `${delaiLabel(index, barreRepliee)}ms` }}
                       >
                         {item.label}
+                        {item.badge !== undefined && (
+                          <span className="ml-1 inline-flex items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-bold px-1.5">
+                            {item.badge}
+                          </span>
+                        )}
                       </span>
                     </NavLink>
                   </li>
