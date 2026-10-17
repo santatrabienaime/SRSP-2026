@@ -59,7 +59,12 @@ export function LoginPage() {
     try {
       const profil = await login(id, password.value);
       toastSuccess('Connexion réussie.');
-      navigate(landingPathFor(profil, from), { replace: true });
+      // Redirection vers la page d'atterrissage du rôle, avec fallback sur /
+      const destination =
+        typeof landingPathFor === 'function'
+          ? landingPathFor(profil, from)
+          : '/';
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err);
     } finally {

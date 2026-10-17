@@ -48,7 +48,11 @@ export function DivisionDossiersRoute() {
   }
 
   if (!canViewDivision(user, code)) {
-    return <Navigate to={landingPathFor(user)} replace />;
+    const destination =
+      typeof landingPathFor === 'function'
+        ? landingPathFor(user)
+        : '/';
+    return <Navigate to={destination} replace />;
   }
 
   return (
