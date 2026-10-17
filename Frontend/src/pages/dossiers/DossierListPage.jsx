@@ -91,8 +91,8 @@ export function DossierListPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-slate-800">Dossiers</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Dossiers</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           {agentPersonnel
             ? 'Vos dossiers personnels — vous ne voyez que ceux dont vous êtes responsable.'
             : typeFiltre
@@ -103,7 +103,7 @@ export function DossierListPage() {
 
       {/* Badge d'isolement pour les agents : ils ne voient que leurs dossiers */}
       {agentPersonnel && (
-        <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 flex items-center gap-2">
+        <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 flex items-center gap-2 dark:border-sky-900/30 dark:bg-sky-900/20 dark:text-sky-300">
           <User className="h-4 w-4 shrink-0" />
           <span>Tableau personnel : vous consultez uniquement vos propres dossiers.</span>
         </div>
@@ -121,8 +121,8 @@ export function DossierListPage() {
               type="button"
               onClick={() => setGroupe(g.code)}
               className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none ${actif
-                ? `border-${g.color.replace('bg-', '')} text-white ${g.color.replace('bg-', 'bg-')}-600`
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+                ? `border-${g.color.replace('bg-', '')} text-white ${g.color.replace('bg-', 'bg-')}-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]`
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700'}`}
             >
               <Icon className={`h-4 w-4 ${actif ? 'text-white' : ''}`} />
               <span className="flex flex-col items-start leading-tight">
@@ -148,13 +148,14 @@ export function DossierListPage() {
           type="button"
           onClick={() => setGroupe('')}
           className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none ${groupe === ''
-            ? 'border-slate-700 bg-slate-700 text-white'
-            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+            ? 'border-slate-700 bg-slate-700 text-white shadow-[0_0_15px_rgba(74,85,99,0.3)]'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700'}`}
+          title="Tous les dossiers"
         >
           <Layers className="h-4 w-4" />
           <span className="flex flex-col items-start leading-tight">
             Tous
-            <span className="text-[10px] font-normal text-slate-400">Tous les statuts</span>
+            <span className="text-[10px] font-normal text-slate-400 dark:text-slate-400">Tous les statuts</span>
           </span>
           {compteurs && !chargement && (
             <span className={`rounded-full px-1.5 text-xs font-semibold ${groupe === '' ? 'bg-white/20' : 'bg-slate-100 text-slate-600'}`}>
@@ -166,7 +167,14 @@ export function DossierListPage() {
 
       {chargement ? (
         <div className="flex min-h-[30vh] items-center justify-center">
-          <Spinner label="Chargement des dossiers…" />
+          <div className="flex flex-col items-center justify-center gap-3">
+            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center animate-spin-slow shadow-lg shadow-blue-500/40">
+              <FolderKanban className="w-6 h-6 text-white" />
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Chargement des dossiers…
+            </p>
+          </div>
         </div>
       ) : (
         <DossierList
