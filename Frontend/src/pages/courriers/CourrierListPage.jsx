@@ -1,16 +1,11 @@
 import { CourrierList } from '../../components/courrier/CourrierList.jsx';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 export function CourrierListPage() {
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Courriers</h1>
-        <p className="text-sm text-slate-500">
-          Registre des courriers entrants et sortants, liés aux dossiers.
-        </p>
-      </div>
+    <AnimatedCard title="Courriers" subtitle="Registre des courriers entrants et sortants, liés aux dossiers." delay={0}>
       <CourrierList />
-    </div>
+    </AnimatedCard>
   );
 }
 

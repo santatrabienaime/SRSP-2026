@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, UserCheck, Clock, Archive, User, MailPlus } from 'lucide-react';
+import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, UserCheck, Clock, Archive, User, MailPlus, FolderKanban } from 'lucide-react';
 import { DossierList } from '../../components/dossier/DossierList.jsx';
 import { dashboardService } from '../../services/dashboardService.js';
 import { useAuth } from '../../hooks/useAuth.js';

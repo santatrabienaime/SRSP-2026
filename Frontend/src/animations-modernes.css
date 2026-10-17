@@ -601,3 +601,245 @@
 .magnetic-btn {
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+/* ============================================================================
+   STYLES GLOBAUX AUTOMATIQUES
+   S'appliquent à tous les éléments de la plateforme sans modification
+   ============================================================================ */
+
+/* Toutes les cartes ont un effet de survol élégant */
+.card {
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 12px;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.08);
+}
+
+.dark .card {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Tous les boutons ont un effet de survol */
+button {
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Tous les tableaux ont des lignes avec effet de survol */
+table tbody tr {
+  transition: all 0.2s ease;
+}
+
+table tbody tr:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+  transform: scale(1.005);
+}
+
+.dark table tbody tr:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Tous les formulaires ont des champs avec effet de focus */
+input, select, textarea {
+  transition: all 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  transform: scale(1.01);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Tous les badges ont un effet subtil */
+.badge {
+  transition: all 0.2s ease;
+}
+
+.badge:hover {
+  transform: scale(1.05);
+}
+
+/* Toutes les pages ont une animation d'entrée */
+main, [role="main"] {
+  animation: var(--animate-fade-in);
+}
+
+/* Tous les titres de section ont une ligne décorative */
+h1, h2 {
+  position: relative;
+}
+
+h1::after, h2::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  border-radius: 2px;
+  margin-top: 0.5rem;
+}
+
+/* Tous les liens ont un effet de survol */
+a {
+  transition: all 0.2s ease;
+}
+
+a:hover {
+  transform: translateX(2px);
+}
+
+/* Toutes les icônes ont un effet de survol */
+svg {
+  transition: all 0.2s ease;
+}
+
+svg:hover {
+  transform: scale(1.1);
+}
+
+/* Tous les éléments de menu ont un effet de survol */
+a[href], button[role="menuitem"], [role="tab"] {
+  transition: all 0.2s ease;
+}
+
+a[href]:hover, button[role="menuitem"]:hover, [role="tab"]:hover {
+  transform: translateX(4px);
+}
+
+/* Toutes les pages ont un fond avec dégradé subtil */
+body {
+  background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
+                    radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.05) 0px, transparent 50%),
+                    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+.dark body {
+  background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.03) 0px, transparent 50%),
+                    radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.03) 0px, transparent 50%),
+                    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.03) 0px, transparent 50%);
+}
+
+/* Toutes les tables ont un en-tête collant */
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: inherit;
+}
+
+/* Tous les tableaux de bord ont une grille responsive */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Toutes les cartes de statut ont une bordure colorée */
+.status-card-blue { border-left: 4px solid #2563eb; }
+.status-card-amber { border-left: 4px solid #f59e0b; }
+.status-card-emerald { border-left: 4px solid #10b981; }
+.status-card-red { border-left: 4px solid #ef4444; }
+.status-card-violet { border-left: 4px solid #8b5cf6; }
+.status-card-sky { border-left: 4px solid #0ea5e9; }
+
+/* Toutes les cartes de statistiques ont un effet de pulsation douce */
+.stat-pulse {
+  animation: var(--animate-pulse-glow);
+  animation-iteration-count: infinite;
+}
+
+/* Tous les éléments de liste ont un effet de survol */
+li {
+  transition: all 0.2s ease;
+}
+
+li:hover {
+  transform: translateX(4px);
+}
+
+/* Tous les boutons d'action principale ont un effet de shimmer */
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  transform: rotate(30deg);
+  transition: all 0.6s ease;
+}
+
+.btn-shimmer:hover::after {
+  left: 150%;
+}
+
+/* Tous les titres de page ont une ombre subtile */
+.page-title {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dark .page-title {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Toutes les cartes ont une bordure supérieure colorée selon le type */
+.card-blue { border-top: 4px solid #2563eb; }
+.card-amber { border-top: 4px solid #f59e0b; }
+.card-emerald { border-top: 4px solid #10b981; }
+.card-red { border-top: 4px solid #ef4444; }
+.card-violet { border-top: 4px solid #8b5cf6; }
+.card-sky { border-top: 4px solid #0ea5e9; }
+
+/* Tous les formulaires ont une carte avec effet de verre */
+.form-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0.3)
+  );
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+}
+
+.dark .form-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Tous les boutons de soumission ont un effet de pulsation */
+.btn-submit {
+  animation: var(--animate-pulse-blue);
+  animation-iteration-count: infinite;
+}

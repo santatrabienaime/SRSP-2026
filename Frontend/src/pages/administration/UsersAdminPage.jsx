@@ -18,226 +18,78 @@ import {
 } from '../../components/fields/index.jsx';
 import { usePagination } from '../../hooks/usePagination.js';
 import { useAuth } from '../../hooks/useAuth.js';
-import { formatDateTime } from '../../utils/formatDate.js';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 export function UsersAdminPage() {
-  const { user: me } = useAuth();
-  const { toastSuccess, toastError } = useNotification();
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [resetTarget, setResetTarget] = useState(null);
-  const [resetPwd, setResetPwd] = useState('');
-  const [form, setForm] = useState({ username: '', email: '', password: '', role_id: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
 
-  const load = useCallback(async () => {
+  const totalPages = Math.ceil(users.length / pageSize);
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const [us, rs] = await Promise.all([userService.list(), roleService.list()]);
       setUsers(Array.isArray(us) ? us : []);
       setRoles(Array.isArray(rs) ? rs : []);
+    } catch (e) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadUsers();
+  }, [loadUsers]);
 
-  const pagination = usePagination(users, 10);
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm({ username: '', email: '', password: '', role_id: '' });
-    setError(null);
-    setOpen(true);
-  };
-
-  const openEdit = (u) => {
-    setEditing(u);
-    setForm({ username: u.username, email: u.email, password: '', role_id: u.role_id || '' });
-    setError(null);
-    setOpen(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    if (!form.username || !form.email || !form.role_id || (!editing && !form.password)) {
-      setError({ message: 'Champs obligatoires : identifiant, email, rôle et mot de passe (à la création).' });
-      return;
-    }
-    if (!editing && form.password.length < 8) {
-      setError({ message: 'Le mot de passe doit contenir au moins 8 caractères.' });
-      return;
-    }
-    setSaving(true);
-    try {
-      if (editing) {
-        await userService.update(editing.id, {
-          email: form.email,
-          role_id: Number(form.role_id),
-          actif: editing.actif,
-        });
-        toastSuccess('Utilisateur mis à jour.');
-      } else {
-        await userService.create({
-          username: form.username,
-          email: form.email,
-          password: form.password,
-          role_id: Number(form.role_id),
-        });
-        toastSuccess('Utilisateur créé.');
-      }
-      setOpen(false);
-      await load();
-    } catch (err) {
-      setError(err);
-      toastError(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleReset = async () => {
-    if (!resetPwd || resetPwd.length < 8) {
-      toastError('Le nouveau mot de passe doit contenir au moins 8 caractères.');
-      return;
-    }
-    try {
-      await userService.resetPassword(resetTarget.id, resetPwd);
-      toastSuccess('Mot de passe réinitialisé.');
-      setResetTarget(null);
-      setResetPwd('');
-    } catch (e) {
-      toastError(e.message);
-    }
-  };
-
-  const columns = [
-    { key: 'username', label: 'Identifiant', render: (r) => <span className="font-medium text-slate-700">{r.username}</span> },
-    { key: 'email', label: 'Email' },
-    {
-      key: 'role_nom',
-      label: 'Rôle',
-      render: (r) => <Badge className="border-primary-200 bg-primary-50 text-primary-700">{r.role_nom}</Badge>,
-    },
-    {
-      key: 'actif',
-      label: 'Statut',
-      render: (r) =>
-        r.actif ? (
-          <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">Actif</Badge>
-        ) : (
-          <Badge className="border-slate-200 bg-slate-100 text-slate-500">Inactif</Badge>
-        ),
-    },
-    { key: 'derniere_connexion', label: 'Dernière connexion', render: (r) => (r.derniere_connexion ? formatDateTime(r.derniere_connexion) : '—') },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (r) => (
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => openEdit(r)} title="Modifier">
-            <UserCog className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setResetTarget(r)} title="Réinitialiser le mot de passe">
-            <KeyRound className="h-4 w-4 text-amber-600" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  if (loading) return <Spinner label="Chargement des utilisateurs…" />;
+  if (error) return <Alert type="error">{error.message}</Alert>;
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800">Utilisateurs</h1>
-          <p className="text-sm text-slate-500">Gestion des comptes et des rôles (RBAC v2.0).</p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" /> Nouvel utilisateur
-        </Button>
-      </div>
-
-      <Card>
-        <Table columns={columns} data={pagination.currentItems} loading={loading} />
-        <Pagination pagination={pagination} className="mt-4" />
-      </Card>
-
-      {/* Création / édition */}
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title={editing ? `Modifier ${editing.username}` : 'Nouvel utilisateur'}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setOpen(false)}>Annuler</Button>
-            <Button type="submit" form="user-form" loading={saving}>Enregistrer</Button>
-          </>
-        }
-      >
-        <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
-          {error && <Alert type="error">{error.message}</Alert>}
-          <UsernameInput
-            label="Identifiant"
-            required
-            disabled={Boolean(editing)}
-            value={form.username}
-            onChange={(v) => setForm((f) => ({ ...f, username: v }))}
-          />
-          <EmailInput
-            label="Email"
-            required
-            value={form.email}
-            onChange={(v) => setForm((f) => ({ ...f, email: v }))}
-          />
-          {!editing && (
-            <PasswordInput
-              label="Mot de passe"
-              required
-              value={form.password}
-              onChange={(v) => setForm((f) => ({ ...f, password: v }))}
+    <AnimatedCard title="Utilisateurs" subtitle="Gestion des comptes et des rôles du personnel." delay={0}>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <Input
+              label="Rechercher un utilisateur"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Nom, email, rôle…"
             />
-          )}
-          <Select label="Rôle" required value={form.role_id} onChange={(e) => setForm((f) => ({ ...f, role_id: e.target.value }))}>
-            <option value="">Sélectionner…</option>
-            {roles.map((r) => (
-              <option key={r.id} value={r.id}>{r.nom}</option>
-            ))}
-          </Select>
-          {editing?.id === me?.id && (
-            <p className="text-xs text-amber-600">Attention : modification de votre propre compte.</p>
-          )}
-        </form>
-      </Modal>
-
-      {/* Réinitialisation */}
-      <Modal
-        open={resetTarget !== null}
-        onClose={() => setResetTarget(null)}
-        title={`Réinitialiser le mot de passe — ${resetTarget?.username}`}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setResetTarget(null)}>Annuler</Button>
-            <Button variant="danger" onClick={handleReset}>Réinitialiser</Button>
-          </>
-        }
-      >
-        <PasswordInput
-          label="Nouveau mot de passe"
-          required
-          value={resetPwd}
-          onChange={(v) => setResetPwd(v)}
+          </div>
+          <Button onClick={() => setSelected(null)} variant="secondary">
+            <Plus className="h-4 w-4" /> Nouvel utilisateur
+          </Button>
+        </div>
+        <Table
+          columns={[
+            { key: 'username', label: 'Identifiant', render: (u) => <span className="font-medium">{u.username}</span> },
+            { key: 'email', label: 'Email', render: (u) => <span className="text-sm text-slate-500">{u.email}</span> },
+            { key: 'role', label: 'Rôle', render: (u) => <Badge className="border-primary-200 bg-primary-50 text-primary-700">{u.role_nom}</Badge> },
+            { key: 'division', label: 'Division', render: (u) => <span className="text-slate-500">{u.division_nom || '—'}</span> },
+            { key: 'statut', label: 'Statut', render: (u) => <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">Actif</Badge> },
+          ]}
+          data={users.slice((page - 1) * pageSize, page * pageSize)}
+          loading={loading}
         />
-      </Modal>
-    </div>
+        <div className="flex items-center justify-between">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={(p) => setPage(p)}
+          />
+        </div>
+      </div>
+    </AnimatedCard>
   );
 }
 

@@ -1,20 +1,15 @@
 import { DocumentList } from '../../components/document/DocumentList.jsx';
 import { Card } from '../../components/ui/Card.jsx';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 /** Liste globale des documents (tous dossiers, tous courriers). */
 export function DocumentListPage() {
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Documents</h1>
-        <p className="text-sm text-slate-500">
-          Pièces jointes uploadées sur les dossiers et les courriers.
-        </p>
-      </div>
+    <AnimatedCard title="Documents" subtitle="Pièces jointes uploadées sur les dossiers et les courriers." delay={0}>
       <Card>
         <DocumentList />
       </Card>
-    </div>
+    </AnimatedCard>
   );
 }
 

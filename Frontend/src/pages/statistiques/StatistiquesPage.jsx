@@ -8,6 +8,7 @@ import { PieChart } from '../../components/charts/PieChart.jsx';
 import { BarChart } from '../../components/charts/BarChart.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { STATUT_LABELS } from '../../config/constants.js';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 export function StatistiquesPage() {
   const [stats, setStats] = useState(null);
@@ -48,11 +49,12 @@ export function StatistiquesPage() {
   }));
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Statistiques</h1>
-        <p className="text-sm text-slate-500">Indicateurs de performance du traitement des dossiers.</p>
-      </div>
+    <AnimatedCard title="Statistiques" subtitle="Indicateurs de performance du traitement des dossiers." delay={0}>
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">Statistiques</h1>
+          <p className="text-sm text-slate-500">Indicateurs de performance du traitement des dossiers.</p>
+        </div>
 
       {error && (
         <Alert type="error" title="Statistiques indisponibles">
@@ -77,6 +79,7 @@ export function StatistiquesPage() {
         <BarChart data={divisionRows} nameKey="name" dataKey="total" color="#10b981" />
       </Card>
     </div>
+    </AnimatedCard>
   );
 }
 

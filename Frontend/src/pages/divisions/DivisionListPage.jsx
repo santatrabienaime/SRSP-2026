@@ -1,14 +1,11 @@
 import { DivisionList } from '../../components/division/DivisionList.jsx';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 export function DivisionListPage() {
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Divisions</h1>
-        <p className="text-sm text-slate-500">Les 4 divisions du SRSP et leurs responsables.</p>
-      </div>
+    <AnimatedCard title="Divisions" subtitle="Répartition géographique et organisationnelle des dossiers." delay={0}>
       <DivisionList />
-    </div>
+    </AnimatedCard>
   );
 }
 

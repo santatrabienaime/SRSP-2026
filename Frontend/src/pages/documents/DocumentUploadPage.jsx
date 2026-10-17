@@ -5,6 +5,7 @@ import { Card } from '../../components/ui/Card.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { dossierService } from '../../services/dossierService.js';
 import { courrierService } from '../../services/courrierService.js';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 /**
  * Page d'upload de documents : le fichier peut être rattaché à un dossier ou
@@ -28,13 +29,7 @@ export function DocumentUploadPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Téléverser un document</h1>
-        <p className="text-sm text-slate-500">
-          Joindre un document au registre (rattaché à un dossier ou un courrier).
-        </p>
-      </div>
+    <AnimatedCard title="Téléverser un document" subtitle="Joindre un document au registre (rattaché à un dossier ou un courrier)." delay={0}>
       <Card title="Nouveau document">
         <DocumentUpload
           dossierId={dossierId || undefined}
@@ -71,7 +66,7 @@ export function DocumentUploadPage() {
       <Card title="Documents récents">
         <DocumentList key={key} />
       </Card>
-    </div>
+    </AnimatedCard>
   );
 }
 

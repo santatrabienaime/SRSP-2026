@@ -12,6 +12,7 @@ import { formatDateTime } from '../../utils/formatDate.js';
 import {
   passwordRules, isStrongPassword, PASSWORD_MESSAGE,
 } from '../../utils/password.js';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 export function ProfilePage() {
   const { user } = useAuth();
@@ -56,12 +57,7 @@ export function ProfilePage() {
   const joursRestants = user?.mot_de_passe?.jours_restants;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Mon profil</h1>
-        <p className="text-sm text-slate-500">Informations du compte et changement de mot de passe.</p>
-      </div>
-
+    <AnimatedCard title="Mon profil" subtitle="Informations du compte et changement de mot de passe." delay={0}>
       <Card title="Compte">
         <div className="flex items-center gap-4">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-100 text-primary-700">
@@ -150,7 +146,7 @@ export function ProfilePage() {
           </Button>
         </form>
       </Card>
-    </div>
+    </AnimatedCard>
   );
 }
 

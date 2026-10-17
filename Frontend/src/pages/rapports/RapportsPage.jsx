@@ -6,6 +6,7 @@ import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { useNotification } from '../../hooks/useNotification.js';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 export function RapportsPage() {
   const { toastSuccess, toastError } = useNotification();
@@ -43,13 +44,14 @@ export function RapportsPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Rapports</h1>
-        <p className="text-sm text-slate-500">
-          Génération de rapports d'activité sur l'ensemble des dossiers.
-        </p>
-      </div>
+    <AnimatedCard title="Rapports" subtitle="Génération de rapports d'activité sur l'ensemble des dossiers." delay={0}>
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">Rapports</h1>
+          <p className="text-sm text-slate-500">
+            Génération de rapports d'activité sur l'ensemble des dossiers.
+          </p>
+        </div>
 
       {error && <Alert type="error">{error.message}</Alert>}
 
@@ -75,6 +77,7 @@ export function RapportsPage() {
         </Card>
       </div>
     </div>
+    </AnimatedCard>
   );
 }
 

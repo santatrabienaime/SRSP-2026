@@ -16,6 +16,7 @@ import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { horodatageFr } from '../../components/dossier/HistoriqueDossier.jsx';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 /**
  * Journal global des actions (piste d'audit).
@@ -196,7 +197,8 @@ export function HistoriquePage() {
   const sansAuteur = donnees.sans_auteur ?? 0;
 
   return (
-    <div className="space-y-5">
+    <AnimatedCard title="Journal des actions" subtitle="Qui a fait quoi, quand, et sur quel dossier." delay={0}>
+      <div className="space-y-5">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-bold text-slate-800">
           <History className="h-5 w-5 text-primary-600" /> Historique
@@ -289,6 +291,7 @@ export function HistoriquePage() {
         </div>
       </Card>
     </div>
+    </AnimatedCard>
   );
 }
 

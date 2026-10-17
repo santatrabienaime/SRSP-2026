@@ -1,19 +1,14 @@
 import { NotificationList } from '../../components/notification/NotificationList.jsx';
 import { Card } from '../../components/ui/Card.jsx';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 export function NotificationsPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Notifications</h1>
-        <p className="text-sm text-slate-500">
-          Alertes concernant vos dossiers : affectations, vérifications, validations…
-        </p>
-      </div>
+    <AnimatedCard title="Notifications" subtitle="Alertes concernant vos dossiers : affectations, vérifications, validations…" delay={0}>
       <Card>
         <NotificationList />
       </Card>
-    </div>
+    </AnimatedCard>
   );
 }
 

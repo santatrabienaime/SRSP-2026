@@ -5,6 +5,7 @@ import { dossierService } from '../../services/dossierService.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { usePagination } from '../../hooks/usePagination.js';
 import { useAuth } from '../../hooks/useAuth.js';
+import { useAnimation } from '../../hooks/useAnimation.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Select } from '../ui/Select.jsx';
@@ -53,6 +54,7 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
      matin voit ainsi d'abord ce qui l'attend, au lieu du plus récemment reçu. */
   const [tri, setTri] = useState(agentPersonnel ? 'echeance' : 'prioritaire');
   const debouncedSearch = useDebounce(search, 350);
+  const { isMounted, animationClass } = useAnimation({ delay: 100, type: 'slide-in-up' });
 
   // baseFilters est souvent un objet recréé à chaque rendu du parent (ou défaut {} )
   // → le garder en ref évite que l'identité change et fasse re-feuiller load (clignotement).
@@ -173,9 +175,9 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
   }
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 animate-${animationClass}`}>
       {agentScoped && (
-        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 flex items-center gap-2">
+        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 flex items-center gap-2 animate-fade-in">
           <User className="h-4 w-4 shrink-0" />
           <span>Tableau personnel — vous ne voyez que vos propres dossiers (responsable affecté).</span>
         </p>

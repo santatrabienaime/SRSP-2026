@@ -5,6 +5,7 @@ import { Card } from '../../components/ui/Card.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { AgentCard } from '../../components/agent/AgentCard.jsx';
+import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 export function AgentDetailPage() {
   const { id } = useParams();
@@ -13,10 +14,6 @@ export function AgentDetailPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    /* Fiche ciblée. Charger la liste complète puis filtrer sur l'identifiant
-       fonctionnait, mais téléchargait les treize agents pour en montrer un : le
-       jour où le service en compte deux cents, cette page devient lente, et le
-       filtre échouerait sans message si la liste était tronquée. */
     agentService
       .get(id)
       .then((row) => setAgent(row || null))
@@ -29,16 +26,14 @@ export function AgentDetailPage() {
   if (!agent) return <Alert type="warning">Agent introuvable.</Alert>;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <h1 className="text-xl font-bold text-slate-800">Fiche agent</h1>
-      <AgentCard agent={agent} />
+    <AnimatedCard title="Fiche agent" delay={0}>
       <Card title="Liens">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
           Dossiers affectés à cet agent : voir la liste des dossiers en filtrant par agent
           depuis le module « Dossiers ».
         </p>
       </Card>
-    </div>
+    </AnimatedCard>
   );
 }
 
