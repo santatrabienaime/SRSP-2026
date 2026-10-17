@@ -20,10 +20,17 @@ export function RoleRoute({
   fallback,
   children,
 }) {
-  const { user, isRole, hasAnyPermission } = useAuth();
+  const { user, isRole, hasAnyPermission, initializing } = useAuth();
 
-  // Tant que le profil n'est pas chargé, on n'affiche rien de définitif.
-  if (!user) return null;
+  // Tant que le profil n'est pas chargé, on affiche un indicateur de chargement
+  // plutôt qu'un écran blanc.
+  if (initializing || !user) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Spinner label="Chargement de votre espace…" />
+      </div>
+    );
+  }
 
   const okRole = roles.length === 0 || isRole(...roles);
   const okPerm = permissions.length === 0 || hasAnyPermission(permissions);

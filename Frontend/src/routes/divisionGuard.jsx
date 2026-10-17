@@ -34,10 +34,18 @@ export function canViewDivision(user, code) {
  * immédiatement ses dossiers.
  */
 export function DivisionDossiersRoute() {
-  const { user } = useAuth();
+  const { user, initializing } = useAuth();
   const { code } = useParams();
 
-  if (!user) return null;
+  // Pendant le chargement du profil, on affiche un indicateur plutôt qu'un
+  // écran blanc.
+  if (initializing || !user) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Spinner label="Chargement de votre espace…" />
+      </div>
+    );
+  }
 
   if (!canViewDivision(user, code)) {
     return <Navigate to={landingPathFor(user)} replace />;
