@@ -27,6 +27,8 @@ export function AuthProvider({ children }) {
     else localStorage.removeItem(TOKEN_KEY);
     if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
     else localStorage.removeItem(USER_KEY);
+    // eslint-disable-next-line no-console
+    console.log('[AuthContext] persist : token=', !!t, 'user=', u?.role_nom, u?.division_code);
   }, []);
 
   const loadPermissions = useCallback(async () => {
@@ -78,21 +80,27 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(
     async (identifiant, password) => {
+      // eslint-disable-next-line no-console
+      console.log('[AuthContext] login : tentative pour', identifiant);
       const { user: u, token: t } = await authService.login(identifiant, password);
-      // Le login renvoie un profil minimal : on recharge /auth/me (l'apiClient
-      // lit le token dans le localStorage) pour disposer aussi de la division,
-      // du type de dossier et du rôle complet, nécessaires à l'interface dès
-      // le premier rendu (tableau de bord, filtres par périmètre).
+      // eslint-disable-next-line no-console
+      console.log('[AuthContext] login : token reçu, appel /auth/me');
       persist(t, u);
       let profil = u;
       try {
         profil = await authService.me();
         persist(t, profil);
+        // eslint-disable-next-line no-console
+        console.log('[AuthContext] login : profil complet', profil?.role_nom, profil?.division_code);
       } catch {
         /* on conserve le profil minimal */
+        // eslint-disable-next-line no-console
+        console.log('[AuthContext] login : /auth/me a échoué, profil minimal conservé');
       }
       await loadPermissions();
       setLoading(false);
+      // eslint-disable-next-line no-console
+      console.log('[AuthContext] login : terminé, redirection vers', landingPathFor(profil));
       return profil;
     },
     [persist, loadPermissions]

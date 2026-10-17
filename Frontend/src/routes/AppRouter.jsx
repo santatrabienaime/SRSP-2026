@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary.jsx';
 
 import { PrivateRoute } from './PrivateRoute.jsx';
 import { RoleRoute } from './RoleRoute.jsx';

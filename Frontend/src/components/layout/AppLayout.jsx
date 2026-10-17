@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom';
+import { ErrorBoundary } from '../ui/ErrorBoundary.jsx';
 import { Sidebar } from './Sidebar.jsx';
 import { Topbar } from './Topbar.jsx';
 import { Footer } from './Footer.jsx';
@@ -36,7 +37,9 @@ export function AppLayout() {
         }`}>
         <Topbar />
         <main className="px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
-          <Outlet key={userId} />
+          <ErrorBoundary>
+            <Outlet key={userId} />
+          </ErrorBoundary>
         </main>
         <Footer />
       </div>

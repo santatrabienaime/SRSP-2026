@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { Spinner } from '../components/ui/Spinner.jsx';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary.jsx';
 
 /**
  * Garde d'authentification : redirige vers /login si aucun token valide.
@@ -21,7 +22,7 @@ export function PrivateRoute() {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <Outlet />;
+  return <ErrorBoundary><Outlet /></ErrorBoundary>;
 }
 
 export default PrivateRoute;
