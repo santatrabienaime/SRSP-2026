@@ -52,7 +52,7 @@ const CONFIG = {
     sousTitre: 'Réception, enregistrement et orientation des dossiers.',
     kpis: ({ s, files, ress }) => [
       { icon: Inbox, label: 'Reçus', value: n(s?.RECU), tone: 'primary', sub: "En attente d'enregistrement" },
-      { icon: Route, label: 'À orienter', value: n(files?.aOrienter), tone: 'amber', sub: 'Enregistrés / orientés' },
+      { icon: Compass, label: 'À orienter', value: n(files?.aOrienter), tone: 'amber', sub: 'Enregistrés / orientés' },
       { icon: MailPlus, label: 'Courriers', value: n(ress?.courriers?.total), tone: 'sky', sub: `Reçus : ${ress?.courriers?.recus ?? 0}` },
       { icon: FolderKanban, label: 'Total dossiers', value: n(s?.total), tone: 'violet', sub: 'Tous statuts' },
     ],
