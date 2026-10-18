@@ -6,6 +6,7 @@ import { useNotification } from '../../hooks/useNotification.js';
 import { Card } from '../../components/ui/Card.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
+import { Badge } from '../../components/ui/Badge.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 import { Button } from '../../components/ui/Button.jsx';
