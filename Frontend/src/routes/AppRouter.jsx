@@ -34,6 +34,8 @@ import { ProfilePage } from '../pages/profile/ProfilePage.jsx';
 import { UsersAdminPage } from '../pages/administration/UsersAdminPage.jsx';
 import { RolesAdminPage } from '../pages/administration/RolesAdminPage.jsx';
 import { SettingsPage } from '../pages/administration/SettingsPage.jsx';
+import { BackupPage } from '../pages/administration/BackupPage.jsx';
+import { ReferentielPage } from '../pages/referentiel/ReferentielPage.jsx';
 
 import { AgentListPage } from '../pages/agents/AgentListPage.jsx';
 import { AgentCreatePage } from '../pages/agents/AgentCreatePage.jsx';
@@ -195,6 +197,22 @@ export function AppRouter() {
             element={
               <RoleRoute roles={[ROLES.ADMIN]}>
                 <SettingsPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/administration/sauvegarde"
+            element={
+              <RoleRoute roles={[ROLES.ADMIN]}>
+                <BackupPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/administration/referentiel"
+            element={
+              <RoleRoute roles={[ROLES.ADMIN]}>
+                <ReferentielPage />
               </RoleRoute>
             }
           />

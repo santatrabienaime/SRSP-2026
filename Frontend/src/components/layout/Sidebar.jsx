@@ -3,6 +3,7 @@ import {
   LayoutDashboard, FolderKanban, FileText, Mail, History, Archive,
   BarChart3, FileBarChart2, Settings, Users, Shield, Bell,
   UserCog, Building2, ScrollText, PanelLeftClose, PanelLeftOpen,
+  Database,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
@@ -24,6 +25,7 @@ const ICONS = {
   settings: Settings,
   personnel: UserCog,
   divisions: Building2,
+  database: Database,
   audit: ScrollText,
 };
 
@@ -158,6 +160,12 @@ export function Sidebar() {
         ] : []),
         ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
           ? [{ to: '/administration/parametres', label: 'Paramètres', icon: 'settings' }]
+          : []),
+        ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
+          ? [{ to: '/administration/referentiel', label: 'Référentiel', icon: 'database' }]
+          : []),
+        ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
+          ? [{ to: '/administration/sauvegarde', label: 'Sauvegarde', icon: 'database' }]
           : []),
       ],
     });
