@@ -5,6 +5,9 @@ import apiClient from './apiClient.js';
  */
 
 export const referentielService = {
+  /** Récupère une ressource par endpoint. */
+  get: (endpoint) => apiClient.get(`/referentiel/${endpoint}`).then((r) => r.data || []),
+
   /** Liste des types de dossiers. */
   typesDossiers: () => apiClient.get('/referentiel/types-dossiers').then((r) => r.data || []),
 

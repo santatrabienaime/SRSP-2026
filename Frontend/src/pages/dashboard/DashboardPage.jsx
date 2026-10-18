@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   FolderKanban, CheckCircle2, Clock, AlertTriangle, ArrowRight,
   UserCheck, Send, ShieldCheck, Stamp, Archive, PencilRuler, Inbox, Info,
-  MailPlus, Clock as ClockIcon,
 } from 'lucide-react';
 import { dashboardService } from '../../services/dashboardService.js';
 import { dossierService } from '../../services/dossierService.js';
@@ -21,6 +20,16 @@ import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
 import { configRole } from './dashboardRoles.js';
 
 /**
+ * Récupère une valeur numérique depuis une réponse serveur.
+ * Gère le cas où la valeur est un objet { count: X } ou directement un nombre.
+ */
+function extractValue(val) {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'object' && val.count !== undefined) return val.count;
+  return typeof val === 'number' ? val : parseInt(val, 10) || 0;
+}
+
+/**
  * Tableau de bord — deux régimes, un seul écran.
  *
  *  - Rôles couverts par la spec UI-DASHBOARDS V2.0 (lot pilote : Chef de
@@ -33,37 +42,35 @@ import { configRole } from './dashboardRoles.js';
  */
 
 function kpiPour(perimetre, s, files) {
-  const n = (v) => (typeof v === 'number' ? v : undefined);
-
   if (perimetre === 'AGENT') {
     return [
-      { icon: FolderKanban, label: 'Mes dossiers', value: n(s?.total), tone: 'primary', sub: 'Dont affectés' },
-      { icon: PencilRuler, label: 'À traiter', value: n(files?.aTraiter), tone: 'amber', sub: 'Affectés, pas commencés' },
-      { icon: Clock, label: 'En cours', value: n(files?.enCours), tone: 'sky', sub: 'Traitement en cours' },
-      { icon: AlertTriangle, label: 'À corriger', value: n(files?.aCorriger), tone: 'red', sub: 'Retournés par le chef' },
-      { icon: Send, label: 'À soumettre', value: n(files?.aValider), tone: 'violet', sub: 'Soumis à vérification' },
-      { icon: CheckCircle2, label: 'Terminés', value: n(files?.termines), tone: 'emerald', sub: 'Signés ou clôturés' },
+      { icon: FolderKanban, label: 'Mes dossiers', value: extractValue(s?.total), tone: 'primary', sub: 'Dont affectés' },
+      { icon: PencilRuler, label: 'À traiter', value: extractValue(files?.aTraiter), tone: 'amber', sub: 'Affectés, pas commencés' },
+      { icon: Clock, label: 'En cours', value: extractValue(files?.enCours), tone: 'sky', sub: 'Traitement en cours' },
+      { icon: AlertTriangle, label: 'À corriger', value: extractValue(files?.aCorriger), tone: 'red', sub: 'Retournés par le chef' },
+      { icon: Send, label: 'À soumettre', value: extractValue(files?.aValider), tone: 'violet', sub: 'Soumis à vérification' },
+      { icon: CheckCircle2, label: 'Terminés', value: extractValue(files?.termines), tone: 'emerald', sub: 'Signés ou clôturés' },
     ];
   }
 
   if (perimetre === 'DIVISION') {
     return [
-      { icon: FolderKanban, label: 'Dossiers de la division', value: n(s?.total), tone: 'primary', sub: 'Tous statuts' },
-      { icon: UserCheck, label: 'À affecter', value: n(files?.aAffecter), tone: 'amber', sub: 'Enregistrés ou orientés' },
-      { icon: ShieldCheck, label: 'À vérifier', value: n(files?.aVerifier), tone: 'violet', sub: 'Soumis par les agents' },
-      { icon: AlertTriangle, label: 'Corrections demandées', value: n(files?.aCorriger), tone: 'red', sub: 'En attente agent' },
-      { icon: CheckCircle2, label: 'Validés', value: n(s?.VALIDE), tone: 'emerald', sub: `Signés : ${s?.SIGNE ?? 0}` },
-      { icon: AlertTriangle, label: 'En retard', value: n(s?.enRetard), tone: 'red', sub: '> 30 jours' },
+      { icon: FolderKanban, label: 'Dossiers de la division', value: extractValue(s?.total), tone: 'primary', sub: 'Tous statuts' },
+      { icon: UserCheck, label: 'À affecter', value: extractValue(files?.aAffecter), tone: 'amber', sub: 'Enregistrés ou orientés' },
+      { icon: ShieldCheck, label: 'À vérifier', value: extractValue(files?.aVerifier), tone: 'violet', sub: 'Soumis par les agents' },
+      { icon: AlertTriangle, label: 'Corrections demandées', value: extractValue(files?.aCorriger), tone: 'red', sub: 'En attente agent' },
+      { icon: CheckCircle2, label: 'Validés', value: extractValue(s?.VALIDE), tone: 'emerald', sub: `Signés : ${extractValue(s?.SIGNE) ?? 0}` },
+      { icon: AlertTriangle, label: 'En retard', value: extractValue(s?.enRetard), tone: 'red', sub: '> 30 jours' },
     ];
   }
 
   return [
-    { icon: FolderKanban, label: 'Total dossiers', value: n(s?.total), tone: 'primary', sub: 'Toutes divisions' },
-    { icon: ShieldCheck, label: 'À valider', value: n(files?.aValider), tone: 'violet', sub: 'Soumis à vérification' },
-    { icon: Stamp, label: 'À signer', value: n(files?.aSigner), tone: 'amber', sub: 'Validés' },
-    { icon: Archive, label: 'À clôturer', value: n(files?.aCloturer), tone: 'sky', sub: 'Signés' },
-    { icon: AlertTriangle, label: 'En retard', value: n(s?.enRetard), tone: 'red', sub: '> 30 jours' },
-    { icon: Inbox, label: 'Nouveaux / reçus', value: n(files?.aOrienter), tone: 'blue', sub: 'Nouveaux dossiers reçus' },
+    { icon: FolderKanban, label: 'Total dossiers', value: extractValue(s?.total), tone: 'primary', sub: 'Toutes divisions' },
+    { icon: ShieldCheck, label: 'À valider', value: extractValue(files?.aValider), tone: 'violet', sub: 'Soumis à vérification' },
+    { icon: Stamp, label: 'À signer', value: extractValue(files?.aSigner), tone: 'amber', sub: 'Validés' },
+    { icon: Archive, label: 'À clôturer', value: extractValue(files?.aCloturer), tone: 'sky', sub: 'Signés' },
+    { icon: AlertTriangle, label: 'En retard', value: extractValue(s?.enRetard), tone: 'red', sub: '> 30 jours' },
+    { icon: Inbox, label: 'Nouveaux / reçus', value: extractValue(files?.aOrienter), tone: 'blue', sub: 'Nouveaux dossiers reçus' },
   ];
 }
 
@@ -192,7 +199,7 @@ export function DashboardPage() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className={`text-xl font-bold ${k.tone === 'primary' ? 'text-blue-600' : k.tone === 'amber' ? 'text-amber-600' : k.tone === 'red' ? 'text-red-600' : k.tone === 'emerald' ? 'text-emerald-600' : k.tone === 'violet' ? 'text-violet-600' : k.tone === 'sky' ? 'text-sky-600' : k.tone === 'blue' ? 'text-blue-600' : 'text-slate-800'} dark:text-white`}>
-                  {k.value ?? '—'}
+                  {k.value}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   {k.sub}

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import * as documentService from '../services/documentService.js';
 import * as documentModel from '../models/documentModel.js';
+import { envoyerMessageAction } from '../services/messageService.js';
 
 export async function getOne(req, res, next) {
   try {
@@ -30,6 +31,15 @@ export async function upload(req, res, next) {
     const doc = await documentService.uploadDocument({
       file: req.file, body: req.body, userId: req.user.id,
     });
+    try {
+      await envoyerMessageAction({
+        dossier_id: doc.dossier_id || null,
+        action: 'DOCUMENT_UPLOAD',
+        message: `Document ${doc.nom_fichier || 'ajouté'} uploadé.`,
+        destinataire_id: req.body.destinataire_id || req.user.id,
+        type: 'INFO',
+      });
+    } catch (e) { /* message non bloquant */ }
     res.status(201).json(doc);
   } catch (e) { next(e); }
 }
@@ -37,6 +47,15 @@ export async function upload(req, res, next) {
 export async function valider(req, res, next) {
   try {
     await documentService.valider(req.params.id, req.body.valide);
+    try {
+      await envoyerMessageAction({
+        dossier_id: null,
+        action: 'DOCUMENT_VALIDE',
+        message: `Document #${req.params.id} validé.`,
+        destinataire_id: req.body.destinataire_id || req.user.id,
+        type: 'INFO',
+      });
+    } catch (e) { /* message non bloquant */ }
     res.json({ message: 'Document mis à jour.' });
   } catch (e) { next(e); }
 }

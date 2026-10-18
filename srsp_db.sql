@@ -897,6 +897,33 @@ CREATE TABLE `historique_actions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `messages`
+--
+
+DROP TABLE IF EXISTS `messages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `messages` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `dossier_id` int(11) DEFAULT NULL,
+  `expediteur_id` int(11) NOT NULL,
+  `destinataire_id` int(11) NOT NULL,
+  `action` varchar(50) NOT NULL,
+  `message` text NOT NULL,
+  `type` varchar(20) DEFAULT 'INFO',
+  `lu` tinyint(1) DEFAULT 0,
+  `date_creation` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `dossier_id` (`dossier_id`),
+  KEY `expediteur_id` (`expediteur_id`),
+  KEY `destinataire_id` (`destinataire_id`),
+  CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`dossier_id`) REFERENCES `dossiers` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`expediteur_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `messages_ibfk_3` FOREIGN KEY (`destinataire_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Dumping data for table `historique_actions`
 --
 

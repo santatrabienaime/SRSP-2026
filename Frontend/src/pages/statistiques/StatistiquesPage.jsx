@@ -10,6 +10,16 @@ import { Alert } from '../../components/ui/Alert.jsx';
 import { STATUT_LABELS } from '../../config/constants.js';
 import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
+/**
+ * Récupère une valeur numérique depuis une réponse serveur.
+ * Gère le cas où la valeur est un objet { count: X } ou directement un nombre.
+ */
+function extractValue(val) {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'object' && val.count !== undefined) return val.count;
+  return typeof val === 'number' ? val : parseInt(val, 10) || 0;
+}
+
 export function StatistiquesPage() {
   const [stats, setStats] = useState(null);
   const [byStatus, setByStatus] = useState([]);
@@ -38,14 +48,23 @@ export function StatistiquesPage() {
       });
   }, []);
 
+  const statsData = stats || {};
+  const total = extractValue(stats.total);
+  const valides = extractValue(stats.valides);
+  const enCours = extractValue(stats.enCours);
+  const enAttente = extractValue(stats.enAttente);
+  const rejetes = extractValue(stats.rejetes);
+  const tauxValidation = extractValue(stats.tauxValidation);
+  const tauxRejet = extractValue(stats.tauxRejet);
+
   const statusRows = byStatus.map((d) => ({
     name: STATUT_LABELS[d.code] || d.statut || d.code,
-    total: d.total ?? d.count ?? 0,
+    total: extractValue(d.total),
   }));
 
   const divisionRows = byDivision.map((d) => ({
     name: d.division,
-    total: d.total ?? d.count ?? 0,
+    total: extractValue(d.total),
   }));
 
   return (
@@ -56,29 +75,29 @@ export function StatistiquesPage() {
           <p className="text-sm text-slate-500">Indicateurs de performance du traitement des dossiers.</p>
         </div>
 
-      {error && (
-        <Alert type="error" title="Statistiques indisponibles">
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert type="error" title="Statistiques indisponibles">
+            {error}
+          </Alert>
+        )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Files} label="Dossiers totaux" value={stats?.total} tone="primary" loading={loading} />
-        <StatCard icon={Target} label="Validés" value={stats?.valides} tone="emerald" loading={loading} />
-        <StatCard icon={TrendingUp} label="Taux de validation" value={stats ? `${stats.tauxValidation} %` : null} tone="sky" loading={loading} />
-        <StatCard icon={TrendingDown} label="Taux de correction" value={stats ? `${stats.tauxRejet} %` : null} tone="amber" loading={loading} />
-      </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard icon={Files} label="Dossiers totaux" value={total} tone="primary" loading={loading} />
+          <StatCard icon={Target} label="Validés" value={valides} tone="emerald" loading={loading} />
+          <StatCard icon={TrendingUp} label="Taux de validation" value={tauxValidation ? `${tauxValidation} %` : null} tone="sky" loading={loading} />
+          <StatCard icon={TrendingDown} label="Taux de correction" value={tauxRejet ? `${tauxRejet} %` : null} tone="amber" loading={loading} />
+        </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card title="Répartition par statut">
-          <PieChart data={statusRows} nameKey="name" dataKey="total" height={300} />
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Card title="Répartition par statut">
+            <PieChart data={statusRows} nameKey="name" dataKey="total" height={300} />
+          </Card>
+        </div>
+
+        <Card title="Répartition par division">
+          <BarChart data={divisionRows} nameKey="name" dataKey="total" color="#10b981" />
         </Card>
       </div>
-
-      <Card title="Répartition par division">
-        <BarChart data={divisionRows} nameKey="name" dataKey="total" color="#10b981" />
-      </Card>
-    </div>
     </AnimatedCard>
   );
 }

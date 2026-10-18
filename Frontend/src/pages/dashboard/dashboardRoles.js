@@ -21,8 +21,15 @@ import {
  * deux colonnes, 'evolution' occupe toute la largeur.
  */
 
-/** Le serveur peut renvoyer un compteur absent : la carte affiche « — ». */
-const n = (v) => (typeof v === 'number' ? v : undefined);
+/**
+ * Récupère une valeur numérique depuis une réponse serveur.
+ * Gère le cas où la valeur est un objet { count: X } ou directement un nombre.
+ */
+function extractValue(val) {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'object' && val.count !== undefined) return val.count;
+  return typeof val === 'number' ? val : parseInt(val, 10) || 0;
+}
 
 const CONFIG = {
   /* Spec §2 : total, validations, signatures, retards + répartition par
@@ -31,11 +38,11 @@ const CONFIG = {
     titre: 'Tableau de bord — Chef de Service',
     sousTitre: "Validations, signatures et vue d'ensemble du service.",
     kpis: ({ s, files }) => [
-      { icon: FolderKanban, label: 'Total dossiers', value: n(s?.total), tone: 'primary', sub: 'Toutes divisions' },
-      { icon: ShieldCheck, label: 'À valider', value: n(files?.aValider), tone: 'violet', sub: 'Soumis à vérification' },
-      { icon: Stamp, label: 'À signer', value: n(files?.aSigner), tone: 'amber', sub: 'Validés' },
-      { icon: Inbox, label: 'Nouveaux reçus', value: n(files?.aOrienter), tone: 'blue', sub: 'Nouveaux dossiers reçus' },
-      { icon: AlertTriangle, label: 'En retard', value: n(s?.enRetard), tone: 'red', sub: '> 30 jours' },
+      { icon: FolderKanban, label: 'Total dossiers', value: extractValue(s?.total), tone: 'primary', sub: 'Toutes divisions' },
+      { icon: ShieldCheck, label: 'À valider', value: extractValue(files?.aValider), tone: 'violet', sub: 'Soumis à vérification' },
+      { icon: Stamp, label: 'À signer', value: extractValue(files?.aSigner), tone: 'amber', sub: 'Validés' },
+      { icon: Inbox, label: 'Nouveaux reçus', value: extractValue(files?.aOrienter), tone: 'blue', sub: 'Nouveaux dossiers reçus' },
+      { icon: AlertTriangle, label: 'En retard', value: extractValue(s?.enRetard), tone: 'red', sub: '> 30 jours' },
     ],
     actions: [
       { to: '/dossiers', label: 'Valider un dossier', icon: ShieldCheck, perms: ['valider_dossier'] },
@@ -52,10 +59,10 @@ const CONFIG = {
     titre: 'Tableau de bord — Secrétaire',
     sousTitre: 'Réception, enregistrement et orientation des dossiers.',
     kpis: ({ s, files, ress }) => [
-      { icon: Inbox, label: 'Nouveaux reçus', value: n(s?.RECU), tone: 'blue', sub: "En attente d'enregistrement" },
-      { icon: Compass, label: 'À orienter', value: n(files?.aOrienter), tone: 'amber', sub: 'Enregistrés / orientés' },
-      { icon: MailPlus, label: 'Courriers', value: n(ress?.courriers?.total), tone: 'sky', sub: `Reçus : ${ress?.courriers?.recus ?? 0}` },
-      { icon: FolderKanban, label: 'Total dossiers', value: n(s?.total), tone: 'violet', sub: 'Tous statuts' },
+      { icon: Inbox, label: 'Nouveaux reçus', value: extractValue(s?.RECU), tone: 'blue', sub: "En attente d'enregistrement" },
+      { icon: Compass, label: 'À orienter', value: extractValue(files?.aOrienter), tone: 'amber', sub: 'Enregistrés / orientés' },
+      { icon: MailPlus, label: 'Courriers', value: extractValue(ress?.courriers?.total), tone: 'sky', sub: `Reçus : ${ress?.courriers?.recus ?? 0}` },
+      { icon: FolderKanban, label: 'Total dossiers', value: extractValue(s?.total), tone: 'violet', sub: 'Tous statuts' },
     ],
     actions: [
       { to: '/dossiers/nouveau', label: 'Nouveau dossier', icon: FilePlus2, perms: ['create_dossier'] },
@@ -72,9 +79,9 @@ const CONFIG = {
     titre: 'Tableau de bord — Chef BAAF',
     sousTitre: 'Documents comptables et secrétariat.',
     kpis: ({ ress }) => [
-      { icon: FileText, label: 'Documents', value: n(ress?.documents?.total), tone: 'primary', sub: 'Documents comptables' },
-      { icon: Stamp, label: 'Ordres à signer', value: n(ress?.courriers?.a_signer ?? 0), tone: 'amber', sub: 'En attente du Chef de Service' },
-      { icon: MailPlus, label: 'Courriers', value: n(ress?.courriers?.total), tone: 'violet', sub: 'Courriers du service' },
+      { icon: FileText, label: 'Documents', value: extractValue(ress?.documents?.total), tone: 'primary', sub: 'Documents comptables' },
+      { icon: Stamp, label: 'Ordres à signer', value: extractValue(ress?.courriers?.a_signer ?? 0), tone: 'amber', sub: 'En attente du Chef de Service' },
+      { icon: MailPlus, label: 'Courriers', value: extractValue(ress?.courriers?.total), tone: 'violet', sub: 'Courriers du service' },
     ],
     actions: [
       { to: '/documents/upload', label: 'Déposer un document', icon: Upload, perms: ['upload_document'] },
@@ -90,11 +97,11 @@ const CONFIG = {
     titre: 'Tableau de bord — Coordonnatrice',
     sousTitre: 'Suivi des dossiers du service et production statistique.',
     kpis: ({ s, files }) => [
-      { icon: FolderKanban, label: 'Total dossiers', value: n(s?.total), tone: 'primary', sub: 'Toutes divisions' },
-      { icon: Inbox, label: 'Nouveaux reçus', value: n(s?.RECU), tone: 'blue', sub: "Dossiers reçus récents" },
-      { icon: Clock, label: 'En traitement', value: n(files?.enCours), tone: 'sky', sub: 'Dossiers en cours' },
-      { icon: AlertTriangle, label: 'À corriger', value: n(files?.aCorriger), tone: 'red', sub: 'Retours en attente' },
-      { icon: AlertTriangle, label: 'En retard', value: n(s?.enRetard), tone: 'amber', sub: '> 30 jours' },
+      { icon: FolderKanban, label: 'Total dossiers', value: extractValue(s?.total), tone: 'primary', sub: 'Toutes divisions' },
+      { icon: Inbox, label: 'Nouveaux reçus', value: extractValue(s?.RECU), tone: 'blue', sub: "Dossiers reçus récents" },
+      { icon: Clock, label: 'En traitement', value: extractValue(files?.enCours), tone: 'sky', sub: 'Dossiers en cours' },
+      { icon: AlertTriangle, label: 'À corriger', value: extractValue(files?.aCorriger), tone: 'red', sub: 'Retours en attente' },
+      { icon: AlertTriangle, label: 'En retard', value: extractValue(s?.enRetard), tone: 'amber', sub: '> 30 jours' },
     ],
     actions: [
       { to: '/statistiques', label: 'Statistiques', icon: BarChart3, perms: ['view_stats'] },
