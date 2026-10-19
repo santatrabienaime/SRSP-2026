@@ -4,7 +4,7 @@ import { referentielService } from '../../services/referentielService.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
-import { Input } from '../../components/ui/Input.jsx';
+import { TextInput } from '../../components/fields/index.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
@@ -68,11 +68,12 @@ export function TypesCourriersPage() {
       <div className="space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <Input
+            <TextInput
               label="Libellé"
               value={nouveauLibelle}
-              onChange={(e) => setNouveauLibelle(e.target.value)}
+              onChange={(v) => setNouveauLibelle(v)}
               placeholder="Demande"
+              maxLength={100}
             />
           </div>
           <Button onClick={ajouterType} disabled={!nouveauLibelle.trim()}>

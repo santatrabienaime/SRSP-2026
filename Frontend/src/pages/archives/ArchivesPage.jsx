@@ -15,6 +15,7 @@ import { Pagination } from '../../components/ui/Pagination.jsx';
 import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { AutoCompleteInput, MatriculeInput } from '../../components/fields/index.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
@@ -59,6 +60,10 @@ export function ArchivesPage() {
   const peutArchiver = hasPermission('archiver_dossier');
 
   const set = (champ) => (e) => setCriteres((c) => ({ ...c, [champ]: e.target.value }));
+
+  /* Les composants de champ (matricule, demandeur, recherche assistée) renvoient
+     la valeur formatée, là où les champs bruts renvoient l'événement. */
+  const setVal = (champ) => (v) => setCriteres((c) => ({ ...c, [champ]: v }));
 
   const chargerStats = useCallback(async (filtres) => {
     try {
@@ -366,10 +371,11 @@ export function ArchivesPage() {
         <form onSubmit={appliquer} className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
-              <Input
+              <AutoCompleteInput
                 label="Recherche"
                 value={criteres.q}
-                onChange={set('q')}
+                onChange={setVal('q')}
+                suggestions={donnees.archives.flatMap((a) => [a.numero, a.demandeur, a.matricule, a.objet])}
                 placeholder="N° dossier, nom, matricule, objet, mot-clé…"
               />
             </div>
@@ -408,8 +414,19 @@ export function ArchivesPage() {
             </Select>
             <Input label="Du" type="date" value={criteres.date_debut} onChange={set('date_debut')} />
             <Input label="Au" type="date" value={criteres.date_fin} onChange={set('date_fin')} />
-            <Input label="Demandeur" value={criteres.demandeur} onChange={set('demandeur')} placeholder="Rakoto" />
-            <Input label="Matricule" value={criteres.matricule} onChange={set('matricule')} placeholder="222 222 222" />
+            <AutoCompleteInput
+              label="Demandeur"
+              value={criteres.demandeur}
+              onChange={setVal('demandeur')}
+              suggestions={donnees.archives.map((a) => a.demandeur)}
+              placeholder="Rakoto"
+            />
+            <MatriculeInput
+              label="Matricule"
+              value={criteres.matricule}
+              onChange={setVal('matricule')}
+              placeholder="222 222 222"
+            />
           </div>
         </form>
 

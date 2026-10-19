@@ -10,7 +10,7 @@
  * Convention : `onChange` reçoit la valeur FORMATÉE (chaîne),
  * jamais l'événement — le parent peut la stocker directement.
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, useId } from 'react';
 import { Input } from '../ui/Input.jsx';
 import { Textarea } from '../ui/Textarea.jsx';
 import { useInputControl, INPUT_TYPES, MATRICULE_LONGUEUR_MAX } from '../../hooks/useInputControl.js';
@@ -544,6 +544,111 @@ export function ObservationInput({ value, onChange, error, ...props }) {
       maxLength={1000}
       rows={4}
       placeholder="Observations éventuelles…"
+      {...props}
+    />
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   16. TextInput — texte libre, sans changement de casse
+   ═══════════════════════════════════════════════════════════
+   Objets, libellés et descriptions : la casse de l'auteur est conservée.
+   Le compteur et l'effacement sont là parce que ces champs ont une borne
+   réelle (un objet de 500 caractères se compte). */
+export function TextInput({
+  label,
+  value,
+  onChange,
+  error,
+  required,
+  maxLength = 255,
+  hint,
+  clearable = true,
+  ...props
+}) {
+  const control = useInputControl(value || '', {
+    type: INPUT_TYPES.TEXT,
+    required,
+    maxLength,
+  });
+
+  return (
+    <Input
+      label={label}
+      required={required}
+      {...control.inputProps}
+      error={error || control.error}
+      maxLength={maxLength}
+      clearable={clearable}
+      showCounter
+      hint={hint}
+      onChange={(e) => onChange?.(control.handleChange(e))}
+      {...props}
+    />
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   18. AutoCompleteInput — suggestions pendant la frappe
+   ═══════════════════════════════════════════════════════════
+   Les valeurs déjà connues de l'écran (noms, matricules, numéros) sont
+   proposées dans une liste native : l'agent choisit au lieu de tout taper.
+   Les propositions viennent des lignes déjà chargées — aucune requête en plus. */
+export function AutoCompleteInput({ suggestions = [], id, ...props }) {
+  const autoId = useId();
+  const listeId = id || `liste-${autoId.replace(/:/g, '')}`;
+  const options = [
+    ...new Set(
+      suggestions
+        .map((s) => (s === null || s === undefined ? '' : String(s).trim()))
+        .filter(Boolean)
+    ),
+  ].slice(0, 25);
+
+  return (
+    <>
+      <TextInput list={listeId} autoComplete="off" {...props} />
+      {options.length > 0 && (
+        <datalist id={listeId}>
+          {options.map((o) => (
+            <option key={o} value={o} />
+          ))}
+        </datalist>
+      )}
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   17. TitleTextInput — Title Case automatique (nom de division…)
+   ═══════════════════════════════════════════════════════════ */
+export function TitleTextInput({
+  label,
+  value,
+  onChange,
+  error,
+  required,
+  maxLength = 100,
+  hint,
+  ...props
+}) {
+  const control = useInputControl(value || '', {
+    type: INPUT_TYPES.TITLECASE,
+    required,
+    maxLength,
+  });
+
+  return (
+    <Input
+      label={label}
+      required={required}
+      {...control.inputProps}
+      error={error || control.error}
+      maxLength={maxLength}
+      clearable
+      showCounter
+      hint={hint}
+      onChange={(e) => onChange?.(control.handleChange(e))}
       {...props}
     />
   );

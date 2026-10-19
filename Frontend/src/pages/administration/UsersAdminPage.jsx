@@ -261,8 +261,10 @@ export function UsersAdminPage() {
             <Input
               label="Rechercher un utilisateur"
               value={search}
+              clearable
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Identifiant, email, rôle…"
+              hint="Le filtre s'applique à la page affichée comme au reste de la liste."
             />
           </div>
           <Button onClick={ouvrirCreation} variant="secondary">
@@ -322,6 +324,8 @@ export function UsersAdminPage() {
             <Select
               label="Rôle"
               required
+              success={Boolean(form.role_id)}
+              successMessage="Rôle choisi."
               value={form.role_id}
               onChange={(e) => setForm((f) => ({ ...f, role_id: e.target.value }))}
             >
@@ -375,9 +379,6 @@ export function UsersAdminPage() {
             value={nouveauMdp}
             onChange={setNouveauMdp}
           />
-          <p className="mt-2 text-xs text-slate-500">
-            Au moins 8 caractères, dont une majuscule, une minuscule, un chiffre et un caractère spécial.
-          </p>
         </Modal>
 
         {/* Confirmation (suppression / bascule) */}

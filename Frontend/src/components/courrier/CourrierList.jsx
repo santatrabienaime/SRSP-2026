@@ -10,7 +10,7 @@ import { COURRIER_STATUTS } from '../../config/constants.js';
 import { Badge } from '../ui/Badge.jsx';
 import { Table } from '../ui/Table.jsx';
 import { Pagination } from '../ui/Pagination.jsx';
-import { Input } from '../ui/Input.jsx';
+import { AutoCompleteInput } from '../fields/index.jsx';
 import { Select } from '../ui/Select.jsx';
 import { Button } from '../ui/Button.jsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
@@ -152,12 +152,13 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-end">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-9 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
+          <AutoCompleteInput
             label="Recherche"
             placeholder="N° courrier, objet, expéditeur…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="[&>input]:pl-9"
+            onChange={setSearch}
+            suggestions={data.flatMap((c) => [c.numero, c.objet, c.expediteur])}
+            className="[&_input]:pl-9"
           />
         </div>
         <div className="w-full sm:w-44">

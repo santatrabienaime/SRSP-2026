@@ -187,6 +187,7 @@ export function LoginPage() {
                   tone="dark"
                   label="Identifiant ou email"
                   required
+                  clearable
                   autoComplete="username"
                   autoCapitalize="none"
                   spellCheck="false"

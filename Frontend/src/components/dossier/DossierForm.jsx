@@ -3,7 +3,6 @@ import { dossierService } from '../../services/dossierService.js';
 import { referentielService } from '../../services/referentielService.js';
 import { divisionService } from '../../services/divisionService.js';
 import { Button } from '../ui/Button.jsx';
-import { Input } from '../ui/Input.jsx';
 import { Select } from '../ui/Select.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import {
@@ -15,6 +14,7 @@ import {
   AddressInput,
   ObservationInput,
   TextAreaInput,
+  DateInput,
 } from '../fields/index.jsx';
 import { todayISO, pourChampDate } from '../../utils/formatDate.js';
 import { validerDossier, validerTout, matriculePlausible, compacterMatricule } from '../../utils/validationDossier.js';
@@ -63,6 +63,7 @@ export function DossierForm({ initial = null, onSaved }) {
 
   const [referentiel, setReferentiel] = useState({ types_dossiers: [], priorites: [], statuts: [] });
   const [divisions, setDivisions] = useState([]);
+  const [pieces, setPieces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -94,7 +95,23 @@ export function DossierForm({ initial = null, onSaved }) {
         setError(e);
         setLoading(false);
       });
+
+    /* Les pièces justificatives ne sont qu'une aide à la saisie : si leur liste
+       est indisponible, le formulaire reste entièrement utilisable. */
+    referentielService
+      .typesPieces()
+      .then((p) => setPieces(Array.isArray(p) ? p : []))
+      .catch(() => { /* liste indisponible : le bloc conditionnel reste vide */ });
   }, []);
+
+  /* Champs conditionnels : les pièces attendues découlent de la division que le
+     type de dossier a fait choisir. Une pièce sans division vaut pour toutes. */
+  const piecesAttendues = useMemo(() => {
+    if (!divisionDuType) return [];
+    return pieces.filter(
+      (p) => !p.division_code || p.division_code === divisionDuType.code
+    );
+  }, [pieces, divisionDuType]);
 
   /* Vérification du matricule pendant la saisie.
      On n'interroge le serveur que si le matricule est plausible, et jamais deux
@@ -302,8 +319,8 @@ export function DossierForm({ initial = null, onSaved }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Date de réception" required type="date" value={form.date_reception} onChange={set('date_reception')} />
-          <Input label="Date limite (optionnel)" type="date" value={form.date_limite} onChange={set('date_limite')} />
+          <DateInput label="Date de réception" required value={form.date_reception} onChange={setVal('date_reception')} />
+          <DateInput label="Date limite (optionnel)" value={form.date_limite} onChange={setVal('date_limite')} />
         </div>
 
         <ObservationInput
@@ -524,18 +541,49 @@ export function DossierForm({ initial = null, onSaved }) {
             placeholder="Demande d'intégration"
           />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Select label="Priorité" required value={form.priorite_id} onChange={set('priorite_id')}>
+            <Select
+              label="Priorité"
+              required
+              success={Boolean(form.priorite_id)}
+              successMessage="Priorité choisie."
+              value={form.priorite_id}
+              onChange={set('priorite_id')}
+            >
               <option value="">Sélectionner…</option>
               {referentiel.priorites.map((p) => (
                 <option key={p.id} value={p.id}>{p.libelle}</option>
               ))}
             </Select>
-            <Input label="Date limite (optionnel)" type="date" value={form.date_limite} onChange={set('date_limite')} />
+            <DateInput label="Date limite (optionnel)" value={form.date_limite} onChange={setVal('date_limite')} />
           </div>
           <ObservationInput
             value={form.observation}
             onChange={setVal('observation')}
           />
+
+          {/* Champ conditionnel : ce bloc n'apparaît que si le type de dossier
+              fait choisir une division qui a des pièces justificatives. */}
+          {piecesAttendues.length > 0 && (
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-sky-700">
+                Pièces attendues — {divisionDuType?.nom}
+              </p>
+              <ul className="grid gap-1 text-sm text-sky-900 sm:grid-cols-2">
+                {piecesAttendues.map((p) => (
+                  <li key={p.id} className="flex items-center gap-2">
+                    <span aria-hidden="true" className="text-xs">{p.obligatoire ? '●' : '○'}</span>
+                    <span>{p.libelle}</span>
+                    {Boolean(p.obligatoire) && (
+                      <span className="text-xs text-sky-600">(obligatoire)</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-sky-600">
+                Le dépouillement de ces pièces se fait après l'enregistrement, depuis la fiche du dossier.
+              </p>
+            </div>
+          )}
 
           {/* Récapitulatif : la secrétaire vérifie avant de valider. */}
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">

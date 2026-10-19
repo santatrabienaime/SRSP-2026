@@ -6,7 +6,7 @@ import { useDebounce } from '../../hooks/useDebounce.js';
 import { Table } from '../ui/Table.jsx';
 import { Pagination } from '../ui/Pagination.jsx';
 import { Button } from '../ui/Button.jsx';
-import { Input } from '../ui/Input.jsx';
+import { AutoCompleteInput } from '../fields/index.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { Modal } from '../ui/Modal.jsx';
 import { EmptyState } from '../ui/EmptyState.jsx';
@@ -73,12 +73,16 @@ export function AgentList() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="relative w-full sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-9 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input
+          <AutoCompleteInput
             label="Rechercher un agent"
             placeholder="Nom, matricule…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="[&>input]:pl-9"
+            onChange={setSearch}
+            suggestions={[
+              ...agents.map((a) => `${a.nom || ''} ${a.prenom || ''}`),
+              ...agents.map((a) => a.matricule),
+            ]}
+            className="[&_input]:pl-9"
           />
         </div>
         <Button onClick={() => setOpen(true)}>

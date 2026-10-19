@@ -9,7 +9,7 @@ import { useAnimation } from '../../hooks/useAnimation.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Select } from '../ui/Select.jsx';
-import { Input } from '../ui/Input.jsx';
+import { AutoCompleteInput } from '../fields/index.jsx';
 import { Table } from '../ui/Table.jsx';
 import { Pagination } from '../ui/Pagination.jsx';
 import { Alert } from '../ui/Alert.jsx';
@@ -224,12 +224,13 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
         <div className="flex-1">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-9 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
+            <AutoCompleteInput
               label="Recherche"
               placeholder="N° dossier, objet, demandeur…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="[&>input]:pl-9"
+              onChange={setSearch}
+              suggestions={data.flatMap((d) => [d.numero, d.objet, d.demandeur])}
+              className="[&_input]:pl-9"
             />
           </div>
         </div>

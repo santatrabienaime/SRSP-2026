@@ -4,9 +4,9 @@ import { agentService } from '../../services/agentService.js';
 import { referentielService } from '../../services/referentielService.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Button } from '../ui/Button.jsx';
-import { Input } from '../ui/Input.jsx';
 import { Select } from '../ui/Select.jsx';
 import { Alert } from '../ui/Alert.jsx';
+import { ReferenceInput, TitleTextInput } from '../fields/index.jsx';
 
 /** Formulaire de création / édition d'une division. */
 export function DivisionForm({ initial = null, onSaved }) {
@@ -37,8 +37,15 @@ export function DivisionForm({ initial = null, onSaved }) {
       .catch(() => { /* liste indisponible : le champ reste vide */ });
   }, []);
 
-  const set = (field) => (e) => {
-    const v = field === 'actif' ? e.target.checked : e.target.value;
+  /* Les composants de champ renvoient la valeur formatée, les champs bruts un
+     événement : le même accesseur accepte les deux. */
+  const set = (field) => (source) => {
+    const v =
+      field === 'actif'
+        ? source.target.checked
+        : source && source.target
+          ? source.target.value
+          : source;
     setForm((f) => ({ ...f, [field]: v }));
   };
 
@@ -77,12 +84,28 @@ export function DivisionForm({ initial = null, onSaved }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <Alert type="error">{error.message}</Alert>}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Code" required value={form.code} onChange={set('code')} placeholder="ex. VISAS" />
-        <Input label="Nom" required value={form.nom} onChange={set('nom')} placeholder="ex. Division Visas" />
+        <ReferenceInput
+          label="Code"
+          required
+          value={form.code}
+          onChange={set('code')}
+          hint="Lettres majuscules, chiffres et tirets (ex. VISAS)."
+          placeholder="VISAS"
+          maxLength={20}
+        />
+        <TitleTextInput
+          label="Nom"
+          required
+          value={form.nom}
+          onChange={set('nom')}
+          placeholder="Division Visas"
+        />
       </div>
       <Select
         label="Type de dossier"
         required
+        success={Boolean(form.type_dossier_id)}
+        successMessage="Type rattaché."
         value={form.type_dossier_id}
         onChange={set('type_dossier_id')}
       >

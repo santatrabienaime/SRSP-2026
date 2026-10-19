@@ -5,10 +5,9 @@ import { divisionService } from '../../services/divisionService.js';
 import { dossierService } from '../../services/dossierService.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Button } from '../ui/Button.jsx';
-import { Input } from '../ui/Input.jsx';
 import { Select } from '../ui/Select.jsx';
 import { Alert } from '../ui/Alert.jsx';
-import { TextAreaInput } from '../fields/index.jsx';
+import { TextInput } from '../fields/index.jsx';
 
 /** Formulaire de création d'un courrier entrant/sortant. */
 export function CourrierForm({ onSaved }) {
@@ -89,30 +88,56 @@ export function CourrierForm({ onSaved }) {
         <Alert type="error" title="Impossible de créer le courrier">{error.message}</Alert>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Select label="Type de courrier" required value={form.type_id} onChange={set('type_id')}>
+        <Select
+          label="Type de courrier"
+          required
+          success={Boolean(form.type_id)}
+          successMessage="Type choisi."
+          value={form.type_id}
+          onChange={set('type_id')}
+        >
           <option value="">Sélectionner…</option>
           {types.map((t) => (
             <option key={t.id} value={t.id}>{t.libelle}</option>
           ))}
         </Select>
-        <Select label="Sens" required value={form.sens} onChange={set('sens')}>
+        <Select
+          label="Sens"
+          required
+          success
+          successMessage="Sens choisi."
+          value={form.sens}
+          onChange={set('sens')}
+        >
           <option value="ENTRANT">Entrant</option>
           <option value="SORTANT">Sortant</option>
         </Select>
       </div>
 
-      <TextAreaInput
+      <TextInput
         label="Objet"
         required
-        rows={2}
         maxLength={255}
         value={form.objet}
         onChange={(v) => setVal('objet')(v.charAt(0).toUpperCase() + v.slice(1))}
+        placeholder="Objet du courrier"
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Expéditeur" maxLength={255} value={form.expediteur} onChange={set('expediteur')} placeholder={form.sens === 'ENTRANT' ? 'Qui envoie ?' : 'Service émetteur'} />
-        <Input label="Destinataire" maxLength={255} value={form.destinataire} onChange={set('destinataire')} placeholder={form.sens === 'SORTANT' ? 'À qui ?' : 'Service destinataire'} />
+        <TextInput
+          label="Expéditeur"
+          maxLength={255}
+          value={form.expediteur}
+          onChange={setVal('expediteur')}
+          placeholder={form.sens === 'ENTRANT' ? 'Qui envoie ?' : 'Service émetteur'}
+        />
+        <TextInput
+          label="Destinataire"
+          maxLength={255}
+          value={form.destinataire}
+          onChange={setVal('destinataire')}
+          placeholder={form.sens === 'SORTANT' ? 'À qui ?' : 'Service destinataire'}
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

@@ -6,6 +6,7 @@ import { useNotification } from '../../hooks/useNotification.js';
 import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { PasswordInput } from '../../components/fields/index.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { formatDateTime } from '../../utils/formatDate.js';
@@ -101,23 +102,36 @@ export function ProfilePage() {
             label="Mot de passe actuel"
             type="password"
             required
+            revealPassword
+            clearable
+            autoComplete="current-password"
             value={form.ancien}
             onChange={(e) => setForm((f) => ({ ...f, ancien: e.target.value }))}
           />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input
+            <PasswordInput
               label="Nouveau mot de passe"
-              type="password"
               required
+              showStrength={false}
               value={form.nouveau}
-              onChange={(e) => setForm((f) => ({ ...f, nouveau: e.target.value }))}
+              onChange={(v) => setForm((f) => ({ ...f, nouveau: v }))}
             />
             <Input
               label="Confirmation"
               type="password"
               required
+              revealPassword
+              clearable
+              autoComplete="new-password"
               value={form.confirmation}
               onChange={(e) => setForm((f) => ({ ...f, confirmation: e.target.value }))}
+              success={Boolean(form.confirmation) && form.confirmation === form.nouveau}
+              successMessage="Les deux mots de passe correspondent."
+              error={
+                form.confirmation && form.confirmation !== form.nouveau
+                  ? 'Les deux mots de passe ne correspondent pas.'
+                  : undefined
+              }
             />
           </div>
 

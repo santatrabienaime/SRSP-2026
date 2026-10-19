@@ -4,7 +4,7 @@ import { referentielService } from '../../services/referentielService.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
-import { Input } from '../../components/ui/Input.jsx';
+import { ReferenceInput, TextInput } from '../../components/fields/index.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
@@ -67,19 +67,21 @@ export function TypesDossiersPage() {
       <div className="space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <Input
+            <ReferenceInput
               label="Code (ex: VISA, SOLDE)"
               value={nouveauNom}
-              onChange={(e) => setNouveauNom(e.target.value)}
+              onChange={(v) => setNouveauNom(v)}
               placeholder="VISA"
+              maxLength={20}
             />
           </div>
           <div className="flex-1">
-            <Input
+            <TextInput
               label="Libellé"
               value={nouveauLibelle}
-              onChange={(e) => setNouveauLibelle(e.target.value)}
+              onChange={(v) => setNouveauLibelle(v)}
               placeholder="Dossier de visa"
+              maxLength={150}
             />
           </div>
           <Button onClick={ajouterType} disabled={!nouveauNom.trim() || !nouveauLibelle.trim()}>

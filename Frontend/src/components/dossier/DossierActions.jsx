@@ -8,8 +8,7 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Button } from '../ui/Button.jsx';
 import { Select } from '../ui/Select.jsx';
-import { Input } from '../ui/Input.jsx';
-import { Textarea } from '../ui/Textarea.jsx';
+import { TextAreaInput, ReferenceInput } from '../fields/index.jsx';
 import { Modal } from '../ui/Modal.jsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
 import { STATUTS } from '../../config/constants.js';
@@ -136,6 +135,8 @@ export function DossierActions({ dossier, onDone, onDeleted }) {
             <Select
               label="Division cible"
               required
+              success={Boolean(payload.division_id)}
+              successMessage="Division choisie."
               value={payload.division_id || ''}
               onChange={(e) => setPayload((p) => ({ ...p, division_id: e.target.value }))}
             >
@@ -190,10 +191,11 @@ export function DossierActions({ dossier, onDone, onDeleted }) {
             <p className="text-sm text-slate-500">
               Prendre le dossier <b>{dossier.numero}</b> en charge pour traitement.
             </p>
-            <Textarea
+            <TextAreaInput
               label="Observation"
               value={payload.observation || ''}
-              onChange={(e) => setPayload((p) => ({ ...p, observation: e.target.value }))}
+              onChange={(v) => setPayload((p) => ({ ...p, observation: v }))}
+              maxLength={1000}
               placeholder="Étapes de traitement réalisées…"
             />
           </div>
@@ -207,6 +209,8 @@ export function DossierActions({ dossier, onDone, onDeleted }) {
             <Select
               label="Résultat"
               required
+              success={Boolean(payload.resultat)}
+              successMessage="Résultat choisi."
               value={payload.resultat || ''}
               onChange={(e) => setPayload((p) => ({ ...p, resultat: e.target.value }))}
             >
@@ -214,10 +218,11 @@ export function DossierActions({ dossier, onDone, onDeleted }) {
               <option value="OK">Soumettre à vérification</option>
               <option value="KO">Demander une correction</option>
             </Select>
-            <Textarea
+            <TextAreaInput
               label="Observation"
               value={payload.observation || ''}
-              onChange={(e) => setPayload((p) => ({ ...p, observation: e.target.value }))}
+              onChange={(v) => setPayload((p) => ({ ...p, observation: v }))}
+              maxLength={1000}
               placeholder="Détails de la vérification…"
             />
           </div>
@@ -231,6 +236,8 @@ export function DossierActions({ dossier, onDone, onDeleted }) {
             <Select
               label="Décision"
               required
+              success={Boolean(payload.decision)}
+              successMessage="Décision choisie."
               value={payload.decision || ''}
               onChange={(e) => setPayload((p) => ({ ...p, decision: e.target.value }))}
             >
@@ -238,10 +245,11 @@ export function DossierActions({ dossier, onDone, onDeleted }) {
               <option value="VALIDE">Valider le dossier</option>
               <option value="CORRECTION">Demander une correction</option>
             </Select>
-            <Textarea
+            <TextAreaInput
               label="Commentaire"
               value={payload.commentaire || ''}
-              onChange={(e) => setPayload((p) => ({ ...p, commentaire: e.target.value }))}
+              onChange={(v) => setPayload((p) => ({ ...p, commentaire: v }))}
+              maxLength={1000}
               placeholder="Commentaire de validation…"
             />
             {payload.decision === 'VALIDE' && (
@@ -257,16 +265,19 @@ export function DossierActions({ dossier, onDone, onDeleted }) {
             <p className="text-sm text-slate-500">
               Signer le dossier validé <b>{dossier.numero}</b>.
             </p>
-            <Input
+            <ReferenceInput
               label="Référence de signature"
               value={payload.reference || ''}
-              onChange={(e) => setPayload((p) => ({ ...p, reference: e.target.value }))}
-              placeholder="ex. N° 045/SRSP/2026"
+              onChange={(v) => setPayload((p) => ({ ...p, reference: v }))}
+              placeholder="N° 045/SRSP/2026"
+              hint="Lettre, chiffres et barres obliques. Elle figure sur l'acte signé."
+              maxLength={50}
             />
-            <Textarea
+            <TextAreaInput
               label="Observation"
               value={payload.observation || ''}
-              onChange={(e) => setPayload((p) => ({ ...p, observation: e.target.value }))}
+              onChange={(v) => setPayload((p) => ({ ...p, observation: v }))}
+              maxLength={1000}
             />
           </div>
         );

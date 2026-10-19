@@ -7,7 +7,6 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Card } from '../ui/Card.jsx';
 import { Button } from '../ui/Button.jsx';
-import { Input } from '../ui/Input.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import {
@@ -15,6 +14,7 @@ import {
   NameInput,
   FirstNameInput,
   NumberInput,
+  TextInput,
 } from '../fields/index.jsx';
 
 const fmt = (n) =>
@@ -174,7 +174,7 @@ export function Mandatement({ dossierId }) {
               <div key={i} className="grid gap-2 rounded-md border border-slate-200 p-2 sm:grid-cols-6">
                 <NameInput className="sm:col-span-2" label="Nom" value={b.nom} onChange={setBenef(i, 'nom')} />
                 <FirstNameInput label="Prénom" value={b.prenom} onChange={setBenef(i, 'prenom')} />
-                <Input label="Lien" maxLength={100} value={b.lien} onChange={(e) => setBenef(i, 'lien')(e.target.value)} />
+                <TextInput label="Lien" maxLength={100} value={b.lien} onChange={setBenef(i, 'lien')} hint="Lien de parenté (ex. Épouse, Fils)." />
                 <NumberInput label="Quote-part %" min={0} max={100} value={b.quote_part} onChange={setBenef(i, 'quote_part')} />
                 {/* Montant calculé, non saisi : l'agent saisit le total et les
                     pourcentages, la plateforme fait la répartition. */}

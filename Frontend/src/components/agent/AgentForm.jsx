@@ -5,9 +5,15 @@ import { divisionService } from '../../services/divisionService.js';
 import { userService } from '../../services/userService.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Button } from '../ui/Button.jsx';
-import { Input } from '../ui/Input.jsx';
 import { Select } from '../ui/Select.jsx';
 import { Alert } from '../ui/Alert.jsx';
+import {
+  NameInput,
+  FirstNameInput,
+  ReferenceInput,
+  EmailInput,
+  PhoneInput,
+} from '../fields/index.jsx';
 
 /** Formulaire de création / édition d'un agent. */
 export function AgentForm({ initial = null, onSaved }) {
@@ -45,8 +51,15 @@ export function AgentForm({ initial = null, onSaved }) {
       });
   }, []);
 
-  const set = (field) => (e) => {
-    const v = field === 'actif' ? e.target.checked : e.target.value;
+  /* Les composants de champ renvoient la valeur formatée, les champs bruts un
+     événement : le même accesseur accepte les deux. */
+  const set = (field) => (source) => {
+    const v =
+      field === 'actif'
+        ? source.target.checked
+        : source && source.target
+          ? source.target.value
+          : source;
     setForm((f) => ({ ...f, [field]: v }));
   };
 
@@ -92,11 +105,18 @@ export function AgentForm({ initial = null, onSaved }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <Alert type="error">{error.message}</Alert>}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Nom" required value={form.nom} onChange={set('nom')} />
-        <Input label="Prénom" required value={form.prenom} onChange={set('prenom')} />
+        <NameInput label="Nom" required value={form.nom} onChange={set('nom')} />
+        <FirstNameInput label="Prénom" required value={form.prenom} onChange={set('prenom')} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Matricule" value={form.matricule} onChange={set('matricule')} />
+        <ReferenceInput
+          label="Matricule"
+          value={form.matricule}
+          onChange={set('matricule')}
+          hint="3 caractères minimum, lettres et chiffres (ex. SRSP-013)."
+          placeholder="SRSP-013"
+          maxLength={30}
+        />
         <Select label="Fonction" value={form.fonction_id} onChange={set('fonction_id')}>
           <option value="">Aucune</option>
           {fonctions.map((f) => (
@@ -119,8 +139,8 @@ export function AgentForm({ initial = null, onSaved }) {
         </Select>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Email" type="email" value={form.email} onChange={set('email')} />
-        <Input label="Téléphone" value={form.telephone} onChange={set('telephone')} />
+        <EmailInput label="Email" value={form.email} onChange={set('email')} />
+        <PhoneInput label="Téléphone" value={form.telephone} onChange={set('telephone')} />
       </div>
       {initial && (
         <label className="flex items-center gap-2 text-sm text-slate-700">
