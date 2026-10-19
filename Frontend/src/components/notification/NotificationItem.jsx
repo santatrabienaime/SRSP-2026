@@ -1,10 +1,37 @@
-import { CheckCircle2, Info, XCircle, ChevronRight } from 'lucide-react';
+import {
+  CheckCircle2, Info, XCircle, ChevronRight,
+  Compass, UserCheck, ShieldCheck, AlertTriangle, Stamp, Archive,
+} from 'lucide-react';
 import { formatDateTime } from '../../utils/formatDate.js';
 
+/**
+ * Le `type` enregistré par le workflow dit quel acte est visé (affectation,
+ * vérification, correction…). Chaque acte a son icône et sa couleur : une
+ * demande d'action ne se confond pas avec un simple compte rendu. Un type
+ * inconnu retombe sur l'icône d'information.
+ */
 const ICONS = {
-  SUCCESS: CheckCircle2,
   INFO: Info,
+  SUCCESS: CheckCircle2,
   ERROR: XCircle,
+  WORKFLOW: Compass,
+  AFFECTATION: UserCheck,
+  VERIFICATION: ShieldCheck,
+  CORRECTION: AlertTriangle,
+  VALIDATION: CheckCircle2,
+  SIGNATURE: Stamp,
+  CLOTURE: Archive,
+};
+
+const COULEURS = {
+  ERROR: 'text-red-500',
+  CORRECTION: 'text-amber-500',
+  SUCCESS: 'text-emerald-500',
+  VALIDATION: 'text-emerald-500',
+  SIGNATURE: 'text-emerald-500',
+  CLOTURE: 'text-emerald-500',
+  VERIFICATION: 'text-violet-500',
+  AFFECTATION: 'text-blue-500',
 };
 
 /**
@@ -24,11 +51,7 @@ export function NotificationItem({ notification, actionLabel = null }) {
     >
       <Icon
         className={`mt-0.5 h-4 w-4 shrink-0 ${
-          notification.type === 'ERROR'
-            ? 'text-red-500'
-            : notification.type === 'SUCCESS'
-              ? 'text-emerald-500'
-              : 'text-primary-500'
+          COULEURS[notification.type] || 'text-primary-500'
         }`}
       />
       <div className="min-w-0 flex-1">

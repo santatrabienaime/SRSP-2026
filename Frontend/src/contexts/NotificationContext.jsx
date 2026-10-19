@@ -1,10 +1,28 @@
 import { createContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { io } from 'socket.io-client';
 import { notificationService } from '../services/notificationService.js';
+import { API_BASE } from '../config/constants.js';
 import { useAuth } from '../hooks/useAuth.js';
 
 export const NotificationContext = createContext(null);
 
 const POLL_INTERVAL = 30000; // 30 s
+
+/**
+ * Origine du canal temps réel : celle de l'API.
+ *
+ * En développement, `API_BASE` est relatif (« /api ») : c'est le proxy Vite qui
+ * relaie le WebSocket. Si une URL absolue est configurée (VITE_API_URL), le
+ * socket doit viser la même origine que l'API, sinon il s'adresserait au
+ * serveur des fichiers au lieu du serveur applicatif.
+ */
+function origineTempsReel() {
+  try {
+    return new URL(API_BASE, window.location.origin).origin;
+  } catch {
+    return window.location.origin;
+  }
+}
 
 /* ----------------------------- Toasts ----------------------------- */
 let toastId = 0;
@@ -55,10 +73,22 @@ export function NotificationProvider({ children }) {
   }, [userId]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) return undefined;
     Promise.resolve().then(refresh);
     const timer = setInterval(refresh, POLL_INTERVAL);
-    return () => clearInterval(timer);
+
+    /* Temps réel : le serveur pousse un signal sur le canal privé de
+       l'utilisateur dès qu'une notification lui est destinée. Le canal ne
+       transporte que l'alerte — la liste et le compteur restent relus depuis
+       l'API, qui seule fait foi. Le sondage périodique est conservé en filet :
+       si le WebSocket tombe, l'affichage continue d'être rafraîchi. */
+    const socket = io(origineTempsReel(), { auth: { token } });
+    socket.on('notification', () => { refresh(); });
+
+    return () => {
+      clearInterval(timer);
+      socket.close();
+    };
   }, [token, userId, refresh]);
 
   const markRead = useCallback(

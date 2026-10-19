@@ -31,15 +31,29 @@ export async function countUnread(userId) {
 }
 
 /**
- * Crée une notification pour UN utilisateur.
- * Le INSERT ignore silencieusement un doublon (user_id, dossier_id, action) :
- * un acte déjà notifié ne réapparaît pas.
+ * Crée — ou réactive — la notification d'UN utilisateur pour un acte donné.
+ *
+ * La clé d'unicité (user_id, dossier_id, action) garantit qu'un même acte
+ * n'empile pas les lignes. Mais un acte peut se répéter légitimement : un
+ * dossier re-soumis à vérification après correction, une réaffectation. Un
+ * `INSERT IGNORE` perdait alors le second signalement en silence — le chef de
+ * division n'était jamais prévenu de la nouvelle soumission. On rafraîchit donc
+ * la ligne existante, qui repasse en non lue et remonte en tête de liste.
+ *
+ * `affectedRows` vaut 1 (création), 2 (réactivation) ou 0 (ligne déjà non lue
+ * et identique : il n'y a rien de neuf à signaler).
  */
 export async function create({ user_id, type, action, message, lien, dossier_id }) {
   if (!user_id) return false;
   const [res] = await db.pool.execute(
-    `INSERT IGNORE INTO notifications (user_id, dossier_id, type, action, message, lien)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO notifications (user_id, dossier_id, type, action, message, lien)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       type = VALUES(type),
+       message = VALUES(message),
+       lien = VALUES(lien),
+       lu = FALSE,
+       created_at = CURRENT_TIMESTAMP`,
     [user_id, dossier_id || null, type || null, action || null, message, lien || null]
   );
   const cree = res.affectedRows > 0;
@@ -47,7 +61,6 @@ export async function create({ user_id, type, action, message, lien, dossier_id 
     // Signal temps réel : le client recharge son compteur et sa liste sans
     // attendre le prochain rafraîchissement périodique.
     emitToUser(user_id, 'notification', {
-      id: res.insertId,
       type: type || null,
       action: action || null,
       message,
@@ -93,11 +106,20 @@ export async function getChefDivisionUserId(divisionId) {
   return rows[0]?.id || null;
 }
 
-/** Identifiant utilisateur lié à un agent. */
+/**
+ * Identifiant utilisateur lié à un agent.
+ *
+ * L'utilisateur doit être actif : notifier un compte désactivé reviendrait à
+ * créer une alerte que personne ne lira, et qui fausserait les compteurs.
+ */
 export async function getUserIdByAgent(agentId) {
   if (!agentId) return null;
   const rows = await db.query(
-    'SELECT user_id FROM agents WHERE id = ? LIMIT 1',
+    `SELECT a.user_id
+     FROM agents a
+     JOIN users u ON u.id = a.user_id AND u.actif = TRUE
+     WHERE a.id = ?
+     LIMIT 1`,
     [agentId]
   );
   return rows[0]?.user_id || null;

@@ -223,28 +223,12 @@ export async function affecterAutomatiquement(dossierId, divisionId, userId) {
     details: `Affectation automatique à ${identite} — agent de traitement de la division, le moins chargé.`,
   });
 
-  // L'agent concerné est prévenu, comme pour toute affectation.
-  const [destinataire] = await db.query(
-    'SELECT user_id FROM agents WHERE id = ?',
-    [agent.id]
-  );
-  if (destinataire?.user_id) {
-    await notificationModel.notifyUser(destinataire.user_id, {
-      dossier_id: dossierId,
-      action: 'DOSSIER_AFFECTE',
-      type: 'INFO',
-      message: `Le dossier ${await numeroDu(dossierId)} vous a été affecté automatiquement.`,
-      lien: `/dossiers/${dossierId}`,
-    });
-  }
+  /* L'agent est prévenu par la transition AFFECTE ci-dessus : la notification
+     part de workflowService, à un seul endroit, pour toute affectation —
+     automatique ou manuelle. En ajouter une seconde ici faisait recevoir deux
+     avertissements pour le même acte. */
 
   return { id: agent.id, nom: agent.nom, prenom: agent.prenom, role: agent.role_code };
-}
-
-/** Numéro d'un dossier, pour un message de notification. */
-async function numeroDu(dossierId) {
-  const [ligne] = await db.query('SELECT numero FROM dossiers WHERE id = ?', [dossierId]);
-  return ligne?.numero || `#${dossierId}`;
 }
 
 export async function updateDossier(id, data, userId) {
