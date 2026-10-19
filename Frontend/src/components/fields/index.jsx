@@ -12,6 +12,7 @@
  */
 import { useState, useRef } from 'react';
 import { Input } from '../ui/Input.jsx';
+import { Textarea } from '../ui/Textarea.jsx';
 import { useInputControl, INPUT_TYPES, MATRICULE_LONGUEUR_MAX } from '../../hooks/useInputControl.js';
 
 /* ═══════════════════════════════════════════════════════════
@@ -37,6 +38,7 @@ export function MatriculeInput({ label = 'N° matricule', value, onChange, error
       {...control.inputProps}
       error={error || control.error}
       autoComplete="off"
+      clearable
       placeholder="222 222 222"
       hint={
         hint ??
@@ -70,6 +72,9 @@ export function PhoneInput({ label = 'Téléphone', value, onChange, error, requ
       maxLength={13}
       inputMode="numeric"
       autoComplete="tel"
+      clearable
+      showCounter
+      hint="10 chiffres, préfixe 032/033/034/038"
       placeholder="032 12 345 67"
       onChange={(e) => onChange?.(control.handleChange(e))}
       {...props}
@@ -98,6 +103,8 @@ export function UsernameInput({ label = 'Identifiant', value, onChange, error, r
       autoComplete="username"
       autoCapitalize="none"
       spellCheck="false"
+      clearable
+      showCounter
       placeholder="prenom.nom"
       onChange={(e) => onChange?.(control.handleChange(e))}
       {...props}
@@ -124,6 +131,7 @@ export function EmailInput({ label = 'Email', value, onChange, error, required, 
       error={error || control.error}
       maxLength={255}
       autoComplete="email"
+      clearable
       placeholder="nom@srsp.mg"
       onChange={(e) => onChange?.(control.handleChange(e))}
       {...props}
@@ -150,6 +158,7 @@ export function NameInput({ label = 'Nom', value, onChange, error, required, ...
       error={error || control.error}
       maxLength={100}
       autoComplete="family-name"
+      clearable
       placeholder="RAKOTO"
       className="uppercase"
       onChange={(e) => onChange?.(control.handleChange(e))}
@@ -177,6 +186,7 @@ export function FirstNameInput({ label = 'Prénom', value, onChange, error, requ
       error={error || control.error}
       maxLength={100}
       autoComplete="given-name"
+      clearable
       placeholder="Jean"
       onChange={(e) => onChange?.(control.handleChange(e))}
       {...props}
@@ -214,6 +224,7 @@ export function AmountInput({
       error={error || control.error || (depasse ? `Maximum ${max.toLocaleString('fr-FR')} Ar` : null)}
       maxLength={14}
       inputMode="numeric"
+      clearable
       placeholder="1 500 000"
       hint={`Maximum : ${max.toLocaleString('fr-FR')} Ar`}
       onChange={(e) => onChange?.(control.handleChange(e))}
@@ -326,6 +337,7 @@ export function SearchInput({ label = 'Recherche', onSearch, delay = 300, ...pro
     <Input
       label={label}
       value={query}
+      clearable
       onChange={handleChange}
       onKeyDown={(e) => {
         if (e.key === 'Escape') setQuery('');
@@ -351,36 +363,23 @@ export function TextAreaInput({
 }) {
   const v = value || '';
   return (
-    <div className="space-y-1">
-      <label className="mb-1 block text-sm font-medium text-slate-700">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      <textarea
-        value={v}
-        rows={rows}
-        maxLength={maxLength}
-        aria-invalid={Boolean(error)}
-        aria-required={required}
-        onChange={(e) => onChange?.(e.target.value.slice(0, maxLength))}
-        onKeyDown={(e) => {
-          if (v.length >= maxLength && e.key.length === 1) e.preventDefault();
-        }}
-        className={`block w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400
-          focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-          ${error ? 'border-red-400' : 'border-slate-300'}`}
-        {...props}
-      />
-      <div className="flex justify-between">
-        <span className="text-xs text-red-600">{error}</span>
-        <span
-          className={`text-xs ${
-            v.length >= maxLength * 0.9 ? 'text-red-500' : 'text-slate-400'
-          }`}
-        >
-          {v.length}/{maxLength}
-        </span>
-      </div>
-    </div>
+    <Textarea
+      label={label}
+      required={required}
+      value={v}
+      error={error}
+      success={Boolean(v.trim()) && !error}
+      maxLength={maxLength}
+      showCounter
+      rows={rows}
+      aria-invalid={Boolean(error)}
+      aria-required={required}
+      onChange={(e) => onChange?.(e.target.value.slice(0, maxLength))}
+      onKeyDown={(e) => {
+        if (v.length >= maxLength && e.key.length === 1) e.preventDefault();
+      }}
+      {...props}
+    />
   );
 }
 
@@ -407,6 +406,7 @@ export function DateInput({
       min={minDate}
       max={maxDate}
       error={error}
+      success={Boolean(value)}
       {...props}
     />
   );
@@ -431,6 +431,8 @@ export function ReferenceInput({ label = 'Référence', value, onChange, error, 
       error={error || control.error}
       maxLength={50}
       autoComplete="off"
+      clearable
+      showCounter
       placeholder="BE-2025-001"
       className="uppercase"
       onChange={(e) => onChange?.(control.handleChange(e))}
@@ -466,6 +468,9 @@ export function NumberInput({
       {...control.inputProps}
       min={min}
       max={max}
+      maxLength={10}
+      clearable
+      showCounter
       error={error || control.error}
       onChange={(e) => onChange?.(control.handleChange(e))}
       {...props}
@@ -500,6 +505,7 @@ export function DecimalInput({ label = 'Valeur', value, onChange, error, require
       onKeyDown={handleKeyDown}
       error={error}
       inputMode="decimal"
+      clearable
       placeholder="0.00"
       {...props}
     />

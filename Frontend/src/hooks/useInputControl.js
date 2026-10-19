@@ -136,6 +136,20 @@ const VALIDATORS = {
   },
 };
 
+/* Confirmation affichée sous le champ une fois la saisie reconnue bonne. Un
+   champ qui se tait laisse l'agent douter ; un champ qui répond l'assure. Les
+   formats contrôlés ont leur phrase, les autres champs affichent la coche verte
+   seule (aucun message générique n'est inventé). */
+const MESSAGES_VALIDES = {
+  [INPUT_TYPES.MATRICULE]: 'Matricule valide.',
+  [INPUT_TYPES.PHONE]: 'Téléphone valide.',
+  [INPUT_TYPES.EMAIL]: 'Adresse email valide.',
+  [INPUT_TYPES.AMOUNT]: 'Montant valide.',
+  [INPUT_TYPES.PASSWORD]: 'Mot de passe conforme.',
+  [INPUT_TYPES.REFERENCE]: 'Référence valide.',
+  [INPUT_TYPES.NUMBER]: 'Nombre valide.',
+};
+
 /* Touches de navigation / édition toujours autorisées. */
 const ALLOWED_KEYS = new Set([
   'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
@@ -305,9 +319,18 @@ export function useInputControl(initialValue = '', config = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [init]);
 
+  const erreurAffichee = touched ? error : null;
+  /* Confirmation : la saisie a été quittée, elle est non vide et sans erreur.
+     On ne confirme jamais un champ encore en cours de frappe — la coche
+     apparaîtrait au premier caractère. */
+  const valide = touched && !error && String(value).trim() !== '';
+  const successMessage = valide ? MESSAGES_VALIDES[type] : null;
+
   return {
     value,
-    error: touched ? error : null,
+    error: erreurAffichee,
+    success: valide,
+    successMessage,
     touched,
     isValid: !validate(value),
     length: value.length,
@@ -322,7 +345,9 @@ export function useInputControl(initialValue = '', config = {}) {
       onChange: handleChange,
       onKeyDown: handleKeyDown,
       onBlur: handleBlur,
-      error: touched ? error : null,
+      error: erreurAffichee,
+      success: valide,
+      successMessage,
       'aria-invalid': Boolean(touched && error),
       'aria-required': required,
     },
