@@ -15,6 +15,7 @@ export const statistiqueService = {
       enCours: extractValue(data.enCours),
       enAttente: extractValue(data.enAttente),
       rejetes: extractValue(data.rejetes),
+      prioritaires: extractValue(data.prioritaires),
       tauxValidation: extractValue(data.tauxValidation),
       tauxRejet: extractValue(data.tauxRejet),
       /* Répartitions du service entier, fournies par cet endpoint (et non par

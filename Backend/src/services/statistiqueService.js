@@ -50,6 +50,16 @@ export async function getStatistiques({ date_debut, date_fin } = {}) {
     params
   );
 
+  /* Dossiers prioritaires (priorité haute ou urgente) : même règle que le
+     triage « Urgents » de la liste des dossiers. Indicateur de pilotage,
+     absent des compteurs du tableau de bord. */
+  const [prioritaires] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN priorites p ON d.priorite_id = p.id
+     ${where} AND p.niveau >= 3`,
+    params
+  );
+
   const tauxValidation = total.total > 0 ? (valides.total / total.total) * 100 : 0;
   const tauxRejet = total.total > 0 ? (rejetes.total / total.total) * 100 : 0;
 
@@ -79,6 +89,7 @@ export async function getStatistiques({ date_debut, date_fin } = {}) {
     rejetes: rejetes.total,
     enCours: enCours.total,
     enAttente: enAttente.total,
+    prioritaires: prioritaires.total,
     tauxValidation: Math.round(tauxValidation * 100) / 100,
     tauxRejet: Math.round(tauxRejet * 100) / 100,
     parStatut,

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Target, Files, Clock, AlertCircle } from 'lucide-react';
+import {
+  TrendingUp, TrendingDown, CheckCircle2, AlertTriangle, Clock, AlertCircle,
+} from 'lucide-react';
 import { statistiqueService } from '../../services/statistiqueService.js';
 import { StatCard } from '../../components/ui/StatCard.jsx';
 import { Card } from '../../components/ui/Card.jsx';
@@ -10,13 +12,18 @@ import { STATUT_LABELS } from '../../config/constants.js';
 import { extractValue } from '../../utils/extractValue.js';
 import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
+/** Statuts terminés : le dossier a franchi toutes les étapes de traitement. */
+const CODES_TERMINES = ['SIGNE', 'CLOTURE', 'ARCHIVE'];
+
 /**
- * Statistiques — vue d'ensemble du service entier (aucun filtre de périmètre).
+ * Statistiques — pilotage du service entier (aucun filtre de périmètre).
  *
- * C'est la différence avec le tableau de bord : celui-ci est opérationnel et
- * suit les dossiers de l'utilisateur (agent / division / global), celui-ci
- * mesure la performance globale du traitement. Les répartitions affichées ici
- * viennent donc de /statistiques, pas des endpoints du tableau de bord.
+ * Répartition des rôles, pour que les deux écrans ne se répètent pas :
+ *  - le tableau de bord est opérationnel et filtré par utilisateur ; il porte
+ *    les files d'attente (« que dois-je faire ? ») : total, à valider, à
+ *    signer, à clôturer, en retard, nouveaux reçus ;
+ *  - cet écran-ci mesure la performance du service : des taux, des volumes de
+ *    pilotage et les répartitions, jamais un compteur du tableau de bord.
  */
 export function StatistiquesPage() {
   const [stats, setStats] = useState(null);
@@ -42,12 +49,17 @@ export function StatistiquesPage() {
      planter la page au premier rendu. */
   const statsData = stats || {};
   const total = extractValue(statsData.total);
-  const valides = extractValue(statsData.valides);
   const enCours = extractValue(statsData.enCours);
-  const enAttente = extractValue(statsData.enAttente);
   const rejetes = extractValue(statsData.rejetes);
+  const prioritaires = extractValue(statsData.prioritaires);
   const tauxValidation = extractValue(statsData.tauxValidation);
   const tauxRejet = extractValue(statsData.tauxRejet);
+
+  /* Les dossiers terminés se déduisent de la répartition par statut : le
+     chiffre reste ainsi garanti cohérent avec le camembert affiché. */
+  const termines = (statsData.parStatut || [])
+    .filter((d) => CODES_TERMINES.includes(d.code))
+    .reduce((cumul, d) => cumul + extractValue(d.total), 0);
 
   const statusRows = (statsData.parStatut || []).map((d) => ({
     name: STATUT_LABELS[d.code] || d.libelle || d.code,
@@ -60,7 +72,13 @@ export function StatistiquesPage() {
   }));
 
   return (
-    <AnimatedCard title="Statistiques" subtitle="Indicateurs de performance du traitement des dossiers." delay={0}>
+    <AnimatedCard
+      title="Statistiques"
+      subtitle={loading
+        ? 'Pilotage du service entier…'
+        : `Pilotage du service entier — ${total} dossiers, tous statuts.`}
+      delay={0}
+    >
       <div className="space-y-5">
         {error && (
           <Alert type="error" title="Statistiques indisponibles">
@@ -68,17 +86,13 @@ export function StatistiquesPage() {
           </Alert>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard icon={Files} label="Dossiers totaux" value={total} tone="primary" loading={loading} />
-          <StatCard icon={Target} label="Validés" value={valides} tone="emerald" loading={loading} />
-          <StatCard icon={TrendingUp} label="Taux de validation" value={tauxValidation ? `${tauxValidation} %` : null} tone="sky" loading={loading} />
-          <StatCard icon={TrendingDown} label="Taux de correction" value={tauxRejet ? `${tauxRejet} %` : null} tone="amber" loading={loading} />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard icon={Clock} label="En cours de traitement" value={enCours} tone="sky" loading={loading} />
-          <StatCard icon={Clock} label="En attente de prise en charge" value={enAttente} tone="primary" loading={loading} />
-          <StatCard icon={AlertCircle} label="Corrections demandées" value={rejetes} tone="amber" loading={loading} />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <StatCard icon={TrendingUp} label="Taux de validation" sub="Validés / dossiers du service" value={`${tauxValidation} %`} tone="emerald" loading={loading} />
+          <StatCard icon={TrendingDown} label="Taux de correction" sub="Corrections / dossiers du service" value={`${tauxRejet} %`} tone="amber" loading={loading} />
+          <StatCard icon={CheckCircle2} label="Dossiers terminés" sub="Signés, clôturés ou archivés" value={termines} tone="sky" loading={loading} />
+          <StatCard icon={Clock} label="En cours de traitement" sub="Reçus, non terminés" value={enCours} tone="primary" loading={loading} />
+          <StatCard icon={AlertCircle} label="Corrections demandées" sub="En attente de l'agent" value={rejetes} tone="red" loading={loading} />
+          <StatCard icon={AlertTriangle} label="Dossiers prioritaires" sub="Priorité haute ou urgente" value={prioritaires} tone="violet" loading={loading} />
         </div>
 
         <Card title="Répartition par statut">
