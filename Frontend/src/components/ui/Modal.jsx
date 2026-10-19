@@ -1,8 +1,18 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 /**
  * Modale accessible : fermeture par Échap, clic sur le fond ou bouton X.
+ *
+ * La modale est montée dans <body> par un portail, et non à l'endroit où elle
+ * est écrite dans le JSX. C'est indispensable ici : les écrans présentent leurs
+ * modales à l'intérieur d'une carte (`AnimatedCard`), et cette carte porte
+ * `backdrop-filter` (et un `transform` au survol). Or ces propriétés font de la
+ * carte le bloc conteneur des descendants `position: fixed` : la modale
+ * s'alignait alors sur la carte, n'obscurcissait qu'elle et se retrouvait
+ * rognée — le formulaire apparaissait coupé et devenait impossible à remplir
+ * jusqu'au bout. Placée dans <body>, elle couvre toujours l'écran entier.
  */
 export function Modal({
   open,
@@ -27,7 +37,7 @@ export function Modal({
 
   const widths = { sm: 'max-w-md', md: 'max-w-2xl', lg: 'max-w-4xl', xl: 'max-w-6xl' };
 
-  return (
+  return createPortal(
     /* Sur téléphone, la modale se colle en bas de l'écran plutôt que d'être
        centrée : centrée, elle est rognée en haut et en bas sur un petit
        écran, et le bouton de fermeture se retrouve hors de portée du pouce. */
@@ -53,7 +63,10 @@ export function Modal({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">{children}</div>
+        {/* min-h-0 : sans lui, un enfant de boîte flexible refuse de descendre
+            sous la taille de son contenu, et la zone de contenu déborde au lieu
+            de défiler — le bas du formulaire redeviendrait inaccessible. */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">{children}</div>
         {footer && (
           /* flex-wrap : sur un écran étroit, deux boutons côte à côte débordent.
              Ils passent donc à la ligne, pleine largeur, faciles à viser. */
@@ -62,7 +75,8 @@ export function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

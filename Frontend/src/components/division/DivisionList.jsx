@@ -139,19 +139,20 @@ export function DivisionList() {
       )}
       <Pagination pagination={pagination} />
 
+      {/* Pas de pied de page ici : le formulaire porte lui-même sa barre
+          d'actions (« Annuler » et « Créer la division »), collée en bas de la
+          zone visible. Une deuxième barre ferait doublon. */}
       <Modal
         open={open}
         onClose={() => setOpen(false)}
         title={edition ? `Modifier la division ${edition.nom}` : 'Nouvelle division'}
-        footer={
-          <Button variant="secondary" onClick={() => setOpen(false)}>Fermer</Button>
-        }
       >
         {/* La clé force la reconstruction du formulaire : sans elle, passer
             d'une division à une autre conserverait les valeurs de la première. */}
         <DivisionForm
           key={edition?.id ?? 'nouvelle'}
           initial={edition}
+          onCancel={() => setOpen(false)}
           onSaved={() => {
             setOpen(false);
             load();

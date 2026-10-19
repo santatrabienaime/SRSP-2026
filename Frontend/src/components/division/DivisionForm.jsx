@@ -9,7 +9,7 @@ import { Alert } from '../ui/Alert.jsx';
 import { ReferenceInput, TitleTextInput } from '../fields/index.jsx';
 
 /** Formulaire de création / édition d'une division. */
-export function DivisionForm({ initial = null, onSaved }) {
+export function DivisionForm({ initial = null, onSaved, onCancel = null }) {
   const { toastSuccess, toastError } = useNotification();
   const [agents, setAgents] = useState([]);
   const [typesDossiers, setTypesDossiers] = useState([]);
@@ -87,6 +87,7 @@ export function DivisionForm({ initial = null, onSaved }) {
         <ReferenceInput
           label="Code"
           required
+          autoFocus
           value={form.code}
           onChange={set('code')}
           hint="Lettres majuscules, chiffres et tirets (ex. VISAS)."
@@ -130,9 +131,21 @@ export function DivisionForm({ initial = null, onSaved }) {
           Division active
         </label>
       )}
-      <Button type="submit" loading={saving}>
-        {initial ? 'Enregistrer' : 'Créer la division'}
-      </Button>
+      {/* Barre d'actions collée en bas : quelle que soit la hauteur du
+          formulaire, on voit toujours ce qu'il reste à faire, sans chercher le
+          bouton en défilant. Elle déborde des marges de la modale pour former
+          un vrai pied de page, et reste dans le thème (bg-white suit la carte
+          en mode sombre). */}
+      <div className="sticky bottom-0 -mx-4 -mb-4 mt-3 flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:-mx-5 sm:-mb-5 sm:px-5">
+        {onCancel && (
+          <Button type="button" variant="secondary" onClick={onCancel} className="w-full sm:w-auto">
+            Annuler
+          </Button>
+        )}
+        <Button type="submit" loading={saving} className="w-full sm:w-auto">
+          {initial ? 'Enregistrer' : 'Créer la division'}
+        </Button>
+      </div>
     </form>
   );
 }
