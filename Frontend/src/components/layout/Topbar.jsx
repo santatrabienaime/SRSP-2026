@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, User, Sun, Moon, RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
 import { NotificationBell } from '../notification/NotificationBell.jsx';
@@ -17,6 +17,21 @@ export function Topbar() {
   const { estSombre, basculerTheme } = useUI();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  /* Fermeture au clic à l'extérieur, par un écouteur sur le document plutôt
+     que par un voile en `position: fixed`.
+     Le voile ne marchait pas : la barre porte `backdrop-blur`, ce qui en fait
+     le bloc conteneur des descendants `position: fixed` — le voile ne couvrait
+     donc que la barre, et un clic ailleurs dans la page ne refermait rien.
+     Même méthode que la cloche de notifications, juste à côté. */
+  useEffect(() => {
+    const onClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -64,11 +79,12 @@ export function Topbar() {
 
           <NotificationBell />
 
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((o) => !o)}
               className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-100"
               aria-label="Menu du compte"
+              aria-expanded={menuOpen}
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-bold text-primary-700">
                 {(user?.username || 'U').charAt(0).toUpperCase()}
@@ -83,27 +99,21 @@ export function Topbar() {
               </span>
             </button>
             {menuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
+              <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+                <Link
+                  to="/profil"
                   onClick={() => setMenuOpen(false)}
-                />
-                <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-lg">
-                  <Link
-                    to="/profil"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
-                  >
-                    <User className="h-4 w-4" /> Mon profil
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                  >
-                    <LogOut className="h-4 w-4" /> Se déconnecter
-                  </button>
-                </div>
-              </>
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                >
+                  <User className="h-4 w-4" /> Mon profil
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="h-4 w-4" /> Se déconnecter
+                </button>
+              </div>
             )}
           </div>
         </div>
