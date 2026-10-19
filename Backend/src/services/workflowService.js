@@ -58,6 +58,10 @@ export async function getCurrentStatus(dossierId) {
  * ainsi son travail aboutir. Sans ce retour, l'agent ne saurait jamais que le
  * dossier qu'il a traité est allé au bout.
  *
+ * La clôture, elle, avertit aussi la coordonnatrice, qui suit les dossiers du
+ * service : le chef de service doit archiver, la coordonnatrice n'a rien à
+ * faire — elle reçoit le compte rendu de la fin d'un dossier.
+ *
  * La signature ne notifie PAS les secrétaires : la clôture est l'acte suivant
  * et seule la chef de service peut l'accomplir. Avertir une secrétaire qu'un
  * dossier « peut être clôturé » lui demandait une action qu'elle n'a pas le
@@ -110,10 +114,21 @@ async function notifyForTransition(dossierId, toStatus) {
         message: `Le dossier ${numero} que vous avez traité est signé : votre travail est terminé.`, lien,
       }),
     ],
-    CLOTURE: () => [notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
-      dossier_id, action: 'CLOTURE', type: 'CLOTURE',
-      message: `Le dossier ${numero} est clôturé et peut être archivé.`, lien,
-    })],
+    CLOTURE: () => [
+      notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
+        dossier_id, action: 'CLOTURE', type: 'CLOTURE',
+        message: `Le dossier ${numero} est clôturé et peut être archivé.`, lien,
+      }),
+      /* La coordonnatrice assure le suivi des dossiers du service et la
+         production des statistiques : la clôture est le moment où un dossier
+         quitte le circuit. Elle en est informée sans avoir d'acte à faire — un
+         compte rendu, pas une demande. Le rôle peut être tenu par plusieurs
+         personnes : tous les titulaires actifs sont avertis. */
+      notificationModel.notifyRole('COORDINATRICE', {
+        dossier_id, action: 'DOSSIER_CLOTURE', type: 'INFO',
+        message: `Le dossier ${numero} est clôturé.`, lien,
+      }),
+    ],
   };
 
   if (config[toStatus]) await Promise.all(config[toStatus]());
