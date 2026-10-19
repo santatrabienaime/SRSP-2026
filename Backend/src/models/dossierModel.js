@@ -2,14 +2,14 @@ import db from '../config/db.js';
 import { generateDossierNumber } from '../utils/generateDossierNumber.js';
 
 /**
- * Dossiers d'une personne, identifiés par son CIN compacté.
+ * Dossiers d'une personne, identifiés par son matricule compacté.
  *
- * Le CIN est stocké tantôt avec espaces, tantôt sans : la comparaison se fait
- * sur la valeur compactée des deux côtés, sinon « 101 234 567 890 » ne
- * retrouverait pas « 101234567890 ».
+ * Le matricule est stocké tantôt avec espaces, tantôt sans : la comparaison se
+ * fait sur la valeur compactée des deux côtés, sinon « 222 222 222 » ne
+ * retrouverait pas « 222222222 ».
  */
-export async function findDossiersParCIN(cinNormalise) {
-  const compact = String(cinNormalise).replace(/[\s.-]/g, '').toUpperCase();
+export async function findDossiersParMatricule(matriculeNormalise) {
+  const compact = String(matriculeNormalise).replace(/[\s.-]/g, '').toUpperCase();
   if (!compact) return [];
   return db.query(
     `SELECT d.id, d.numero, d.demandeur, d.demandeur_nom, d.demandeur_prenom,

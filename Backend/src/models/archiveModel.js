@@ -87,8 +87,8 @@ function conditions(filtres = {}) {
   const params = [];
 
   if (filtres.q) {
-    /* Recherche large : couvre le numéro, le demandeur, le CIN, l'objet et le
-       mot-clé. On normalise les espaces pour que « Rakoto  Jean » et
+    /* Recherche large : couvre le numéro, le demandeur, le matricule, l'objet et
+       le mot-clé. On normalise les espaces pour que « Rakoto  Jean » et
        « Rakoto Jean » donnent le même résultat. */
     const q = String(filtres.q).trim().replace(/\s+/g, ' ');
     if (q) {
@@ -124,9 +124,9 @@ function conditions(filtres = {}) {
     params.push(`%${filtres.demandeur}%`);
   }
   if (filtres.matricule) {
-    /* Le CIN est saisi avec ou sans espaces. On compare sur la version
-       compactée des deux côtés, sinon « 101 234 567 890 » ne trouverait pas un
-       dossier enregistré « 101234567890 ». */
+    /* Le matricule est saisi avec ou sans espaces. On compare sur la version
+       compactée des deux côtés, sinon « 222 222 222 » ne trouverait pas un
+       dossier enregistré « 222222222 ». */
     where.push('REPLACE(REPLACE(IFNULL(d.matricule, \'\'), \' \', \'\'), \'-\', \'\') LIKE ?');
     params.push(`%${String(filtres.matricule).replace(/[\s-]/g, '')}%`);
   }

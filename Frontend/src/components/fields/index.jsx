@@ -4,57 +4,49 @@
  * Chaque composant encapsule le hook `useInputControl` et le UI
  * existant (`Input`, `Textarea`). Le caractère invalide est bloqué
  * avant affichage ; les conversions (MAJUSCULES, minuscules,
- * Title Case) et les formatages (CIN, téléphone, montant) sont
+ * Title Case) et les formatages (matricule, téléphone, montant) sont
  * appliqués automatiquement.
  *
  * Convention : `onChange` reçoit la valeur FORMATÉE (chaîne),
  * jamais l'événement — le parent peut la stocker directement.
  */
 import { useState, useRef } from 'react';
-import { CheckCircle2 } from 'lucide-react';
 import { Input } from '../ui/Input.jsx';
-import { useInputControl, INPUT_TYPES } from '../../hooks/useInputControl.js';
+import { useInputControl, INPUT_TYPES, MATRICULE_LONGUEUR_MAX } from '../../hooks/useInputControl.js';
 
 /* ═══════════════════════════════════════════════════════════
-   1. CINInput — CIN formaté XXX XXX XXX XXX (12 chiffres)
+   1. MatriculeInput — matricule de 2 à 10 caractères, groupes de 3
    ═══════════════════════════════════════════════════════════ */
-export function CINInput({ label = 'CIN', value, onChange, error, required, hint, ...props }) {
+export function MatriculeInput({ label = 'N° matricule', value, onChange, error, required, hint, ...props }) {
+  /* Aucune longueur n'est imposée au hook, ni au champ : la borne haute (10) est
+     appliquée par le formatage, à la frappe. Mais un numéro déjà enregistré
+     avant la règle peut être plus long, et le service l'accepte tel quel tant
+     qu'il n'est pas modifié : le plafonner ici gèlerait la saisie d'un dossier
+     ancien, et afficherait une erreur là où le service, lui, accepte. */
   const control = useInputControl(value || '', {
-    type: INPUT_TYPES.CIN,
+    type: INPUT_TYPES.MATRICULE,
     required,
-    minLength: 12,
-    maxLength: 15,
   });
 
-  const digits = control.value.replace(/\D/g, '');
-  const complet = digits.length === 12;
+  const saisis = control.value.replace(/[^A-Za-z0-9]/g, '').length;
 
   return (
-    <div>
-      <Input
-        label={label}
-        required={required}
-        {...control.inputProps}
-        error={error || control.error}
-        maxLength={15}
-        inputMode="numeric"
-        autoComplete="off"
-        placeholder="101 234 567 890"
-        hint={
-          hint ??
-          (!control.error && digits.length > 0 && !complet
-            ? `${digits.length}/12 chiffres`
-            : undefined)
-        }
-        onChange={(e) => onChange?.(control.handleChange(e))}
-        {...props}
-      />
-      {complet && !control.error && (
-        <p className="mt-1 flex items-center gap-1 text-xs text-emerald-600">
-          <CheckCircle2 className="h-3 w-3" /> CIN complet
-        </p>
-      )}
-    </div>
+    <Input
+      label={label}
+      required={required}
+      {...control.inputProps}
+      error={error || control.error}
+      autoComplete="off"
+      placeholder="222 222 222"
+      hint={
+        hint ??
+        (!control.error && saisis > 0 && saisis < MATRICULE_LONGUEUR_MAX
+          ? `${saisis}/${MATRICULE_LONGUEUR_MAX} caractères`
+          : undefined)
+      }
+      onChange={(e) => onChange?.(control.handleChange(e))}
+      {...props}
+    />
   );
 }
 

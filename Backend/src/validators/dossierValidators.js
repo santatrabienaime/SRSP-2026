@@ -3,41 +3,49 @@ import Joi from 'joi';
 /**
  * Validation de la création d'un dossier.
  *
- * Les contrôles « bloquants » du document sont ici. Le contrôle du CIN est
- * volontairement ABSENT de ce fichier : il n'interdit pas, il prévient (voir
- * `uniciteCIN` dans le service). Un client revient legitimement — un dossier de
- * visa, puis un de solde, puis une pension — et le document lui-même propose
- * « Non, modifier » face à un CIN déjà connu. Bloquer serait une faute.
+ * Les contrôles « bloquants » du document sont ici. L'unicité du matricule est
+ * volontairement ABSENTE : elle n'interdit pas, elle prévient (voir
+ * `rechercherParMatricule` dans le service). Un client revient legitimement — un
+ * dossier de visa, puis un de solde, puis une pension — et le document lui-même
+ * propose « Non, modifier » face à un matricule déjà connu. Bloquer serait une
+ * faute.
+ *
+ * La règle de longueur du matricule n'est pas non plus vérifiée ici : elle
+ * souffre une exception que seul le service peut trancher, car il consulte la
+ * base (un numéro déjà enregistré reste acceptable — voir `verifierMatricule`).
  */
 
 /** Longueur minimale et maximale d'un matricule, séparateurs exclus. */
-export const CIN_LONGUEUR_MIN = 5;
-export const CIN_LONGUEUR_MAX = 20;
+export const MATRICULE_LONGUEUR_MIN = 2;
+export const MATRICULE_LONGUEUR_MAX = 10;
 
 /**
- * Un matricule est-il recevable ?
+ * Un matricule respecte-t-il la règle du service ?
  *
- * L'administration malgache délivre des CIN de longueurs diverses : la base en
- * contient de 5, 6, 8 et 12 chiffres, ainsi que des cartes de non-inscription
- * alphanumériques. Exiger 12 chiffres exacts revenait à refuser une pièce
- * d'identité parfaitement officielle — et, pire, à rendre IMPOSSIBLE la
- * modification d'un dossier existant dont le matricule fait 6 chiffres : la
- * secrétaire ne pouvait plus corriger un dossier réel sans changer le numéro du
- * demandeur.
+ * Le demandeur est identifié par son numéro de matricule : 2 à 10 caractères
+ * alphanumériques. Ce numéro est saisi tantôt avec espaces, tantôt sans : c'est
+ * la forme compactée qui est jugée.
  *
- * On exige donc seulement des caractères d'identification plausibles. Un format
- * atypique est signalé par l'interface, jamais refusé par la base.
+ * Un format atypique est signalé par l'interface, jamais refusé par la base —
+ * sauf ici, où la longueur est une règle de service : la borne haute empêche de
+ * confondre un matricule avec un numéro de dossier ou une référence.
  */
-export function cinValide(valeur) {
+export function matriculeValide(valeur) {
   if (valeur === null || valeur === undefined || String(valeur).trim() === '') return true;
-  const compact = normaliserCIN(valeur);
+  const compact = normaliserMatricule(valeur);
   if (!compact) return true;
-  if (compact.length < CIN_LONGUEUR_MIN || compact.length > CIN_LONGUEUR_MAX) return false;
+  if (compact.length < MATRICULE_LONGUEUR_MIN || compact.length > MATRICULE_LONGUEUR_MAX) return false;
   return /^[A-Z0-9]+$/.test(compact);
 }
 
-/** Normalise un CIN pour comparaison : sans séparateur, en majuscules. */
-export function normaliserCIN(valeur) {
+/** Le matricule ne contient-il que des caractères d'identification ? */
+export function matriculeCaracteresValides(valeur) {
+  const compact = normaliserMatricule(valeur);
+  return !compact || /^[A-Z0-9]+$/.test(compact);
+}
+
+/** Normalise un matricule pour comparaison : sans séparateur, en majuscules. */
+export function normaliserMatricule(valeur) {
   if (valeur === null || valeur === undefined) return null;
   const compact = String(valeur).replace(/[\s.-]/g, '').toUpperCase();
   return compact === '' ? null : compact;
@@ -71,14 +79,10 @@ export const createDossierSchema = Joi.object({
   demandeur_email: Joi.string().trim().allow('', null).max(150)
     .email(),
   demandeur_adresse: Joi.string().trim().allow('', null).max(255),
-  matricule: Joi.string().trim().allow('', null).max(50).custom((valeur, helpers) => {
-    if (!cinValide(valeur)) {
-      return helpers.error('cin.invalide');
-    }
-    return valeur;
-  }).messages({
-    'cin.invalide': 'Le CIN doit comporter 5 à 20 caractères alphanumériques (ex. 101 234 567 890)',
-  }),
+  // Règle du matricule (2 à 10 caractères) vérifiée par le service, seul à
+  // pouvoir tolérer un numéro déjà enregistré avant la règle (voir
+  // `verifierMatricule`). Ici, seule la taille de stockage est bornée.
+  matricule: Joi.string().trim().allow('', null).max(50),
   date_reception: Joi.date().iso().required().messages({
     'any.required': 'La date de réception est requise',
   }),
@@ -114,9 +118,8 @@ export const updateDossierSchema = Joi.object({
   demandeur_email: Joi.string().trim().allow('', null).max(150)
     .email(),
   demandeur_adresse: Joi.string().trim().allow('', null).max(255),
-  matricule: Joi.string().trim().allow('', null).max(50).custom((valeur, helpers) => (
-    cinValide(valeur) ? valeur : helpers.error('cin.invalide')
-  )).messages({ 'cin.invalide': 'Le CIN doit comporter 5 à 20 caractères alphanumériques' }),
+  // Voir `verifierMatricule` : la règle de longueur et son exception y vivent.
+  matricule: Joi.string().trim().allow('', null).max(50),
   division_id: Joi.number().integer().allow(null, ''),
   priorite_id: Joi.number().integer().required(),
   observation: Joi.string().allow('', null),

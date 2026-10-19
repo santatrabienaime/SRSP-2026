@@ -11,10 +11,10 @@ router.use(authMiddleware);
 
 router.get('/', scopeDossiersMiddleware, ctrl.list);
 
-/* Recherche d'un demandeur par son CIN, pour pré-remplir le formulaire.
-   Cette route est déclarée AVANT `/:id` : sinon Express lirait « verifier-cin »
-   comme un identifiant de dossier et répondrait 404. */
-router.get('/rechercher-par-cin', rbacMiddleware('create_dossier'), ctrl.rechercherParCIN);
+/* Recherche d'un demandeur par son matricule, pour pré-remplir le formulaire.
+   Cette route est déclarée AVANT `/:id` : sinon Express lirait «
+   rechercher-par-matricule » comme un identifiant de dossier et répondrait 404. */
+router.get('/rechercher-par-matricule', rbacMiddleware('create_dossier'), ctrl.rechercherParMatricule);
 
 /* Actions en masse (référentiel) : même permission qu'en individuel, lot de
    100 maximum, chaque dossier restant soumis à sa propre transition. Déclaré

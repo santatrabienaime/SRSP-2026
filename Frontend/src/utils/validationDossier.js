@@ -10,43 +10,31 @@
  * cosmétique : une erreur trop sévère immobilise l'agent devant son poste.
  */
 
-/** Longueur minimale et maximale d'un matricule, chiffres et tirets compris. */
-const CIN_LONGUEUR_MIN = 5;
-const CIN_LONGUEUR_MAX = 20;
+/** Longueur minimale et maximale du matricule, séparateurs exclus. */
+export const MATRICULE_LONGUEUR_MIN = 2;
+export const MATRICULE_LONGUEUR_MAX = 10;
 
 /** Retire les séparateurs pour juger de la longueur réelle. */
-export function compacterCIN(valeur) {
+export function compacterMatricule(valeur) {
   return String(valeur || '').replace(/[\s.-]/g, '').toUpperCase();
 }
 
 /**
- * Un matricule est-ilutilisable ?
+ * Un matricule respecte-t-il la règle du service ?
  *
- * L'administration malgache délivre des CIN de longueurs diverses — la base en
- * contient de 5, 6, 8 et 12 chiffres, et des cartes de non-inscription
- * alphanumériques. Imposer 12 chiffres exactement revenait à refuser une pièce
- * d'identité parfaitement officielle : le formulaire bloquait, et la
- * modification d'un dossier existant devenait impossible.
+ * Le demandeur est identifié par son numéro de matricule : 2 à 10 caractères
+ * alphanumériques. Le numéro est saisi tantôt avec espaces, tantôt sans : c'est
+ * la forme compactée qui est jugée.
  *
- * On exige donc seulement que le matricule soit composed de caractères
- * d'identification plausibles. Un format atypique produit un avertissement,
- * jamais un refus.
+ * Trop long n'est pas forcément faux : un dossier enregistré avant la règle
+ * porte un numéro plus long, et le service l'accepte tant qu'il n'est pas
+ * modifié. D'où un AVERTISSEMENT et non une erreur (voir `validerDossier`).
  */
-export function cinPlausible(valeur) {
-  const compact = compacterCIN(valeur);
+export function matriculePlausible(valeur) {
+  const compact = compacterMatricule(valeur);
   if (!compact) return true;
-  if (compact.length < CIN_LONGUEUR_MIN || compact.length > CIN_LONGUEUR_MAX) return false;
+  if (compact.length < MATRICULE_LONGUEUR_MIN || compact.length > MATRICULE_LONGUEUR_MAX) return false;
   return /^[A-Z0-9]+$/.test(compact);
-}
-
-/** Le matricule présente-t-il un format inhabituel, sans le rejeter ? */
-export function cinAtypique(valeur) {
-  const compact = compacterCIN(valeur);
-  if (!compact || !cinPlausible(compact)) return false;
-  // 12 chiffres, ou une lettre suivie de chiffres : les deux formats courants.
-  if (/^\d{12}$/.test(compact)) return false;
-  if (/^[A-Z]{1,4}\d{2,10}$/.test(compact)) return false;
-  return true;
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -65,7 +53,7 @@ export function validerDossier(form, etape = 1) {
 
   const nom = (form.demandeur_nom || '').trim();
   const prenom = (form.demandeur_prenom || '').trim();
-  const cin = compacterCIN(form.matricule);
+  const matricule = compacterMatricule(form.matricule);
   const objet = (form.objet || '').trim();
   const email = (form.demandeur_email || '').trim();
   const tel = (form.demandeur_tel || '').trim();
@@ -85,14 +73,17 @@ export function validerDossier(form, etape = 1) {
     avertissements.push('Prénom non renseigné.');
   }
 
-  if (cin && !cinPlausible(cin)) {
-    // Un matricule illisible se signale, il ne verrouille pas la saisie : c'est
-    // à l'agent de décider, et le service refusera de le facturer autrement.
+  if (matricule && matricule.length < MATRICULE_LONGUEUR_MIN) {
+    // Trop court : aucun numéro déjà enregistré ne l'est, donc rien ne peut le
+    // justifier. C'est la seule longueur refusée d'emblée.
+    erreurs.push(`Le matricule doit comporter au moins ${MATRICULE_LONGUEUR_MIN} caractères.`);
+  } else if (matricule && !matriculePlausible(matricule)) {
+    // Trop long : le numéro peut avoir été enregistré avant la règle et rester
+    // acceptable. On avertit, on ne verrouille pas la saisie.
     avertissements.push(
-      `Matricule « ${form.matricule} » : format inhabituel. Vérifiez la saisie avant de valider.`
+      `Matricule « ${form.matricule} » : format inhabituel (${MATRICULE_LONGUEUR_MAX} caractères maximum). `
+      + "S'il est déjà enregistré, il reste accepté tel quel."
     );
-  } else if (cinAtypique(cin)) {
-    avertissements.push(`Matricule « ${form.matricule} » : format atypique, accepté tel quel.`);
   }
 
   if (email && !EMAIL.test(email)) erreurs.push('Email invalide.');

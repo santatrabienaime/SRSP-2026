@@ -370,7 +370,7 @@ export function ArchivesPage() {
                 label="Recherche"
                 value={criteres.q}
                 onChange={set('q')}
-                placeholder="N° dossier, nom, CIN, objet, mot-clé…"
+                placeholder="N° dossier, nom, matricule, objet, mot-clé…"
               />
             </div>
             <Button type="submit" className="w-full sm:w-auto">
@@ -409,7 +409,7 @@ export function ArchivesPage() {
             <Input label="Du" type="date" value={criteres.date_debut} onChange={set('date_debut')} />
             <Input label="Au" type="date" value={criteres.date_fin} onChange={set('date_fin')} />
             <Input label="Demandeur" value={criteres.demandeur} onChange={set('demandeur')} placeholder="Rakoto" />
-            <Input label="CIN" value={criteres.matricule} onChange={set('matricule')} placeholder="03541115" />
+            <Input label="Matricule" value={criteres.matricule} onChange={set('matricule')} placeholder="222 222 222" />
           </div>
         </form>
 

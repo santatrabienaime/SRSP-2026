@@ -9,7 +9,7 @@ import * as routageService from './routageService.js';
 import * as affectationAutoService from './affectationAutoService.js';
 import { STATUTS, STATUTS_PROTEGES } from '../utils/constants.js';
 import { httpError } from '../utils/httpError.js';
-import { normaliserCIN } from '../validators/dossierValidators.js';
+import { normaliserMatricule, matriculeValide, matriculeCaracteresValides } from '../validators/dossierValidators.js';
 
 const { ENREGISTRE, ORIENTE, AFFECTE, EN_TRAITEMENT, SOUMIS_A_VERIFICATION,
         CORRECTION_DEMANDEE, VALIDE, SIGNE, CLOTURE, ARCHIVE } = STATUTS;
@@ -23,22 +23,22 @@ export async function getDossierById(id) {
 }
 
 /**
- * Recherche un CIN déjà connu, pour pré-remplir le formulaire.
+ * Recherche un matricule déjà connu, pour pré-remplir le formulaire.
  *
- * Le document prévoit ce mécanisme : la secrétaire saisit le CIN, et si la
- * personne est déjà connue, ses coordonnées sont proposées. C'est une aide à
+ * Le document prévoit ce mécanisme : la secrétaire saisit le matricule, et si
+ * la personne est déjà connue, ses coordonnées sont proposées. C'est une aide à
  * la saisie, PAS un blocage : un client revient légitimement, avec un dossier
  * de visa puis un de solde, puis une pension.
  *
- * La comparaison se fait sur le CIN compacté, car il est saisi tantôt avec
- * espaces, tantôt sans. Une personne qui resaisit « 101 234 567 890 » doit être
- * reconnue aussi bien que « 101234567890 ».
+ * La comparaison se fait sur le matricule compacté, car il est saisi tantôt
+ * avec espaces, tantôt sans. Une personne qui resaisit « 222 222 222 » doit être
+ * reconnue aussi bien que « 222222222 ».
  */
-export async function rechercherParCIN(matricule) {
-  const cin = normaliserCIN(matricule);
-  if (!cin) return { trouve: false, dossiers: [] };
+export async function rechercherParMatricule(matricule) {
+  const compact = normaliserMatricule(matricule);
+  if (!compact) return { trouve: false, dossiers: [] };
 
-  const dossiers = await dossierModel.findDossiersParCIN(cin);
+  const dossiers = await dossierModel.findDossiersParMatricule(compact);
   const [plusRecent] = dossiers;
 
   return {
@@ -85,6 +85,32 @@ function harmoniserDemandeur(data) {
   return { ...data, demandeur: `${nom} ${prenom}`.trim().slice(0, 150) };
 }
 
+/** Message unique de la règle du matricule, création et modification comprises. */
+const MESSAGE_MATRICULE =
+  'Le matricule doit comporter 2 à 10 caractères (chiffres et lettres).';
+
+/**
+ * Contrôle du matricule avant enregistrement.
+ *
+ * Règle de service : 2 à 10 caractères alphanumériques. Elle souffre UNE
+ * exception — un numéro déjà enregistré dans les dossiers du service, saisi
+ * avant que la règle n'existe. Le refuser aurait deux conséquences fâcheuses :
+ * un dossier existant deviendrait INCORRIGIBLE (aucun champ, même sans rapport
+ * avec le matricule, ne pourrait plus être enregistré) et un demandeur déjà
+ * connu ne pourrait plus être enregistré à nouveau. Un numéro inédit, lui, doit
+ * respecter la règle.
+ */
+async function verifierMatricule(matricule) {
+  if (matricule === undefined || matricule === null) return;
+  if (matriculeValide(matricule)) return;
+  if (!matriculeCaracteresValides(matricule)) throw httpError(422, MESSAGE_MATRICULE);
+
+  const compact = normaliserMatricule(matricule);
+  if (!compact) return;
+  const connus = await dossierModel.findDossiersParMatricule(compact);
+  if (!connus.length) throw httpError(422, MESSAGE_MATRICULE);
+}
+
 export async function createDossier(data, userId) {
   // Routage automatique : la division découle du type de dossier.
   // Si l'appelant fournit une division, elle doit correspondre au type.
@@ -102,6 +128,9 @@ export async function createDossier(data, userId) {
       "la division n'est pas modifiable à la création."
     );
   }
+
+  // Avant toute écriture : un matricule refusé ne doit pas consommer de numéro.
+  await verifierMatricule(data.matricule);
 
   const dossier = await dossierModel.createDossier({
     ...harmoniserDemandeur(data),
@@ -236,6 +265,8 @@ export async function updateDossier(id, data, userId) {
   if (STATUTS_PROTEGES.includes(currentStatut)) {
     throw httpError(409, 'Ce dossier est clôturé ou archivé : modification interdite.');
   }
+
+  await verifierMatricule(data.matricule);
 
   // Règle 2 du routage automatique : la division découle du type et n'est pas
   // modifiable. Seul un Chef de Service ou un Administrateur peut le faire à

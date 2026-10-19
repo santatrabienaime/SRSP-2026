@@ -18,7 +18,7 @@ export const INPUT_TYPES = {
   UPPERCASE: 'uppercase',
   TITLECASE: 'titlecase',
   LOWERCASE: 'lowercase',
-  CIN: 'cin',
+  MATRICULE: 'matricule',
   PHONE: 'phone',
   EMAIL: 'email',
   NUMBER: 'number',
@@ -28,6 +28,10 @@ export const INPUT_TYPES = {
   REFERENCE: 'reference',
 };
 
+/** Longueurs du matricule, séparateurs exclus (règle du service). */
+export const MATRICULE_LONGUEUR_MIN = 2;
+export const MATRICULE_LONGUEUR_MAX = 10;
+
 /* ═══════════════════════════════════════════════════════════════
    PATTERNS DE BLOCAGE (touche autorisée)
    ═══════════════════════════════════════════════════════════════ */
@@ -35,7 +39,7 @@ const KEY_PATTERNS = {
   [INPUT_TYPES.UPPERCASE]: /^[a-zA-ZÀ-ÿ\s'-]$/,
   [INPUT_TYPES.TITLECASE]: /^[a-zA-ZÀ-ÿ\s'-]$/,
   [INPUT_TYPES.LOWERCASE]: /^[a-z0-9@._-]$/,
-  [INPUT_TYPES.CIN]: /^\d$/,
+  [INPUT_TYPES.MATRICULE]: /^[a-zA-Z0-9]$/,
   [INPUT_TYPES.PHONE]: /^\d$/,
   [INPUT_TYPES.EMAIL]: /^[a-zA-Z0-9@._-]$/,
   [INPUT_TYPES.NUMBER]: /^\d$/,
@@ -47,7 +51,7 @@ const KEY_PATTERNS = {
 const NO_SPACE_TYPES = new Set([
   INPUT_TYPES.EMAIL,
   INPUT_TYPES.PASSWORD,
-  INPUT_TYPES.CIN,
+  INPUT_TYPES.MATRICULE,
   INPUT_TYPES.PHONE,
   INPUT_TYPES.NUMBER,
   INPUT_TYPES.AMOUNT,
@@ -62,12 +66,19 @@ const TRANSFORMERS = {
   [INPUT_TYPES.TITLECASE]: (v) =>
     v.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, '').replace(/\b\w/g, (c) => c.toUpperCase()),
   [INPUT_TYPES.LOWERCASE]: (v) => v.toLowerCase().replace(/[^a-z0-9@._-]/g, ''),
-  [INPUT_TYPES.CIN]: (v) => {
-    const digits = v.replace(/\D/g, '').slice(0, 12);
-    return digits
-      .replace(/(\d{3})(\d{0,3})(\d{0,3})(\d{0,3})/, (_, a, b, c, d) =>
-        [a, b, c, d].filter(Boolean).join(' ')
-      );
+  [INPUT_TYPES.MATRICULE]: (v) => {
+    /* Le matricule accepte chiffres et lettres (cartes de non-inscription) ;
+       tout le reste est écarté. Borné à 10 caractères. */
+    const compact = v
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, MATRICULE_LONGUEUR_MAX);
+    /* Un numéro purement chiffré se lit par groupes de 3, comme les numéros de
+       compte. Un numéro mêlant lettres et chiffres (carte de non-inscription)
+       serait découpé à l'aveugle — « SRSP013 » deviendrait « SRS P01 3 » : on le
+       laisse d'un bloc. */
+    if (!/^\d+$/.test(compact)) return compact;
+    return compact.replace(/(.{3})(?=.)/g, '$1 ');
   },
   [INPUT_TYPES.PHONE]: (v) => {
     const d = v.replace(/\D/g, '').slice(0, 10);
@@ -90,10 +101,12 @@ const TRANSFORMERS = {
    VALIDATIONS SPÉCIFIQUES (messages du cahier des charges)
    ═══════════════════════════════════════════════════════════════ */
 const VALIDATORS = {
-  [INPUT_TYPES.CIN]: (v) => {
-    const d = v.replace(/\D/g, '');
-    if (!d) return null;
-    if (d.length < 12) return `CIN incomplet (${d.length}/12)`;
+  [INPUT_TYPES.MATRICULE]: (v) => {
+    const c = v.replace(/[^A-Za-z0-9]/g, '');
+    if (!c) return null;
+    // La borne haute est appliquée par le formatage ; seule la saisie trop
+    // courte se signale ici.
+    if (c.length < MATRICULE_LONGUEUR_MIN) return `Matricule incomplet (${c.length}/${MATRICULE_LONGUEUR_MIN})`;
     return null;
   },
   [INPUT_TYPES.PHONE]: (v) => {
@@ -176,7 +189,7 @@ export function useInputControl(initialValue = '', config = {}) {
       if (required && (!val || val.trim() === '')) return 'Ce champ est obligatoire';
 
       /* Le validateur spécifique au type passe en premier : ses
-         messages (« CIN incomplet (6/12) ») sont plus justes que
+         messages (« Matricule incomplet (1/2) ») sont plus justes que
          la longueur brute, qui compte les séparateurs. */
       const typeValidator = VALIDATORS[type];
       if (typeValidator) {

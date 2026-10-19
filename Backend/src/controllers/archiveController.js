@@ -50,7 +50,7 @@ const COLONNES = [
   { cle: 'division_nom', titre: 'Division' },
   { cle: 'objet', titre: 'Objet' },
   { cle: 'demandeur', titre: 'Demandeur' },
-  { cle: 'matricule', titre: 'CIN' },
+  { cle: 'matricule', titre: 'Matricule' },
   { cle: 'date_reception', titre: 'Réception' },
   { cle: 'date_cloture', titre: 'Clôture' },
   { cle: 'date_archivage', titre: 'Archivage' },
@@ -160,7 +160,7 @@ export async function exportPdf(req, res, next) {
 
     // Colonnes resserrées pour tenir en paysage.
     const largeurs = [95, 55, 60, 130, 100, 80, 62, 62, 62, 95, 55, 50];
-    const headers = ['N° dossier', 'Type', 'Division', 'Objet', 'Demandeur', 'CIN', 'Réception', 'Clôture', 'Archivage', 'Agent', 'Priorité', 'Statut'];
+    const headers = ['N° dossier', 'Type', 'Division', 'Objet', 'Demandeur', 'Matricule', 'Réception', 'Clôture', 'Archivage', 'Agent', 'Priorité', 'Statut'];
 
     const enTete = () => {
       const y = doc.y;

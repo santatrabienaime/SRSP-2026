@@ -174,7 +174,7 @@ export function DossierDetail({ id }) {
             <dl className="grid gap-x-8 sm:grid-cols-2">
               <InfoRow label="Objet" value={dossier.objet} />
               <InfoRow label="Demandeur" value={dossier.demandeur} />
-              <InfoRow label="N° matricule (CIN)" value={dossier.matricule} />
+              <InfoRow label="N° matricule" value={dossier.matricule} />
               <InfoRow label="Division" value={dossier.division_nom} />
               <InfoRow label="Date de réception" value={formatDateString(dossier.date_reception)} />
               <InfoRow label="Agent responsable" value={dossier.agent_nom ? `${dossier.agent_nom} ${dossier.agent_prenom || ''}` : null} />

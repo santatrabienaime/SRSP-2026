@@ -7,7 +7,7 @@ import { Input } from '../ui/Input.jsx';
 import { Select } from '../ui/Select.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import {
-  CINInput,
+  MatriculeInput,
   PhoneInput,
   EmailInput,
   NameInput,
@@ -17,7 +17,7 @@ import {
   TextAreaInput,
 } from '../fields/index.jsx';
 import { todayISO, pourChampDate } from '../../utils/formatDate.js';
-import { validerDossier, validerTout, cinPlausible, compacterCIN } from '../../utils/validationDossier.js';
+import { validerDossier, validerTout, matriculePlausible, compacterMatricule } from '../../utils/validationDossier.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { CheckCircle2, Info, Search, ArrowLeft, ArrowRight, Check } from 'lucide-react';
@@ -49,8 +49,8 @@ const vide = (initial) => ({
  * L'étape 1 choisit le type, qui détermine seul la division : la sélectionner
  * séparément serait une question sans réponse, la division n'étant pas libre.
  *
- * L'étape 2 est celle où se joue l'accueil du demandeur : CIN, identité,
- * coordonnées. Le CIN interroge le système pendant la saisie et propose de
+ * L'étape 2 est celle où se joue l'accueil du demandeur : matricule, identité,
+ * coordonnées. Le matricule interroge le système pendant la saisie et propose de
  * reprendre les informations déjà connues.
  *
  * L'étape 3 porte l'objet, la priorité et l'échéance, puis le récapitulatif.
@@ -70,10 +70,10 @@ export function DossierForm({ initial = null, onSaved }) {
   const [form, setForm] = useState(() => vide(initial));
   const [etape, setEtape] = useState(1);
 
-  // Recherche du demandeur pendant la saisie du CIN.
+  // Recherche du demandeur pendant la saisie du matricule.
   const [recherche, setRecherche] = useState(null);
   const [verifEnCours, setVerifEnCours] = useState(false);
-  const cinDebounce = useDebounce(form.matricule, 500);
+  const matriculeDebounce = useDebounce(form.matricule, 500);
   const derniereRecherche = useRef('');
 
   // Routage automatique : la division affichée découle du type choisi.
@@ -96,31 +96,30 @@ export function DossierForm({ initial = null, onSaved }) {
       });
   }, []);
 
-  /* Vérification du CIN pendant la saisie.
-     On n'interroge le serveur que si le CIN est complet, et jamais deux fois
-     pour la même valeur : une saisie caractère par caractère déclencherait
+  /* Vérification du matricule pendant la saisie.
+     On n'interroge le serveur que si le matricule est plausible, et jamais deux
+     fois pour la même valeur : une saisie caractère par caractère déclencherait
      autant d'appels que de lettres. */
   useEffect(() => {
     if (initial) return undefined; // pas de recherche en modification
-    const cin = compacterCIN(cinDebounce);
-    // On n'interroge le serveur que sur un matricule plausible : chercher un
-    // dossier à un numéro tronqué ne peut rien retourner, et afficherait
-    // « inconnu » à chaque frappe.
-    if (!cin || !cinPlausible(cin)) {
+    const matricule = compacterMatricule(matriculeDebounce);
+    // Chercher un dossier à un numéro tronqué ne peut rien retourner, et
+    // afficherait « inconnu » à chaque frappe.
+    if (!matricule || !matriculePlausible(matricule)) {
       Promise.resolve().then(() => setRecherche(null));
       return undefined;
     }
-    if (cin === derniereRecherche.current) return undefined;
-    derniereRecherche.current = cin;
+    if (matricule === derniereRecherche.current) return undefined;
+    derniereRecherche.current = matricule;
 
     let actif = true;
     Promise.resolve().then(() => { if (actif) setVerifEnCours(true); });
-    dossierService.rechercherParCIN(form.matricule)
+    dossierService.rechercherParMatricule(form.matricule)
       .then((r) => { if (actif) setRecherche(r); })
       .catch(() => { if (actif) setRecherche(null); })
       .finally(() => { if (actif) setVerifEnCours(false); });
     return () => { actif = false; };
-  }, [cinDebounce, form.matricule, initial]);
+  }, [matriculeDebounce, form.matricule, initial]);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
@@ -157,8 +156,8 @@ export function DossierForm({ initial = null, onSaved }) {
 
   /* La validation vit dans utils/validationDossier.js, donc testable sans
      navigateur. Elle distingue ce qui BLOQUE (erreur) de ce qui INFORME
-     (avertissement) : exiger un format de CIN strict immobilisait l'agent, les
-     numéros réels du service n'ayant pas tous la même longueur. */
+     (avertissement) : exiger un format de matricule strict immobilisait l'agent,
+     les numéros réels du service n'ayant pas tous la même longueur. */
   const etape1 = useMemo(() => validerDossier(form, 1), [form]);
   const etape2 = useMemo(() => validerDossier(form, 2), [form]);
   const etape3 = useMemo(() => validerDossier(form, 3), [form]);
@@ -296,7 +295,7 @@ export function DossierForm({ initial = null, onSaved }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <NameInput label="Nom" required value={form.demandeur_nom} onChange={setVal('demandeur_nom')} placeholder="RAKOTO" />
           <FirstNameInput label="Prénom" value={form.demandeur_prenom} onChange={setVal('demandeur_prenom')} placeholder="Jean" />
-          <CINInput label="N° matricule (CIN)" value={form.matricule} onChange={setVal('matricule')} />
+          <MatriculeInput label="N° matricule" value={form.matricule} onChange={setVal('matricule')} />
           <PhoneInput label="Téléphone" value={form.demandeur_tel} onChange={setVal('demandeur_tel')} />
           <EmailInput label="Email" value={form.demandeur_email} onChange={setVal('demandeur_email')} placeholder="rakoto.jean@email.mg" />
           <AddressInput value={form.demandeur_adresse} onChange={setVal('demandeur_adresse')} />
@@ -455,8 +454,8 @@ export function DossierForm({ initial = null, onSaved }) {
       {etape === 2 && (
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <CINInput
-              label="N° matricule (CIN) du demandeur"
+            <MatriculeInput
+              label="N° matricule du demandeur"
               value={form.matricule}
               onChange={(v) => {
                 setVal('matricule')(v);
@@ -483,11 +482,11 @@ export function DossierForm({ initial = null, onSaved }) {
               ) : recherche && !recherche.trouve ? (
                 <p className="w-full rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                   <Search className="mr-1 inline h-3.5 w-3.5" />
-                  Ce CIN n'est pas encore connu : saisissez les informations.
+                  Ce matricule n'est pas encore connu : saisissez les informations.
                 </p>
               ) : (
                 <p className="w-full text-[11px] text-slate-500">
-                  Saisissez le CIN complet pour retrouver une fiche déjà enregistrée.
+                  Saisissez le matricule complet pour retrouver une fiche déjà enregistrée.
                 </p>
               )}
             </div>
@@ -557,7 +556,7 @@ export function DossierForm({ initial = null, onSaved }) {
               <div className="flex justify-between gap-2">
                 <dt className="text-slate-500">Demandeur</dt>
                 <dd className="font-medium text-slate-800">
-                  {form.demandeur || '—'}{form.matricule ? ` (CIN : ${form.matricule})` : ''}
+                  {form.demandeur || '—'}{form.matricule ? ` (matricule : ${form.matricule})` : ''}
                 </dd>
               </div>
               <div className="flex justify-between gap-2">

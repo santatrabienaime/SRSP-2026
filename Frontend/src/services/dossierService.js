@@ -38,14 +38,14 @@ export const dossierService = {
     }),
 
   /**
-   * Recherche un demandeur par son CIN, pour pré-remplir le formulaire.
+   * Recherche un demandeur par son matricule, pour pré-remplir le formulaire.
    *
    * C'est une aide à la saisie, pas un contrôle bloquant : la réponse indique ce
    * qui est déjà connu, et la secrétaire décide de l'utiliser ou non. Un client
    * revient légitimement avec un nouveau dossier.
    */
-  rechercherParCIN: (matricule) =>
-    apiClient.get('/dossiers/rechercher-par-cin', { params: { matricule } }).then((r) => r.data),
+  rechercherParMatricule: (matricule) =>
+    apiClient.get('/dossiers/rechercher-par-matricule', { params: { matricule } }).then((r) => r.data),
   update: (id, data) => apiClient.put(`/dossiers/${id}`, data).then((r) => r.data),
   orienter: (id, data) =>
     apiClient.post(`/dossiers/${id}/orienter`, data).then(async (r) => {

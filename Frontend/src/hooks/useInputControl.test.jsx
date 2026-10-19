@@ -44,18 +44,31 @@ function blur(result) {
 }
 
 describe('Blocage en temps réel (onKeyDown → preventDefault)', () => {
-  it('refuse les lettres sur un champ CIN avant affichage', () => {
+  it('accepte chiffres et lettres sur un champ matricule', () => {
     const { result } = renderHook(() =>
-      useInputControl('', { type: INPUT_TYPES.CIN })
+      useInputControl('', { type: INPUT_TYPES.MATRICULE })
     );
-    const e = keyEvent('a');
-    act(() => result.current.handleKeyDown(e));
-    expect(e.defaultPrevented).toBe(true);
+    for (const key of ['5', 'A']) {
+      const e = keyEvent(key);
+      act(() => result.current.handleKeyDown(e));
+      expect(e.defaultPrevented).toBe(false);
+    }
+  });
+
+  it('refuse un caractère étranger au matricule (@, espace, accent)', () => {
+    const { result } = renderHook(() =>
+      useInputControl('', { type: INPUT_TYPES.MATRICULE })
+    );
+    for (const key of ['@', ' ', 'é']) {
+      const e = keyEvent(key);
+      act(() => result.current.handleKeyDown(e));
+      expect(e.defaultPrevented).toBe(true);
+    }
   });
 
   it("laisse passer les chiffres et les touches de navigation", () => {
     const { result } = renderHook(() =>
-      useInputControl('', { type: INPUT_TYPES.CIN })
+      useInputControl('', { type: INPUT_TYPES.MATRICULE })
     );
     for (const key of ['5', 'Backspace', 'ArrowLeft', 'Tab', 'Enter']) {
       const e = keyEvent(key);
@@ -64,13 +77,13 @@ describe('Blocage en temps réel (onKeyDown → preventDefault)', () => {
     }
   });
 
-  it("refuse l'espace sur un champ sans-espace (CIN, email, montant…)", () => {
-    const { result } = renderHook(() =>
-      useInputControl('', { type: INPUT_TYPES.EMAIL })
-    );
-    const e = keyEvent(' ');
-    act(() => result.current.handleKeyDown(e));
-    expect(e.defaultPrevented).toBe(true);
+  it("refuse l'espace sur un champ sans-espace (matricule, email, montant…)", () => {
+    for (const type of [INPUT_TYPES.MATRICULE, INPUT_TYPES.EMAIL, INPUT_TYPES.AMOUNT]) {
+      const { result } = renderHook(() => useInputControl('', { type }));
+      const e = keyEvent(' ');
+      act(() => result.current.handleKeyDown(e));
+      expect(e.defaultPrevented).toBe(true);
+    }
   });
 
   it("autorise l'espace sur un nom (MAJUSCULES)", () => {
@@ -112,18 +125,25 @@ describe('Blocage en temps réel (onKeyDown → preventDefault)', () => {
 });
 
 describe('Formatage automatique', () => {
-  it('formate la CIN en groupes de 3 (12 chiffres)', () => {
+  it('formate un matricule chiffré en groupes de 3', () => {
     const { result } = renderHook(() =>
-      useInputControl('', { type: INPUT_TYPES.CIN })
+      useInputControl('', { type: INPUT_TYPES.MATRICULE })
     );
-    expect(typeValue(result, '101234567890')).toBe('101 234 567 890');
+    expect(typeValue(result, '222222222')).toBe('222 222 222');
   });
 
-  it('tronque la CIN à 12 chiffres', () => {
+  it('laisse un matricule alphanumérique d’un bloc (SRSP013)', () => {
     const { result } = renderHook(() =>
-      useInputControl('', { type: INPUT_TYPES.CIN })
+      useInputControl('', { type: INPUT_TYPES.MATRICULE })
     );
-    expect(typeValue(result, '1012345678901234')).toBe('101 234 567 890');
+    expect(typeValue(result, 'srsp013')).toBe('SRSP013');
+  });
+
+  it('tronque le matricule à 10 caractères', () => {
+    const { result } = renderHook(() =>
+      useInputControl('', { type: INPUT_TYPES.MATRICULE })
+    );
+    expect(typeValue(result, '2222222222233')).toBe('222 222 222 2');
   });
 
   it('formate le téléphone 0321234567 → 032 12 345 67', () => {
@@ -179,22 +199,22 @@ describe('Conversions automatiques', () => {
 });
 
 describe('Validation temps réel', () => {
-  it("affiche « CIN incomplet (X/12) » après avoir quitté le champ", () => {
+  it("affiche « Matricule incomplet (1/2) » après avoir quitté le champ", () => {
     const { result } = renderHook(() =>
-      useInputControl('', { type: INPUT_TYPES.CIN })
+      useInputControl('', { type: INPUT_TYPES.MATRICULE })
     );
-    typeValue(result, '101234');
+    typeValue(result, '2');
     // Tant que le champ n'est pas quitté, aucune erreur affichée.
     expect(result.current.error).toBeNull();
     blur(result);
-    expect(result.current.error).toBe('CIN incomplet (6/12)');
+    expect(result.current.error).toBe('Matricule incomplet (1/2)');
   });
 
-  it('accepte une CIN complète de 12 chiffres', () => {
+  it('accepte un matricule de 2 à 10 caractères', () => {
     const { result } = renderHook(() =>
-      useInputControl('', { type: INPUT_TYPES.CIN })
+      useInputControl('', { type: INPUT_TYPES.MATRICULE })
     );
-    typeValue(result, '101234567890');
+    typeValue(result, '22222');
     blur(result);
     expect(result.current.error).toBeNull();
     expect(result.current.isValid).toBe(true);
@@ -343,7 +363,7 @@ describe('Compteurs et API', () => {
 
   it("inputProps reflète valeur + état d'accessibilité", () => {
     const { result } = renderHook(() =>
-      useInputControl('', { type: INPUT_TYPES.CIN, required: true })
+      useInputControl('', { type: INPUT_TYPES.MATRICULE, required: true })
     );
     expect(result.current.inputProps.value).toBe('');
     expect(result.current.inputProps['aria-required']).toBe(true);
