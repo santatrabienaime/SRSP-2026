@@ -26,15 +26,11 @@ import { StatistiquesPage } from '../pages/statistiques/StatistiquesPage.jsx';
 import { RapportsPage } from '../pages/rapports/RapportsPage.jsx';
 import { ProfilePage } from '../pages/profile/ProfilePage.jsx';
 
-import { UsersAdminPage } from '../pages/administration/UsersAdminPage.jsx';
+import { PersonnelPage } from '../pages/personnel/PersonnelPage.jsx';
 import { RolesAdminPage } from '../pages/administration/RolesAdminPage.jsx';
 import { SettingsPage } from '../pages/administration/SettingsPage.jsx';
 import { BackupPage } from '../pages/administration/BackupPage.jsx';
 import { ReferentielPage } from '../pages/referentiel/ReferentielPage.jsx';
-
-import { AgentListPage } from '../pages/agents/AgentListPage.jsx';
-import { AgentCreatePage } from '../pages/agents/AgentCreatePage.jsx';
-import { AgentDetailPage } from '../pages/agents/AgentDetailPage.jsx';
 
 import { DivisionListPage } from '../pages/divisions/DivisionListPage.jsx';
 import { DivisionDossiersRoute } from './divisionGuard.jsx';
@@ -157,15 +153,26 @@ export function AppRouter() {
           <Route path="/profil" element={<ProfilePage />} />
 
           {/* Administration */}
-          <Route path="/administration" element={<Navigate to="/administration/utilisateurs" replace />} />
+          {/* « Personnel » remplace les anciens écrans « Agents » et
+              « Utilisateurs » : les deux décrivaient les mêmes personnes. */}
+          <Route path="/administration" element={<Navigate to="/administration/personnel" replace />} />
           <Route
-            path="/administration/utilisateurs"
+            path="/administration/personnel"
             element={
               <RoleRoute roles={[ROLES.ADMIN]}>
-                <UsersAdminPage />
+                <PersonnelPage />
               </RoleRoute>
             }
           />
+          {/* Anciens chemins conservés : un signet ou un lien partagé continue
+              d'arriver au bon écran au lieu d'une page introuvable. */}
+          <Route
+            path="/administration/utilisateurs"
+            element={<Navigate to="/administration/personnel" replace />}
+          />
+          <Route path="/agents" element={<Navigate to="/administration/personnel" replace />} />
+          <Route path="/agents/nouveau" element={<Navigate to="/administration/personnel" replace />} />
+          <Route path="/agents/:id" element={<Navigate to="/administration/personnel" replace />} />
           <Route
             path="/administration/roles"
             element={
@@ -206,31 +213,7 @@ export function AppRouter() {
               </RoleRoute>
             }
           />
-          {/* Agents & Divisions */}
-          <Route
-            path="/agents"
-            element={
-              <RoleRoute roles={[ROLES.ADMIN]}>
-                <AgentListPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/agents/nouveau"
-            element={
-              <RoleRoute roles={[ROLES.ADMIN]}>
-                <AgentCreatePage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/agents/:id"
-            element={
-              <RoleRoute roles={[ROLES.ADMIN]}>
-                <AgentDetailPage />
-              </RoleRoute>
-            }
-          />
+          {/* Divisions */}
           <Route
             path="/divisions"
             element={

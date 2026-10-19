@@ -14,6 +14,7 @@ import workflowRoutes from './routes/workflowRoutes.js';
 import courrierRoutes from './routes/courrierRoutes.js';
 import divisionRoutes from './routes/divisionRoutes.js';
 import agentRoutes from './routes/agentRoutes.js';
+import personnelRoutes from './routes/personnelRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import historiqueRoutes from './routes/historiqueRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
@@ -56,6 +57,8 @@ app.use('/api/workflow', workflowRoutes);
 app.use('/api/courriers', courrierRoutes);
 app.use('/api/divisions', divisionRoutes);
 app.use('/api/agents', agentRoutes);
+/* Personnel : la fiche et le compte de connexion, écrits ensemble. */
+app.use('/api/personnel', personnelRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/historique', historiqueRoutes);
 app.use('/api/audit', auditRoutes);

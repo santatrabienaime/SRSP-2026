@@ -13,4 +13,4 @@ export const APP_NAME = 'SRSP Fitovinany';
 export const APP_TAGLINE = 'Suivi et traçabilité des dossiers administratifs';
 
 /** Routes encadrées par des rôles (postes SRSP). */
-export const ADMIN_ROUTES = ['/administration', '/agents', '/divisions'];
+export const ADMIN_ROUTES = ['/administration', '/divisions'];

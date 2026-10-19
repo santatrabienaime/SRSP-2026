@@ -1,4 +1,5 @@
 import db from '../config/db.js';
+import { FICHE_DU_COMPTE } from './joins.js';
 
 export async function findUserById(id) {
   const rows = await db.query(
@@ -9,13 +10,25 @@ export async function findUserById(id) {
             td.code AS type_code
      FROM users u
      LEFT JOIN roles r ON u.role_id = r.id
-     LEFT JOIN agents a ON a.user_id = u.id
+     ${FICHE_DU_COMPTE}
      LEFT JOIN divisions dv ON dv.id = a.division_id
      LEFT JOIN types_dossiers td ON td.id = dv.type_dossier_id
      WHERE u.id = ?`,
     [id]
   );
   return rows[0];
+}
+
+/** Compte portant cet identifiant de connexion, s'il existe. */
+export async function findByUsername(username) {
+  const rows = await db.query('SELECT id, username FROM users WHERE username = ?', [username]);
+  return rows[0] || null;
+}
+
+/** Compte portant cet email de connexion, s'il existe. */
+export async function findByEmail(email) {
+  const rows = await db.query('SELECT id, username FROM users WHERE email = ?', [email]);
+  return rows[0] || null;
 }
 
 export async function findUserByUsernameOrEmail(identifiant) {

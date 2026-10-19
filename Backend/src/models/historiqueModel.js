@@ -1,4 +1,5 @@
 import db from '../config/db.js';
+import { FICHE_DU_COMPTE } from './joins.js';
 
 /**
  * Journal des actions.
@@ -47,7 +48,7 @@ export async function findAll(filters = {}) {
            r.nom AS role_code, r.description AS role_description
     FROM historique_actions h
     LEFT JOIN users u ON h.user_id = u.id
-    LEFT JOIN agents a ON a.user_id = u.id
+    ${FICHE_DU_COMPTE}
     LEFT JOIN roles r ON r.id = u.role_id
     LEFT JOIN dossiers d ON h.dossier_id = d.id
     WHERE 1=1
@@ -99,7 +100,7 @@ export async function findAll(filters = {}) {
     SELECT COUNT(*) AS total
     FROM historique_actions h
     LEFT JOIN users u ON h.user_id = u.id
-    LEFT JOIN agents a ON a.user_id = u.id
+    ${FICHE_DU_COMPTE}
     LEFT JOIN dossiers d ON h.dossier_id = d.id
     WHERE 1=1
   `;

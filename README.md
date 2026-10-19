@@ -36,7 +36,7 @@ numérotation automatique, historique complet, notifications et rapports.
   agents, divisions, notifications, historique de traçabilité, archives.
 - **Tableau de bord & statistiques** : répartition par division/statut, évolution, indicateurs.
 - **Rapports PDF et Excel** exportables.
-- **Administration** : utilisateurs, rôles et permissions.
+- **Administration** : personnel (fiches et comptes de connexion réunis), rôles et permissions.
 
 ## 🚀 Démarrage rapide
 

@@ -1,4 +1,5 @@
 import db from '../config/db.js';
+import { FICHE_DU_COMPTE } from '../models/joins.js';
 
 /**
  * Portée d'affichage d'un utilisateur.
@@ -22,7 +23,7 @@ export async function getScope(userId) {
     `SELECT u.role_id, r.nom AS role_nom, a.id AS agent_id, a.division_id
      FROM users u
      LEFT JOIN roles r ON r.id = u.role_id
-     LEFT JOIN agents a ON a.user_id = u.id
+     ${FICHE_DU_COMPTE}
      WHERE u.id = ?`,
     [userId]
   );

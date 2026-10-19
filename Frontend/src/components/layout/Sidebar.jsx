@@ -119,7 +119,7 @@ export function Sidebar() {
       label: 'Administration',
       items: [
         ...(show({ perms: ['manage_users'] })
-          ? [{ to: '/administration/utilisateurs', label: 'Utilisateurs', icon: 'users' }]
+          ? [{ to: '/administration/personnel', label: 'Personnel', icon: 'personnel' }]
           : []),
         ...(show({ perms: ['manage_roles'] })
           ? [{ to: '/administration/roles', label: 'Rôles & permissions', icon: 'roles' }]

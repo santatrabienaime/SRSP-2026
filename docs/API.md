@@ -288,13 +288,32 @@ Le frontend télécharge les blobs retournés (voir `Frontend/src/utils/fileHand
 
 ## 11. Administration
 
-### Utilisateurs — `/users` (admin)
+### Personnel — `/personnel` (admin)
+Une personne réunit sa fiche (`agents`) et, si elle a un compte, sa connexion (`users`) :
+les deux s'écrivent ensemble, pour qu'un compte ne reste pas rattaché à une autre fiche.
+
 | Endpoint | Description |
 |----------|-------------|
-| `GET /users` | Liste des utilisateurs |
-| `POST /users` | Créer un utilisateur : `{ username, email, password, role_id, actif }` |
-| `PUT /users/:id` | Mettre à jour un utilisateur |
+| `GET /personnel` | Liste des personnes, avec leur compte (identifiant, rôle, dernière connexion) |
+| `GET /personnel/:id` | Détail d'une personne |
+| `POST /personnel` | Créer une personne : identité, et compte facultatif (`creer_compte: true` + `username`, `compte_email`, `password`, `role_id`) |
+| `PUT /personnel/:id` | Modifier la fiche et, le cas échéant, son compte (création du compte comprise) |
+| `PUT /personnel/:id/toggle` | Activer / désactiver la personne (fiche et compte ensemble) |
+| `POST /personnel/:id/reset-password` | Réinitialiser le mot de passe : `{ "password": "…" }` |
+| `DELETE /personnel/:id` | Supprimer la personne ; si sa fiche est citée par des dossiers, elle est désactivée |
+
+### Comptes — `/users` (admin)
+Gestion des comptes seuls. L'écran « Personnel » passe par `/personnel`, qui tient la
+fiche et le compte ensemble.
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /users` | Liste des comptes |
+| `POST /users` | Créer un compte : `{ username, email, password, role_id, actif }` |
+| `PUT /users/:id` | Mettre à jour un compte |
+| `PUT /users/:id/toggle` | Activer / désactiver un compte |
 | `POST /users/:id/reset-password` | Réinitialiser le mot de passe |
+| `DELETE /users/:id` | Supprimer un compte |
 
 ### Rôles — `/roles` (permission `role.gerer`)
 | Endpoint | Description |
@@ -319,11 +338,17 @@ Le frontend télécharge les blobs retournés (voir `Frontend/src/utils/fileHand
 ## 12. Agents & Divisions
 
 ### Agents — `/agents`
+Fiches du personnel. Les lectures servent aux listes de choix (responsable d'une division,
+agent d'un dossier, filtre du journal) ; les écritures passent par le même service que
+`/personnel`, pour qu'une fiche ne puisse pas être rattachée à un compte déjà pris.
+
 | Endpoint | Permission | Description |
 |----------|-----------|-------------|
-| `GET /agents` | — | Liste des agents |
-| `POST /agents` | `agent.gerer` | Créer un agent |
-| `PUT /agents/:id` | `agent.gerer` | Modifier un agent |
+| `GET /agents` | `manage_personnel` | Liste des fiches, avec leur compte |
+| `GET /agents/:id` | `manage_personnel` | Détail d'une fiche |
+| `POST /agents` | `manage_personnel` | Créer une fiche (et son compte, si `creer_compte`) |
+| `PUT /agents/:id` | `manage_personnel` | Modifier une fiche |
+| `DELETE /agents/:id` | `manage_personnel` | Supprimer une fiche (ou la désactiver si elle est citée) |
 
 ### Divisions — `/divisions`
 | Endpoint | Permission | Description |
