@@ -17,6 +17,11 @@ export const statistiqueService = {
       rejetes: extractValue(data.rejetes),
       tauxValidation: extractValue(data.tauxValidation),
       tauxRejet: extractValue(data.tauxRejet),
+      /* Répartitions du service entier, fournies par cet endpoint (et non par
+         le tableau de bord, dont les répartitions suivent le périmètre de
+         l'utilisateur). */
+      parStatut: Array.isArray(data.parStatut) ? data.parStatut : [],
+      parDivision: Array.isArray(data.parDivision) ? data.parDivision : [],
     };
   }),
 };

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Target, Files, Clock, AlertCircle } from 'lucide-react';
 import { statistiqueService } from '../../services/statistiqueService.js';
-import { dashboardService } from '../../services/dashboardService.js';
 import { StatCard } from '../../components/ui/StatCard.jsx';
 import { Card } from '../../components/ui/Card.jsx';
 import { PieChart } from '../../components/charts/PieChart.jsx';
@@ -11,25 +10,24 @@ import { STATUT_LABELS } from '../../config/constants.js';
 import { extractValue } from '../../utils/extractValue.js';
 import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
+/**
+ * Statistiques — vue d'ensemble du service entier (aucun filtre de périmètre).
+ *
+ * C'est la différence avec le tableau de bord : celui-ci est opérationnel et
+ * suit les dossiers de l'utilisateur (agent / division / global), celui-ci
+ * mesure la performance globale du traitement. Les répartitions affichées ici
+ * viennent donc de /statistiques, pas des endpoints du tableau de bord.
+ */
 export function StatistiquesPage() {
   const [stats, setStats] = useState(null);
-  const [byStatus, setByStatus] = useState([]);
-  const [byDivision, setByDivision] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      statistiqueService.get({}),
-      dashboardService.byStatus(),
-      dashboardService.byDivision(),
-    ])
-      .then(([s, st, dv]) => {
-        if (cancelled) return;
-        setStats(s);
-        setByStatus(Array.isArray(st) ? st : []);
-        setByDivision(Array.isArray(dv) ? dv : []);
+    statistiqueService.get({})
+      .then((s) => {
+        if (!cancelled) setStats(s);
       })
       .catch(() => {
         if (!cancelled) setError('Impossible de charger les statistiques.');
@@ -51,12 +49,12 @@ export function StatistiquesPage() {
   const tauxValidation = extractValue(statsData.tauxValidation);
   const tauxRejet = extractValue(statsData.tauxRejet);
 
-  const statusRows = byStatus.map((d) => ({
-    name: STATUT_LABELS[d.code] || d.statut || d.code,
+  const statusRows = (statsData.parStatut || []).map((d) => ({
+    name: STATUT_LABELS[d.code] || d.libelle || d.code,
     total: extractValue(d.total),
   }));
 
-  const divisionRows = byDivision.map((d) => ({
+  const divisionRows = (statsData.parDivision || []).map((d) => ({
     name: d.division,
     total: extractValue(d.total),
   }));
@@ -64,11 +62,6 @@ export function StatistiquesPage() {
   return (
     <AnimatedCard title="Statistiques" subtitle="Indicateurs de performance du traitement des dossiers." delay={0}>
       <div className="space-y-5">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800">Statistiques</h1>
-          <p className="text-sm text-slate-500">Indicateurs de performance du traitement des dossiers.</p>
-        </div>
-
         {error && (
           <Alert type="error" title="Statistiques indisponibles">
             {error}
@@ -88,11 +81,9 @@ export function StatistiquesPage() {
           <StatCard icon={AlertCircle} label="Corrections demandées" value={rejetes} tone="amber" loading={loading} />
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Card title="Répartition par statut">
-            <PieChart data={statusRows} nameKey="name" dataKey="total" height={300} />
-          </Card>
-        </div>
+        <Card title="Répartition par statut">
+          <PieChart data={statusRows} nameKey="name" dataKey="total" height={300} />
+        </Card>
 
         <Card title="Répartition par division">
           <BarChart data={divisionRows} nameKey="name" dataKey="total" color="#10b981" />

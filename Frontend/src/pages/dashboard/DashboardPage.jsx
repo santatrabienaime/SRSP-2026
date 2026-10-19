@@ -149,10 +149,14 @@ export function DashboardPage() {
      périmètre (comportement historique, inchangé). */
   const cfg = configRole(role, { s: summary, files, ress });
   const kpis = cfg?.kpis || kpiPour(perimetre, summary, files);
+  /* Répartitions (statut, division) : le tableau de bord ne les affiche que
+     lorsqu'elles sont restreintes au périmètre de l'utilisateur, c'est-à-dire
+     quand elles apportent une information propre. En périmètre global elles
+     seraient identiques à celles de l'écran Statistiques, qui en est le
+     support dédié (vue du service entier) : on ne les double pas, on garde
+     ici la seule courbe d'évolution, absente de Statistiques. */
   const charts = cfg?.charts
-    || (perimetre === 'GLOBAL'
-      ? ['statut', 'division', 'evolution']
-      : ['statut', 'evolution']);
+    || (perimetre === 'GLOBAL' ? ['evolution'] : ['statut', 'evolution']);
   const actions = (cfg?.actions || []).filter(
     (a) => !a.perms || hasAnyPermission(a.perms)
   );
