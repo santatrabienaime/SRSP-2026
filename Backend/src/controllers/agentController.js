@@ -19,3 +19,7 @@ export async function create(req, res, next) {
 export async function update(req, res, next) {
   try { await agentModel.update(req.params.id, req.body); res.json({ message: 'Mis à jour.' }); } catch (e) { next(e); }
 }
+
+export async function remove(req, res, next) {
+  try { await agentModel.remove(req.params.id); res.status(204).send(); } catch (e) { next(e); }
+}

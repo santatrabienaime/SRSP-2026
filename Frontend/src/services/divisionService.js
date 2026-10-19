@@ -6,6 +6,7 @@ export const divisionService = {
   get: (id) => apiClient.get(`/divisions/${id}`).then((r) => r.data),
   create: (data) => apiClient.post('/divisions', data).then((r) => r.data),
   update: (id, data) => apiClient.put(`/divisions/${id}`, data).then((r) => r.data),
+  remove: (id) => apiClient.delete(`/divisions/${id}`).then((r) => r.data),
 };
 
 export default divisionService;

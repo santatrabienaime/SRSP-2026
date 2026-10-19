@@ -1,19 +1,16 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderKanban, FileText, Mail, History, Archive,
+  LayoutDashboard, FolderKanban, Mail, History, Archive,
   BarChart3, FileBarChart2, Settings, Users, Shield, Bell,
   UserCog, Building2, ScrollText, PanelLeftClose, PanelLeftOpen,
   Database,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
-import { useState, useEffect } from 'react';
-import { messageService } from '../../services/messageService.js';
 
 const ICONS = {
   dashboard: LayoutDashboard,
   dossiers: FolderKanban,
-  documents: FileText,
   courriers: Mail,
   notifications: Bell,
   historique: History,
@@ -78,13 +75,6 @@ export function Sidebar() {
     return true;
   };
 
-  const [nbMessagesNonLus, setNbMessagesNonLus] = useState(0);
-
-  // Charger le nombre de messages non lus au démarrage
-  useEffect(() => {
-    messageService.countUnread().then(setNbMessagesNonLus).catch(() => {});
-  }, []);
-
   const sections = [
     {
       label: 'Pilotage',
@@ -103,17 +93,9 @@ export function Sidebar() {
       ],
     },
     {
-      label: 'Chef BAAF',
-      items: [
-        { to: '/documents', label: 'Documents comptables', icon: 'documents',
-          perms: ['manage_documents', 'upload_document'] },
-      ],
-    },
-    {
       label: 'Suivi',
       items: [
         { to: '/notifications', label: 'Notifications', icon: 'notifications' },
-        { to: '/messages', label: 'Messages', icon: 'courriers', badge: nbMessagesNonLus },
         { to: '/historique', label: 'Historique', icon: 'historique', perms: ['view_journal', 'view_audit'] },
         { to: '/archives', label: 'Archives', icon: 'archives', perms: ['view_archives'] },
         /* « Mes statistiques » est ouvert à tout le monde, sans permission.
@@ -145,27 +127,11 @@ export function Sidebar() {
         ...(show({ perms: ['view_audit'] })
           ? [{ to: '/administration/audit', label: "Journal d'audit", icon: 'audit' }]
           : []),
-        ...(show({ perms: ['manage_personnel'] })
-          ? [{ to: '/agents', label: 'Personnel (agents)', icon: 'personnel' }]
-          : []),
-        ...(show({ perms: ['manage_divisions'] })
-          ? [{ to: '/divisions', label: 'Divisions', icon: 'divisions' }]
-          : []),
-        (myDivision && show({ roles: ['ADMIN'] }) ? [
-          {
-            to: `/divisions/${myDivision}/dashboard`,
-            label: 'Tableau de bord de division',
-            icon: 'divisions',
-          },
-        ] : []),
         ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
           ? [{ to: '/administration/parametres', label: 'Paramètres', icon: 'settings' }]
           : []),
         ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
           ? [{ to: '/administration/referentiel', label: 'Référentiel', icon: 'database' }]
-          : []),
-        ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
-          ? [{ to: '/administration/sauvegarde', label: 'Sauvegarde', icon: 'database' }]
           : []),
       ],
     });
@@ -308,7 +274,7 @@ export function Sidebar() {
                         {item.label}
                         {item.badge !== undefined && (
                           <span className="ml-1 inline-flex items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-bold px-1.5">
-                            {item.badge}
+                            {typeof item.badge === 'object' ? (item.badge?.count ?? 0) : item.badge}
                           </span>
                         )}
                       </span>

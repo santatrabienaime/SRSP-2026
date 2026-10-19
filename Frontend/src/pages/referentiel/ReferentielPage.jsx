@@ -1,68 +1,49 @@
 import { useState } from 'react';
-import { FolderKanban, FileText, Building2 } from 'lucide-react';
-import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
-import { Card } from '../../components/ui/Card.jsx';
+import { FolderKanban, FileText, Mail, Building2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button.jsx';
+import { TypesDossiersPage } from './TypesDossiersPage.jsx';
+import { TypesPiecesPage } from './TypesPiecesPage.jsx';
+import { TypesCourriersPage } from './TypesCourriersPage.jsx';
+import { DivisionListPage } from '../divisions/DivisionListPage.jsx';
+
+/**
+ * Écran « Référentiel » : regroupe sous forme d'onglets les tables de
+ * référence réellement modifiables par l'administrateur. Chaque onglet rend la
+ * page en charge de la table — elle porte son titre, sa liste et ses actions.
+ */
+const ONGLETS = [
+  { cle: 'types-dossiers', label: 'Types de dossiers', Icone: FolderKanban, Page: TypesDossiersPage },
+  { cle: 'types-pieces', label: 'Types de pièces', Icone: FileText, Page: TypesPiecesPage },
+  { cle: 'types-courriers', label: 'Types de courriers', Icone: Mail, Page: TypesCourriersPage },
+  { cle: 'divisions', label: 'Divisions', Icone: Building2, Page: DivisionListPage },
+];
 
 export function ReferentielPage() {
-  const [onglet, setOnglet] = useState('types-dossiers');
-
-  const onglets = [
-    { cle: 'types-dossiers', label: 'Types de dossiers', icon: 'FolderKanban' },
-    { cle: 'types-pieces', label: 'Types de pièces', icon: 'FileText' },
-    { cle: 'divisions', label: 'Divisions', icon: 'Building2' },
-  ];
+  const [onglet, setOnglet] = useState(ONGLETS[0].cle);
+  const actif = ONGLETS.find((o) => o.cle === onglet) ?? ONGLETS[0];
+  const Page = actif.Page;
 
   return (
-    <AnimatedCard title="Référentiel" subtitle="Gestion des référentiels du SRSP." delay={0}>
-      <div className="space-y-5">
-        <div className="flex flex-wrap gap-2">
-          {onglets.map((o) => (
-            <Button
-              key={o.cle}
-              onClick={() => setOnglet(o.cle)}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                onglet === o.cle
-                  ? 'border-primary-600 bg-primary-50 text-primary-700'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-              }`}
-            >
-              {o.icon === 'FolderKanban' && <FolderKanban className="h-4 w-4" />}
-              {o.icon === 'FileText' && <FileText className="h-4 w-4" />}
-              {o.icon === 'Building2' && <Building2 className="h-4 w-4" />}
-              {o.label}
-            </Button>
-          ))}
-        </div>
-
-        {onglet === 'types-dossiers' && (
-          <div>
-            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">Types de dossiers</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Gérez les types de dossiers du référentiel (Visa, Solde, Pension, Secours, etc.).
-            </p>
-          </div>
-        )}
-
-        {onglet === 'types-pieces' && (
-          <div>
-            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">Types de pièces</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Gérez les types de pièces justificatives (CIN, acte de naissance, etc.).
-            </p>
-          </div>
-        )}
-
-        {onglet === 'divisions' && (
-          <div>
-            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">Divisions</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Gérez les divisions du SRSP (Solde, Pension, Visa, Secours).
-            </p>
-          </div>
-        )}
+    <div className="space-y-5">
+      <div className="flex flex-wrap gap-2">
+        {ONGLETS.map(({ cle, label, Icone }) => (
+          <Button
+            key={cle}
+            onClick={() => setOnglet(cle)}
+            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+              onglet === cle
+                ? 'border-primary-600 bg-primary-50 text-primary-700'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            <Icone className="h-4 w-4" />
+            {label}
+          </Button>
+        ))}
       </div>
-    </AnimatedCard>
+
+      <Page />
+    </div>
   );
 }
 

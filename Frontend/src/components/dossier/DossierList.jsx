@@ -14,8 +14,8 @@ import { Table } from '../ui/Table.jsx';
 import { Pagination } from '../ui/Pagination.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import { EmptyState } from '../ui/EmptyState.jsx';
-import { formatDateString, formatDateTime } from '../../utils/formatDate.js';
-import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
+import { formatDateString } from '../../utils/formatDate.js';
+import { formatStatus, statusBadgeClass, prioriteBadgeClass } from '../../utils/formatStatus.js';
 import { STATUTS, STATUT_LABELS, TYPES_DOSSIERS } from '../../config/constants.js';
 
 const STATUT_FILTERS = [
@@ -26,11 +26,36 @@ const STATUT_FILTERS = [
   })),
 ];
 
+/** Statuts pour lesquels une échéance dépassée n'a plus de sens. */
+const STATUTS_CLOS = [STATUTS.CLOTURE, STATUTS.ARCHIVE];
+
+/**
+ * Cellule d'échéance : affiche la date limite et signale le retard.
+ * Un dossier clôturé ou archivé n'est jamais « en retard ». Une date limite
+ * portée par un dossier encore ouvert et dépassée est mise en évidence : c'est
+ * l'information qui manquait pour décider par quoi commencer.
+ */
+function Echeance({ dateLimite, statut }) {
+  if (!dateLimite) return <span className="text-slate-400">—</span>;
+  const clos = STATUTS_CLOS.includes(statut);
+  const enRetard = !clos && new Date(dateLimite) < new Date(new Date().toDateString());
+  return (
+    <span className={`inline-flex items-center gap-1 ${enRetard ? 'font-medium text-red-600' : 'text-slate-600'}`}>
+      {formatDateString(dateLimite)}
+      {enRetard && (
+        <span className="rounded bg-red-100 px-1 text-[10px] font-semibold uppercase text-red-700">
+          retard
+        </span>
+      )}
+    </span>
+  );
+}
+
 /**
  * Liste des dossiers avec filtres côté serveur (statut, type, recherche).
  */
 export function DossierList({ baseFilters = {}, showCreate = true, agentPersonnel = false }) {
-  const { hasPermission, user } = useAuth();
+  const { hasPermission } = useAuth();
   // Un agent est automatiquement restreint à SES dossiers par le serveur
   // (permission view_assigned_dossiers sans view_all_dossiers).
   const agentScoped = agentPersonnel || (hasPermission('view_assigned_dossiers') && !hasPermission('view_all_dossiers'));
@@ -54,7 +79,7 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
      matin voit ainsi d'abord ce qui l'attend, au lieu du plus récemment reçu. */
   const [tri, setTri] = useState(agentPersonnel ? 'echeance' : 'prioritaire');
   const debouncedSearch = useDebounce(search, 350);
-  const { isMounted, animationClass } = useAnimation({ delay: 100, type: 'slide-in-up' });
+  const { animationClass } = useAnimation({ delay: 100, type: 'slide-in-up' });
 
   // baseFilters est souvent un objet recréé à chaque rendu du parent (ou défaut {} )
   // → le garder en ref évite que l'identité change et fasse re-feuiller load (clignotement).
@@ -107,11 +132,14 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
     },
     {
       key: 'objet',
-      label: 'Objet',
+      label: 'Objet / demandeur',
       render: (r) => (
-        <div>
-          <p className="max-w-xs truncate font-medium text-slate-700">{r.objet}</p>
-          <p className="text-xs text-slate-400">{r.demandeur}</p>
+        <div className="max-w-xs">
+          <p className="truncate font-medium text-slate-700">{r.objet}</p>
+          <p className="truncate text-xs text-slate-500">{r.demandeur || '—'}</p>
+          <p className="truncate text-xs text-slate-400">
+            Matricule : {r.matricule || '—'}
+          </p>
         </div>
       ),
     },
@@ -122,9 +150,28 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
       render: (r) => r.division_nom || '—',
     },
     {
+      key: 'agent',
+      label: 'Agent',
+      render: (r) => (r.agent_nom ? `${r.agent_nom} ${r.agent_prenom || ''}`.trim() : '—'),
+    },
+    {
+      key: 'priorite_libelle',
+      label: 'Priorité',
+      render: (r) => (
+        <Badge className={prioriteBadgeClass(r.priorite_libelle)}>
+          {r.priorite_libelle || '—'}
+        </Badge>
+      ),
+    },
+    {
       key: 'date_reception',
       label: 'Réception',
       render: (r) => formatDateString(r.date_reception),
+    },
+    {
+      key: 'date_limite',
+      label: 'Échéance',
+      render: (r) => <Echeance dateLimite={r.date_limite} statut={r.statut_code} />,
     },
     {
       key: 'statut_code',
@@ -134,16 +181,6 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
           {formatStatus(r.statut_code)}
         </Badge>
       ),
-    },
-    {
-      key: 'agent',
-      label: 'Agent',
-      render: (r) => (r.agent_nom ? `${r.agent_nom} ${r.agent_prenom || ''}` : '—'),
-    },
-    {
-      key: 'updated',
-      label: 'Créé le',
-      render: (r) => <span className="text-slate-500">{formatDateTime(r.created_at)}</span>,
     },
   ];
 

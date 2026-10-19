@@ -2,13 +2,9 @@ import app from './app.js';
 import { validateEnv, config } from './config/env.js';
 import { logger } from './config/logger.js';
 import { initRealtime } from './realtime.js';
-import { initMessages } from './models/messageModel.js';
 
 // Validation des variables d'environnement au démarrage
 validateEnv();
-
-// Initialiser la table messages
-initMessages();
 
 const server = app.listen(config.port, () => {
   logger.info(`🚀 Serveur démarré sur http://localhost:${config.port}`);

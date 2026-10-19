@@ -470,6 +470,16 @@ export async function archiver(id, userId) {
   await createArchive({ dossier_id: id, archive_par: userId, motif: 'Archivage automatique' });
 }
 
+export async function deleteDossier(id, userId) {
+  await historiqueModel.log({
+    user_id: userId,
+    action: 'SUPPRESSION_DOSSIER',
+    dossier_id: id,
+    details: `Suppression du dossier #${id}`,
+  });
+  await dossierModel.deleteDossier(id);
+}
+
 export async function getStatutDossier(id) {
   return workflowService.getCurrentStatus(id);
 }

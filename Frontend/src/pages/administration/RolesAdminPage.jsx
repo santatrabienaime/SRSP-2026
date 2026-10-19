@@ -19,8 +19,8 @@ const PERMISSION_GROUPS = [
     perms: ['orienter_dossier', 'affecter_dossier', 'traiter_dossier', 'soumettre_verification', 'verifier_dossier', 'valider_dossier', 'signer_dossier', 'cloturer_dossier', 'archiver_dossier'],
   },
   {
-    label: 'Courriers & documents',
-    perms: ['manage_courriers', 'manage_documents', 'upload_document'],
+    label: 'Courriers',
+    perms: ['manage_courriers'],
   },
   {
     label: 'Administration',
@@ -44,6 +44,17 @@ const PERMISSION_GROUPS = [
   },
 ];
 
+/**
+ * Permissions retirées en même temps que leur module.
+ *
+ * Le module « documents comptables » a été supprimé de la plateforme : ses
+ * deux permissions subsistent en base mais ne gardent plus rien. On les
+ * écarte de l'écran — sinon la matrice afficherait des cases à cocher qui ne
+ * commandent plus aucun contrôle — et du même coup un enregistrement de rôle
+ * les retire du rôle qui les détenait encore.
+ */
+const PERMISSIONS_RETIREES = new Set(['manage_documents', 'upload_document']);
+
 /** Gestion des rôles et de la matrice RBAC par rôle. */
 export function RolesAdminPage() {
   const { toastSuccess, toastError } = useNotification();
@@ -62,7 +73,9 @@ export function RolesAdminPage() {
       setError(null);
       const [rs, ps] = await Promise.all([roleService.list(), permissionService.list()]);
       setRoles(Array.isArray(rs) ? rs : []);
-      setPermissions(Array.isArray(ps) ? ps : []);
+      setPermissions(
+        (Array.isArray(ps) ? ps : []).filter((p) => !PERMISSIONS_RETIREES.has(p.nom))
+      );
     } catch (e) {
       setError(e);
     } finally {
@@ -80,7 +93,11 @@ export function RolesAdminPage() {
     try {
       const detail = await roleService.get(role.id);
       setRoleDetail(detail);
-      setCheckboxes((detail.permissions || []).map((p) => p.id));
+      setCheckboxes(
+        (detail.permissions || [])
+          .filter((p) => !PERMISSIONS_RETIREES.has(p.nom))
+          .map((p) => p.id)
+      );
     } catch (e) {
       setError(e);
     } finally {

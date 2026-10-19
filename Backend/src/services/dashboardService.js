@@ -44,6 +44,17 @@ export async function getSummary(scope) {
   );
   stats.enRetard = retard.total;
 
+  // Dossiers prioritaires : priorité haute ou urgente (niveau 3 ou 4).
+  // Le triage de la liste des dossiers affiche ce même ensemble, le compteur
+  // doit donc provenir de la même règle pour ne pas contredire la liste.
+  const [prioritaires] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN priorites p ON d.priorite_id = p.id
+     WHERE p.niveau >= 3${f.where}`,
+    f.params
+  );
+  stats.prioritaires = prioritaires.total;
+
   return stats;
 }
 
@@ -88,31 +99,20 @@ export async function getEvolution(scope) {
 
 /**
  * Comptes transverses des tableaux de bord hors périmètre dossier
- * (courriers, documents comptables) : ensembles ouverts au service entier,
+ * (courriers) : ensembles ouverts au service entier,
  * deux requêtes COUNT suffisent, et le résultat n'a rien de sensible —
  * les listes elles-mêmes restent protégées par leurs permissions.
  */
 export async function getRessources() {
-  const [courriers, documents] = await Promise.all([
+  const [courriers] = await Promise.all([
     db.query(
       `SELECT COUNT(*) AS total, COALESCE(SUM(statut = 'RECU'), 0) AS recus
        FROM courriers`
     ),
-    db.query(
-      `SELECT COUNT(*) AS total, COALESCE(SUM(valide = 1), 0) AS valides,
-              COALESCE(SUM(COALESCE(valide, 0) = 0), 0) AS enAttente
-       FROM documents`
-    ),
   ]);
   const c = courriers[0];
-  const d = documents[0];
-  /* COUNT revient en nombre, SUM en DECIMAL (chaîne côté mysql2) : on
-     normalise tout en nombre, les KPI comparent typeof === 'number'. */
   return {
     courriers: { total: Number(c.total), recus: Number(c.recus) },
-    documents: {
-      total: Number(d.total), valides: Number(d.valides), enAttente: Number(d.enAttente),
-    },
   };
 }
 

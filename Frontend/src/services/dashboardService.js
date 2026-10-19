@@ -1,34 +1,49 @@
 import apiClient from './apiClient.js';
 
-/**
- * Récupère une valeur numérique depuis une réponse serveur.
- * Gère le cas où la valeur est un objet { count: X } ou directement un nombre.
- */
-function extractValue(val) {
-  if (val === null || val === undefined) return 0;
-  if (typeof val === 'object' && val.count !== undefined) return val.count;
-  return typeof val === 'number' ? val : parseInt(val, 10) || 0;
-}
+import { extractValue } from '../utils/extractValue.js';
 
 export const dashboardService = {
   summary: () => apiClient.get('/dashboard/summary').then((r) => {
     const d = r.data || {};
+    /* Le serveur renvoie deux blocs : les agrégats par statut (à plat) et les
+       files d'attente sous `files`. On aplatit les deux ici, en un seul endroit,
+       pour que les écrans n'aient pas à connaître la forme de la réponse. */
+    const files = d.files || {};
     return {
       total: extractValue(d.total),
-      valides: extractValue(d.valides),
-      enCours: extractValue(d.enCours),
-      enAttente: extractValue(d.enAttente),
-      rejetes: extractValue(d.rejetes),
-      aValider: extractValue(d.aValider),
-      aSigner: extractValue(d.aSigner),
-      aCloturer: extractValue(d.aCloturer),
       enRetard: extractValue(d.enRetard),
-      aOrienter: extractValue(d.aOrienter),
-      aTraiter: extractValue(d.aTraiter),
-      aVerifier: extractValue(d.aVerifier),
-      aCorriger: extractValue(d.aCorriger),
-      termees: extractValue(d.termes),
-      divisions: extractValue(d.divisions),
+      // Dossiers à priorité haute ou urgente (triage « Urgents »).
+      prioritaires: extractValue(d.prioritaires),
+
+      // Statuts individuels, utilisés par le triage de la liste des dossiers.
+      RECU: extractValue(d.RECU),
+      ENREGISTRE: extractValue(d.ENREGISTRE),
+      ORIENTE: extractValue(d.ORIENTE),
+      AFFECTE: extractValue(d.AFFECTE),
+      EN_TRAITEMENT: extractValue(d.EN_TRAITEMENT),
+      SOUMIS_A_VERIFICATION: extractValue(d.SOUMIS_A_VERIFICATION),
+      CORRECTION_DEMANDEE: extractValue(d.CORRECTION_DEMANDEE),
+      VALIDE: extractValue(d.VALIDE),
+      SIGNE: extractValue(d.SIGNE),
+      CLOTURE: extractValue(d.CLOTURE),
+      ARCHIVE: extractValue(d.ARCHIVE),
+
+      // Files d'attente par rôle (bloc `files` du serveur).
+      aOrienter: extractValue(files.aOrienter),
+      aAffecter: extractValue(files.aAffecter),
+      aTraiter: extractValue(files.aTraiter),
+      enCours: extractValue(files.enCours),
+      aCorriger: extractValue(files.aCorriger),
+      aVerifier: extractValue(files.aVerifier),
+      aValider: extractValue(files.aValider),
+      aSigner: extractValue(files.aSigner),
+      aCloturer: extractValue(files.aCloturer),
+      aArchiver: extractValue(files.aArchiver),
+      termines: extractValue(files.termines),
+
+      // Bloc brut conservé : certains écrans (DashboardPage) lisent `files`.
+      files,
+      perimetre: d.perimetre || null,
     };
   }),
   byDivision: () => apiClient.get('/dashboard/by-division').then((r) => r.data || []),

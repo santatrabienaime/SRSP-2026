@@ -6,7 +6,10 @@ import apiClient from './apiClient.js';
 
 export const referentielService = {
   /** Récupère une ressource par endpoint. */
-  get: (endpoint) => apiClient.get(`/referentiel/${endpoint}`).then((r) => r.data || []),
+  get: (endpoint) => {
+    if (!endpoint) return apiClient.get('/referentiel').then((r) => r.data || {});
+    return apiClient.get(`/referentiel/${endpoint}`).then((r) => r.data || []);
+  },
 
   /** Liste des types de dossiers. */
   typesDossiers: () => apiClient.get('/referentiel/types-dossiers').then((r) => r.data || []),
@@ -26,14 +29,23 @@ export const referentielService = {
   /** Supprime un type de pièce. */
   supprimerTypePiece: (id) => apiClient.delete(`/referentiel/types-pieces/${id}`).then((r) => r.data),
 
+  /** Liste des types de courriers. */
+  typesCourriers: () => apiClient.get('/referentiel/types-courriers').then((r) => r.data || []),
+
+  /** Crée un type de courrier. */
+  ajouterTypeCourrier: (data) => apiClient.post('/referentiel/types-courriers', data).then((r) => r.data),
+
+  /** Supprime un type de courrier. */
+  supprimerTypeCourrier: (id) => apiClient.delete(`/referentiel/types-courriers/${id}`).then((r) => r.data),
+
   /** Liste des divisions. */
-  divisions: () => apiClient.get('/referentiel/divisions').then((r) => r.data || []),
+  divisions: () => apiClient.get('/divisions').then((r) => r.data || []),
 
   /** Crée une division. */
-  ajouterDivision: (data) => apiClient.post('/referentiel/divisions', data).then((r) => r.data),
+  ajouterDivision: (data) => apiClient.post('/divisions', data).then((r) => r.data),
 
   /** Supprime une division. */
-  supprimerDivision: (id) => apiClient.delete(`/referentiel/divisions/${id}`).then((r) => r.data),
+  supprimerDivision: (id) => apiClient.delete(`/divisions/${id}`).then((r) => r.data),
 };
 
 export default referentielService;

@@ -19,3 +19,7 @@ export async function create(req, res, next) {
 export async function update(req, res, next) {
   try { await divisionModel.update(req.params.id, req.body); res.json({ message: 'Mis à jour.' }); } catch (e) { next(e); }
 }
+
+export async function remove(req, res, next) {
+  try { await divisionModel.remove(req.params.id); res.json({ message: 'Supprimé.' }); } catch (e) { next(e); }
+}

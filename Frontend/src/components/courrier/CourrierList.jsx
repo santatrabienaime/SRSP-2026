@@ -1,16 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Trash2 } from 'lucide-react';
 import { courrierService } from '../../services/courrierService.js';
 import { usePagination } from '../../hooks/usePagination.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { useAuth } from '../../hooks/useAuth.js';
+import { useNotification } from '../../hooks/useNotification.js';
+import { COURRIER_STATUTS } from '../../config/constants.js';
 import { Badge } from '../ui/Badge.jsx';
 import { Table } from '../ui/Table.jsx';
 import { Pagination } from '../ui/Pagination.jsx';
 import { Input } from '../ui/Input.jsx';
 import { Select } from '../ui/Select.jsx';
 import { Button } from '../ui/Button.jsx';
+import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
 import { EmptyState } from '../ui/EmptyState.jsx';
 import { formatDateTime } from '../../utils/formatDate.js';
 
@@ -19,8 +22,6 @@ const SENS_BADGE = {
   ENTRANT: 'border-sky-200 bg-sky-50 text-sky-700',
   SORTANT: 'border-violet-200 bg-violet-50 text-violet-700',
 };
-
-const STATUTS_COURRIERS = ['', 'RECU', 'TRANSMIS', 'TRAITE', 'CLASSE'];
 
 export function CourrierList({ baseFilters = {}, showCreate = true }) {
   // baseFilters est un objet recréé à chaque rendu du parent (ou défaut {})
@@ -35,7 +36,10 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
   const [search, setSearch] = useState('');
   const [sens, setSens] = useState('');
   const [statut, setStatut] = useState('');
+  const [aSupprimer, setASupprimer] = useState(null);
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
   const debouncedSearch = useDebounce(search, 350);
+  const { toastSuccess, toastError } = useNotification();
 
   const load = useCallback(async () => {
     try {
@@ -63,6 +67,22 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
 
   const pagination = usePagination(data, 10);
   const canCreate = hasPermission('manage_courriers');
+
+  /* La suppression d'un courrier relève de la même permission que le reste du
+     module (le routeur serveur exige manage_courriers sur toutes ses routes). */
+  const supprimer = async () => {
+    setSuppressionEnCours(true);
+    try {
+      await courrierService.delete(aSupprimer.id);
+      toastSuccess('Courrier supprimé.');
+      setASupprimer(null);
+      await load();
+    } catch (e) {
+      toastError(e.message);
+    } finally {
+      setSuppressionEnCours(false);
+    }
+  };
 
   const columns = [
     {
@@ -95,7 +115,9 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
       key: 'statut',
       label: 'Statut',
       render: (r) => (
-        <Badge className="border-blue-200 bg-blue-50 text-blue-700">{r.statut}</Badge>
+        <Badge className="border-blue-200 bg-blue-50 text-blue-700">
+          {COURRIER_STATUTS[r.statut] || r.statut || '—'}
+        </Badge>
       ),
     },
     {
@@ -103,6 +125,26 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
       label: 'Date',
       render: (r) => <span className="text-slate-500">{formatDateTime(r.created_at)}</span>,
     },
+    ...(canCreate
+      ? [
+          {
+            key: 'actions',
+            label: 'Actions',
+            render: (r) => (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-red-600 hover:bg-red-50"
+                title="Supprimer"
+                aria-label={`Supprimer le courrier ${r.numero}`}
+                onClick={() => setASupprimer(r)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -128,8 +170,8 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
         <div className="w-full sm:w-44">
           <Select label="Statut" value={statut} onChange={(e) => setStatut(e.target.value)}>
             <option value="">Tous</option>
-            {STATUTS_COURRIERS.filter(Boolean).map((s) => (
-              <option key={s} value={s}>{s}</option>
+            {Object.entries(COURRIER_STATUTS).map(([code, libelle]) => (
+              <option key={code} value={code}>{libelle}</option>
             ))}
           </Select>
         </div>
@@ -148,6 +190,17 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
         <EmptyState title="Aucun courrier" message="Aucun courrier ne correspond aux critères." />
       )}
       <Pagination pagination={pagination} />
+
+      <ConfirmDialog
+        open={aSupprimer !== null}
+        onClose={() => !suppressionEnCours && setASupprimer(null)}
+        onConfirm={supprimer}
+        loading={suppressionEnCours}
+        danger
+        title="Supprimer le courrier"
+        message={`Supprimer définitivement le courrier ${aSupprimer?.numero || ''} ? Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+      />
     </div>
   );
 }

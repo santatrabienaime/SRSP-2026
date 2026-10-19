@@ -2,7 +2,6 @@ import * as M from '../models/secoursModel.js';
 import * as mandatementModel from '../models/mandatementModel.js';
 import { accesDossier } from '../services/scopeService.js';
 import { httpError } from '../utils/httpError.js';
-import { envoyerMessageAction } from '../services/messageService.js';
 
 /**
  * Division Secours : visa du CF, état d'émargement, cachet, références du
@@ -43,15 +42,6 @@ export async function enregistrerVisa(req, res, next) {
     const dossierId = Number(req.params.id);
     await exigerAcces(req.user.id, dossierId);
     const resultat = await M.enregistrerVisa(dossierId, req.body, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: dossierId,
-        action: 'SECOURS_VISA',
-        message: `Visa CF enregistré pour le dossier #${dossierId}.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.status(201).json(resultat);
   } catch (e) { next(e); }
 }
@@ -90,15 +80,6 @@ export async function marquerReference(req, res, next) {
   try {
     const mandat = await mandatementAccessible(req.user.id, Number(req.params.id));
     const resultat = await M.marquerReferenceReportee(mandat.id, req.params.code, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'SECOURS_REFERENCE',
-        message: `Référence logiciel secours marquée pour le dossier #${req.params.id}.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json(resultat);
   } catch (e) { next(e); }
 }
@@ -107,15 +88,6 @@ export async function genererEmargement(req, res, next) {
   try {
     const mandat = await mandatementAccessible(req.user.id, Number(req.params.id));
     const resultat = await M.genererEtatEmargement(mandat.id, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'SECOURS_EMARGEMENT',
-        message: `État d'émargement généré pour le dossier #${req.params.id}.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json(resultat);
   } catch (e) { next(e); }
 }
@@ -131,15 +103,6 @@ export async function signerEmargement(req, res, next) {
   try {
     const mandat = await mandatementAccessible(req.user.id, Number(req.params.id));
     const resultat = await M.signerEmargement(mandat.id, Number(req.params.beneficiaire), req.body);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'SECOURS_EMARGEMENT_SIGNE',
-        message: `Émargement signé pour le dossier #${req.params.id}.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json(resultat);
   } catch (e) { next(e); }
 }
@@ -150,15 +113,6 @@ export async function enregistrerSignature(req, res, next) {
   try {
     const mandat = await mandatementAccessible(req.user.id, Number(req.params.id));
     const resultat = await M.enregistrerSignatureOrdonnateur(mandat.id, req.body, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'SECOURS_SIGNATURE_ORDONNATEUR',
-        message: `Signature ordonnateur enregistrée pour le dossier #${req.params.id}.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.status(201).json(resultat);
   } catch (e) { next(e); }
 }
@@ -174,15 +128,6 @@ export async function archiverCopie(req, res, next) {
   try {
     const mandat = await mandatementAccessible(req.user.id, Number(req.params.id));
     const resultat = await M.archiverCopieSignee(mandat.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'SECOURS_ARCHIVE_COPIE',
-        message: `Copie signée archivée pour le dossier #${req.params.id}.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json(resultat);
   } catch (e) { next(e); }
 }
@@ -193,15 +138,6 @@ export async function apposerCachet(req, res, next) {
   try {
     const mandat = await mandatementAccessible(req.user.id, Number(req.params.id));
     const resultat = await M.apposerCachet(mandat.id, req.body, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'SECOURS_CACHET',
-        message: `Cachet apposé pour le dossier #${req.params.id}.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json(resultat);
   } catch (e) { next(e); }
 }

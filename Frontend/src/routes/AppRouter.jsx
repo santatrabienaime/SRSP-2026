@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ErrorBoundary } from '../components/ui/ErrorBoundary.jsx';
 
 import { PrivateRoute } from './PrivateRoute.jsx';
 import { RoleRoute } from './RoleRoute.jsx';
@@ -16,15 +15,11 @@ import { DossierDetailPage } from '../pages/dossiers/DossierDetailPage.jsx';
 import { DossierEditPage } from '../pages/dossiers/DossierEditPage.jsx';
 import { DossierWorkflowPage } from '../pages/dossiers/DossierWorkflowPage.jsx';
 
-import { DocumentListPage } from '../pages/documents/DocumentListPage.jsx';
-import { DocumentUploadPage } from '../pages/documents/DocumentUploadPage.jsx';
-
 import { CourrierListPage } from '../pages/courriers/CourrierListPage.jsx';
 import { CourrierCreatePage } from '../pages/courriers/CourrierCreatePage.jsx';
 import { CourrierDetailPage } from '../pages/courriers/CourrierDetailPage.jsx';
 
 import { NotificationsPage } from '../pages/notifications/NotificationsPage.jsx';
-import { MessagesPage } from '../pages/messages/MessagesPage.jsx';
 import { HistoriquePage } from '../pages/historique/HistoriquePage.jsx';
 import { ArchivesPage } from '../pages/archives/ArchivesPage.jsx';
 import { StatistiquesPage } from '../pages/statistiques/StatistiquesPage.jsx';
@@ -98,10 +93,6 @@ export function AppRouter() {
           />
           <Route path="/dossiers/:id/workflow" element={<DossierWorkflowPage />} />
 
-          {/* Documents */}
-          <Route path="/documents" element={<DocumentListPage />} />
-          <Route path="/documents/upload" element={<DocumentUploadPage />} />
-
           {/* Courriers : Admin, Chef Service, Chef BAAF, Secrétaire (§14.1) */}
           <Route
             path="/courriers"
@@ -130,7 +121,6 @@ export function AppRouter() {
 
           {/* Suivi */}
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/messages" element={<MessagesPage />} />
           <Route
             path="/historique"
             element={

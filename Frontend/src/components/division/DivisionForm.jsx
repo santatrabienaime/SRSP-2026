@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { divisionService } from '../../services/divisionService.js';
 import { agentService } from '../../services/agentService.js';
+import { referentielService } from '../../services/referentielService.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { Button } from '../ui/Button.jsx';
 import { Input } from '../ui/Input.jsx';
@@ -11,12 +12,16 @@ import { Alert } from '../ui/Alert.jsx';
 export function DivisionForm({ initial = null, onSaved }) {
   const { toastSuccess, toastError } = useNotification();
   const [agents, setAgents] = useState([]);
+  const [typesDossiers, setTypesDossiers] = useState([]);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
     code: initial?.code || '',
     nom: initial?.nom || '',
+    /* Une division traite un seul type de dossier : cette liaison est
+       obligatoire en base, donc demandée dès la création. */
+    type_dossier_id: initial?.type_dossier_id || '',
     responsable_id: initial?.responsable_id || '',
     actif: initial ? Boolean(initial.actif) : true,
   });
@@ -25,7 +30,11 @@ export function DivisionForm({ initial = null, onSaved }) {
     agentService
       .list()
       .then((a) => setAgents(Array.isArray(a) ? a : []))
-      .catch(() => {});
+      .catch(() => { /* liste indisponible : le champ reste vide */ });
+    referentielService
+      .typesDossiers()
+      .then((t) => setTypesDossiers(Array.isArray(t) ? t : []))
+      .catch(() => { /* liste indisponible : le champ reste vide */ });
   }, []);
 
   const set = (field) => (e) => {
@@ -36,22 +45,23 @@ export function DivisionForm({ initial = null, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    if (!form.code || !form.nom) {
-      setError({ message: 'Code et nom sont obligatoires.' });
+    if (!form.code || !form.nom || !form.type_dossier_id) {
+      setError({ message: 'Code, nom et type de dossier sont obligatoires.' });
       return;
     }
     setSaving(true);
+    const commun = {
+      code: form.code,
+      nom: form.nom,
+      type_dossier_id: Number(form.type_dossier_id),
+      responsable_id: form.responsable_id ? Number(form.responsable_id) : null,
+    };
     try {
       if (initial) {
-        await divisionService.update(initial.id, {
-          code: form.code,
-          nom: form.nom,
-          responsable_id: form.responsable_id ? Number(form.responsable_id) : null,
-          actif: form.actif,
-        });
+        await divisionService.update(initial.id, { ...commun, actif: form.actif });
         toastSuccess('Division mise à jour.');
       } else {
-        await divisionService.create({ code: form.code, nom: form.nom });
+        await divisionService.create(commun);
         toastSuccess('Division créée.');
       }
       onSaved?.();
@@ -70,6 +80,17 @@ export function DivisionForm({ initial = null, onSaved }) {
         <Input label="Code" required value={form.code} onChange={set('code')} placeholder="ex. VISAS" />
         <Input label="Nom" required value={form.nom} onChange={set('nom')} placeholder="ex. Division Visas" />
       </div>
+      <Select
+        label="Type de dossier"
+        required
+        value={form.type_dossier_id}
+        onChange={set('type_dossier_id')}
+      >
+        <option value="">Sélectionner…</option>
+        {typesDossiers.map((t) => (
+          <option key={t.id} value={t.id}>{t.libelle || t.code}</option>
+        ))}
+      </Select>
       <Select
         label="Responsable"
         value={form.responsable_id}

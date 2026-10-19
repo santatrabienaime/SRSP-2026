@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, UserCheck, Clock, Archive, User, MailPlus, FolderKanban } from 'lucide-react';
+import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, Clock, Archive, User, FolderKanban } from 'lucide-react';
 import { DossierList } from '../../components/dossier/DossierList.jsx';
 import { dashboardService } from '../../services/dashboardService.js';
 import { useAuth } from '../../hooks/useAuth.js';
-import { Spinner } from '../../components/ui/Spinner.jsx';
-import { Badge } from '../../components/ui/Badge.jsx';
 
 /** Rôles de pilotage : ils voient l'ensemble des divisions. */
 const ROLES_GLOBAUX = [
@@ -14,41 +12,56 @@ const ROLES_GLOBAUX = [
 /**
  * Ensembles de dossiers pour le tri par avancement.
  * Chaque groupe définit des filtres serveur : la liste ne charge que ce qui
- * est affiché.
+ * est affiché. Le compteur est calculé sur les mêmes statuts (ou la même
+ * règle) que le filtre, sinon l'onglet annoncerait un nombre que la liste
+ * contredit.
  *
  * Couleurs : bleu = dossiers nouveaux / reçus (à traiter en priorité),
  * amber = en cours, emerald = terminés, red = urgents, slate = archivés.
+ *
+ * `actif` porte les classes complètes de l'onglet sélectionné. Elles sont
+ * écrites en clair, jamais construites par concaténation : Tailwind analyse le
+ * source de façon statique et n'engendrerait pas une classe fabriquée à
+ * l'exécution (`bg-${couleur}-600`), laissant l'onglet actif sans fond.
  */
 const GROUPES = [
   {
-    code: 'NOUVEAUX', label: 'Nouveaux', icon: Inbox, color: 'bg-blue-500',
+    code: 'NOUVEAUX', label: 'Nouveaux', icon: Inbox,
+    actif: 'border-blue-600 bg-blue-600 shadow-[0_0_16px_rgba(37,99,235,0.35)]',
     hint: 'Reçus ou enregistrés, pas encore orientés',
-    filters: { recus_depuis_jours: 30, statut: 'RECU,ENREGISTRE' },
-    statuts: ['RECU', 'ENREGISTRE'],
+    filters: { statut: 'RECU,ENREGISTRE' },
+    compte: (c) => (c.RECU || 0) + (c.ENREGISTRE || 0),
   },
   {
-    code: 'EN_COURS', label: 'En cours', icon: Clock, color: 'bg-amber-500',
+    code: 'EN_COURS', label: 'En cours', icon: Clock,
+    actif: 'border-amber-500 bg-amber-500 shadow-[0_0_16px_rgba(245,158,11,0.35)]',
     hint: 'Orientés, affectés ou en traitement',
     filters: { statut: 'EN_COURS' },
-    statuts: ['ORIENTE', 'AFFECTE', 'EN_TRAITEMENT', 'SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE'],
+    compte: (c) =>
+      (c.ORIENTE || 0) + (c.AFFECTE || 0) + (c.EN_TRAITEMENT || 0) +
+      (c.SOUMIS_A_VERIFICATION || 0) + (c.CORRECTION_DEMANDEE || 0),
   },
   {
-    code: 'TERMINES', label: 'Terminés', icon: CheckCircle2, color: 'bg-emerald-500',
+    code: 'TERMINES', label: 'Terminés', icon: CheckCircle2,
+    actif: 'border-emerald-600 bg-emerald-600 shadow-[0_0_16px_rgba(16,185,129,0.35)]',
     hint: 'Validés, signés, clôturés ou archivés',
     filters: { statut: 'TERMINES' },
-    statuts: ['VALIDE', 'SIGNE', 'CLOTURE', 'ARCHIVE'],
+    compte: (c) =>
+      (c.VALIDE || 0) + (c.SIGNE || 0) + (c.CLOTURE || 0) + (c.ARCHIVE || 0),
   },
   {
-    code: 'URGENTS', label: 'Urgents', icon: AlertTriangle, color: 'bg-red-500',
-    hint: 'Priorité haute ou urgente, ou échéance dépassée',
+    code: 'URGENTS', label: 'Urgents', icon: AlertTriangle,
+    actif: 'border-red-600 bg-red-600 shadow-[0_0_16px_rgba(239,68,68,0.35)]',
+    hint: 'Priorité haute ou urgente',
     filters: { priorite_haute: 1 },
-    statuts: null,
+    compte: (c) => c.prioritaires || 0,
   },
   {
-    code: 'ARCHIVES', label: 'Archivés', icon: Archive, color: 'bg-slate-500',
+    code: 'ARCHIVES', label: 'Archivés', icon: Archive,
+    actif: 'border-slate-700 bg-slate-700 shadow-[0_0_16px_rgba(71,85,105,0.35)]',
     hint: 'Dossiers archivés',
     filters: { statut: 'ARCHIVE' },
-    statuts: ['ARCHIVE'],
+    compte: (c) => c.ARCHIVE || 0,
   },
 ];
 
@@ -79,8 +92,8 @@ export function DossierListPage() {
 
   useEffect(() => { Promise.resolve().then(chargerCompteurs); }, [chargerCompteurs]);
 
-  const compte = (statuts) =>
-    (compteurs && statuts && statuts.reduce((n, c) => n + (compteurs[c] || 0), 0)) ?? null;
+  const compte = (g) =>
+    compteurs && typeof g.compte === 'function' ? g.compte(compteurs) : null;
 
   const groupeActif = GROUPES.find((g) => g.code === groupe);
   const baseFilters = {
@@ -114,14 +127,14 @@ export function DossierListPage() {
         {GROUPES.filter((g) => !g.roles || g.roles.includes(roleNom)).map((g) => {
           const Icon = g.icon;
           const actif = groupe === g.code;
-          const n = compte(g.statuts);
+          const n = compte(g);
           return (
             <button
               key={g.code}
               type="button"
               onClick={() => setGroupe(g.code)}
               className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none ${actif
-                ? `border-${g.color.replace('bg-', '')} text-white ${g.color.replace('bg-', 'bg-')}-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]`
+                ? `text-white ${g.actif}`
                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700'}`}
             >
               <Icon className={`h-4 w-4 ${actif ? 'text-white' : ''}`} />

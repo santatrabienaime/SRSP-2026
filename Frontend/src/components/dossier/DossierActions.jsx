@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil, Send, UserCheck, ClipboardCheck, ShieldCheck, PenLine, Lock, Archive, CheckCircle2 } from 'lucide-react';
+import { Pencil, Send, UserCheck, ClipboardCheck, ShieldCheck, PenLine, Lock, Archive, CheckCircle2, Trash2 } from 'lucide-react';
 import { dossierService } from '../../services/dossierService.js';
 import { divisionService } from '../../services/divisionService.js';
 import { agentService } from '../../services/agentService.js';
@@ -18,7 +18,7 @@ import { STATUTS } from '../../config/constants.js';
  * Actions métier disponibles selon le statut du dossier et les permissions
  * de l'utilisateur connecté (workflow v2.0).
  */
-export function DossierActions({ dossier, onDone }) {
+export function DossierActions({ dossier, onDone, onDeleted }) {
   const { hasPermission, hasAnyPermission } = useAuth();
   const { toastSuccess, toastError } = useNotification();
 
@@ -111,6 +111,13 @@ export function DossierActions({ dossier, onDone }) {
   // Archivage
   if (statut === STATUTS.CLOTURE && can('archiver_dossier')) {
     actions.push({ key: 'archiver', label: 'Archiver', icon: Archive, variant: 'secondary' });
+  }
+  /* Suppression définitive (CRUD complet). Elle reste séparée des transitions
+     de workflow : supprimer n'est pas une étape du parcours, c'est un acte
+     d'administration. Le bouton s'appuie sur la même permission que la route
+     DELETE du serveur, sinon il aboutirait à un 403 trompeur. */
+  if (can('archiver_dossier')) {
+    actions.push({ key: 'supprimer', label: 'Supprimer', icon: Trash2, variant: 'danger' });
   }
 
   const agentsOfDivision = agents.filter(
@@ -336,8 +343,44 @@ export function DossierActions({ dossier, onDone }) {
       await run(() => dossierService.cloturer(id), 'Dossier clôturé.');
     } else if (confirmAction === 'archiver') {
       await run(() => dossierService.archiver(id), 'Dossier archivé.');
+    } else if (confirmAction === 'supprimer') {
+      setSubmitting(true);
+      try {
+        await dossierService.delete(id);
+        toastSuccess('Dossier supprimé.');
+        setConfirmAction(null);
+        // On quitte la fiche : recharger un dossier supprimé renverrait 404.
+        (onDeleted || onDone)?.(id);
+      } catch (err) {
+        toastError(err.message);
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
+
+  /* Libellés et gravité de la confirmation selon l'action en attente. */
+  const confirmations = {
+    cloturer: {
+      title: 'Clôturer le dossier',
+      message: `Confirmer la clôture du dossier ${dossier.numero} ? Cette action est définitive.`,
+      confirmLabel: 'Clôturer',
+      danger: false,
+    },
+    archiver: {
+      title: 'Archiver le dossier',
+      message: `Confirmer l'archivage du dossier clôturé ${dossier.numero} ?`,
+      confirmLabel: 'Archiver',
+      danger: true,
+    },
+    supprimer: {
+      title: 'Supprimer le dossier',
+      message: `Supprimer définitivement le dossier ${dossier.numero} ? Cette action est irréversible.`,
+      confirmLabel: 'Supprimer',
+      danger: true,
+    },
+  };
+  const confirmation = confirmAction ? confirmations[confirmAction] : null;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -355,7 +398,7 @@ export function DossierActions({ dossier, onDone }) {
           variant={a.variant || 'secondary'}
           size="sm"
           onClick={() => {
-            if (a.key === 'cloturer' || a.key === 'archiver') {
+            if (a.key === 'cloturer' || a.key === 'archiver' || a.key === 'supprimer') {
               setConfirmAction(a.key);
             } else {
               setAction(a.key);
@@ -400,20 +443,16 @@ export function DossierActions({ dossier, onDone }) {
         {renderActionContent()}
       </Modal>
 
-      {/* Confirmation simple (clôture / archivage) */}
+      {/* Confirmation simple (clôture / archivage / suppression) */}
       <ConfirmDialog
         open={confirmAction !== null}
         onClose={() => !submitting && setConfirmAction(null)}
         onConfirm={confirmSimple}
         loading={submitting}
-        danger={confirmAction === 'archiver'}
-        title={confirmAction === 'cloturer' ? 'Clôturer le dossier' : 'Archiver le dossier'}
-        message={
-          confirmAction === 'cloturer'
-            ? `Confirmer la clôture du dossier ${dossier.numero} ? Cette action est définitive.`
-            : `Confirmer l'archivage du dossier clôturé ${dossier.numero} ?`
-        }
-        confirmLabel={confirmAction === 'cloturer' ? 'Clôturer' : 'Archiver'}
+        danger={confirmation?.danger || false}
+        title={confirmation?.title || 'Confirmer'}
+        message={confirmation?.message || ''}
+        confirmLabel={confirmation?.confirmLabel || 'Confirmer'}
       />
     </div>
   );

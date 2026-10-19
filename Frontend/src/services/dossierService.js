@@ -1,20 +1,4 @@
 import apiClient from './apiClient.js';
-import { envoyerMessageAction } from './messageService.js';
-
-/**
- * Aide pour envoyer un message après une action métier.
- * Le destinataire est extrait des données si présent, sinon on ne spécifie pas
- * (le serveur saura à qui notifier selon le rôle de l'action).
- */
-const notifierApresAction = async (dossierId, action, message, destinataireId, type = 'INFO') => {
-  await envoyerMessageAction({
-    dossier_id: dossierId,
-    action,
-    message,
-    destinataire_id: destinataireId,
-    type,
-  });
-};
 
 export const dossierService = {
   list: (params) => apiClient.get('/dossiers', { params }).then((r) => r.data),
@@ -42,13 +26,7 @@ export const dossierService = {
   addCommentaire: (id, contenu) =>
     apiClient.post(`/dossiers/${id}/commentaires`, { contenu }).then((r) => {
       // Notifier après ajout de commentaire
-      envoyerMessageAction({
-        dossier_id: id,
-        action: 'COMMENTAIRE',
-        message: `Nouveau commentaire ajouté : "${contenu}"`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
   deleteCommentaire: (id, cid) =>
     apiClient.delete(`/dossiers/${id}/commentaires/${cid}`).then((r) => r.data),
@@ -56,13 +34,7 @@ export const dossierService = {
   create: (data) =>
     apiClient.post('/dossiers', data).then(async (r) => {
       // Notifier après création de dossier
-      await envoyerMessageAction({
-        dossier_id: r.data?.id || r.data?.numero || null,
-        action: 'CREATION',
-        message: `Nouveau dossier créé : "${data.objet}"`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
 
   /**
@@ -78,127 +50,62 @@ export const dossierService = {
   orienter: (id, data) =>
     apiClient.post(`/dossiers/${id}/orienter`, data).then(async (r) => {
       // Notifier après orientation
-      await envoyerMessageAction({
-        dossier_id: id,
-        action: 'ORIENTATION',
-        message: `Dossier orienté : "${data.objet || ''}"`,
-        destinataire_id: data.agent_id || data.division_id,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
   affecter: (id, data) =>
     apiClient.post(`/dossiers/${id}/affecter`, data).then(async (r) => {
       // Notifier après affectation
-      await envoyerMessageAction({
-        dossier_id: id,
-        action: 'AFFECTATION',
-        message: `Dossier affecté à un agent`,
-        destinataire_id: data.agent_id,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
   traiter: (id, data) =>
     apiClient.post(`/dossiers/${id}/traiter`, data).then(async (r) => {
       // Notifier après traitement
-      await envoyerMessageAction({
-        dossier_id: id,
-        action: 'TRAITEMENT',
-        message: `Dossier en traitement : "${data.objet || ''}"`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
   verifier: (id, data) =>
     apiClient.post(`/dossiers/${id}/verifier`, data).then(async (r) => {
       // Notifier après vérification
-      await envoyerMessageAction({
-        dossier_id: id,
-        action: 'VERIFICATION',
-        message: `Dossier vérifié : "${data.objet || ''}"`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
   valider: (id, data) =>
     apiClient.post(`/dossiers/${id}/valider`, data).then(async (r) => {
       // Notifier après validation
-      await envoyerMessageAction({
-        dossier_id: id,
-        action: 'VALIDATION',
-        message: `Dossier validé : "${data.objet || ''}"`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
   signer: (id, data) =>
     apiClient.post(`/dossiers/${id}/signer`, data).then(async (r) => {
       // Notifier après signature
-      await envoyerMessageAction({
-        dossier_id: id,
-        action: 'SIGNATURE',
-        message: `Dossier signé : "${data.objet || ''}"`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
   /* Actions en masse : le serveur renvoie { reussis, echecs[] } — un échec
      sur un dossier n'annule pas les autres. */
   masseValider: (ids, data = {}) =>
     apiClient.post('/dossiers/masse/valider', { ids, ...data }).then(async (r) => {
       // Notifier après validation en masse
-      await envoyerMessageAction({
-        dossier_id: ids[0],
-        action: 'VALIDATION',
-        message: `Validation en masse de ${ids.length} dossier(s)`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
   masseSigner: (ids, data = {}) =>
     apiClient.post('/dossiers/masse/signer', { ids, ...data }).then(async (r) => {
       // Notifier après signature en masse
-      await envoyerMessageAction({
-        dossier_id: ids[0],
-        action: 'SIGNATURE',
-        message: `Signature en masse de ${ids.length} dossier(s)`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
   cloturer: (id) =>
     apiClient.post(`/dossiers/${id}/cloturer`).then(async (r) => {
       // Notifier après clôture
-      await envoyerMessageAction({
-        dossier_id: id,
-        action: 'CLOTURE',
-        message: `Dossier clôturé`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
   archiver: (id) =>
     apiClient.post(`/dossiers/${id}/archiver`).then(async (r) => {
       // Notifier après archivage
-      await envoyerMessageAction({
-        dossier_id: id,
-        action: 'ARCHIVAGE',
-        message: `Dossier archivé`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
+  delete: (id) =>
+    apiClient.delete(`/dossiers/${id}`).then((r) => r.data),
+
   transition: (id, toStatus, details) =>
     apiClient.post(`/workflow/${id}/transition`, { toStatus, details }).then(async (r) => {
       // Notifier après transition de statut
-      await envoyerMessageAction({
-        dossier_id: id,
-        action: 'TRANSITION',
-        message: `Statut modifié : ${toStatus}`,
-        type: 'INFO',
-      });
-      return r;
+      return r.data;
     }),
 };
 

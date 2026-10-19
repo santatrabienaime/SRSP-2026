@@ -1,5 +1,4 @@
 import * as workflowService from '../services/workflowService.js';
-import { envoyerMessageAction } from '../services/messageService.js';
 
 export async function getStatus(req, res, next) {
   try {
@@ -21,15 +20,6 @@ export async function transition(req, res, next) {
       req.user.id,
       details
     );
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'TRANSITION',
-        message: `Dossier #${req.params.id} passé en statut ${toStatus}.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json(result);
   } catch (e) { next(e); }
 }

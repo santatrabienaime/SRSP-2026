@@ -7,10 +7,8 @@ import {
 import { dashboardService } from '../../services/dashboardService.js';
 import { dossierService } from '../../services/dossierService.js';
 import { useAuth } from '../../hooks/useAuth.js';
-import { StatCard } from '../../components/ui/StatCard.jsx';
 import { Card } from '../../components/ui/Card.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
-import { Spinner } from '../../components/ui/Spinner.jsx';
 import { DossierChart } from '../../components/dashboard/DossierChart.jsx';
 import { DivisionChart } from '../../components/dashboard/DivisionChart.jsx';
 import { EvolutionChart } from '../../components/dashboard/EvolutionChart.jsx';
@@ -18,16 +16,7 @@ import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 import { formatDateString } from '../../utils/formatDate.js';
 import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
 import { configRole } from './dashboardRoles.js';
-
-/**
- * Récupère une valeur numérique depuis une réponse serveur.
- * Gère le cas où la valeur est un objet { count: X } ou directement un nombre.
- */
-function extractValue(val) {
-  if (val === null || val === undefined) return 0;
-  if (typeof val === 'object' && val.count !== undefined) return val.count;
-  return typeof val === 'number' ? val : parseInt(val, 10) || 0;
-}
+import { extractValue } from '../../utils/extractValue.js';
 
 /**
  * Tableau de bord — deux régimes, un seul écran.
@@ -214,7 +203,7 @@ export function DashboardPage() {
       </div>
 
       {/* Section dédiée aux nouveaux dossiers reçus (couleur bleue) */}
-      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <AnimatedCard
           title="Nouveaux dossiers"
           subtitle="À traiter en priorité"
@@ -236,30 +225,6 @@ export function DashboardPage() {
             </div>
           </div>
         </AnimatedCard>
-
-        {files?.RECU !== undefined && (
-          <AnimatedCard
-            title="Dossiers reçus"
-            subtitle="30 derniers jours"
-            Icon={MailPlus}
-            delay={80}
-          >
-            <div className="flex items-center gap-3 p-4 bg-blue-100 rounded-lg border border-blue-200 dark:bg-blue-900/30 dark:border-blue-500/30">
-              <Inbox className="h-8 w-8 text-blue-600 shrink-0 dark:text-blue-400" />
-              <div>
-                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider dark:text-blue-400">
-                  Réception récente
-                </p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
-                  {files.RECU}
-                </p>
-                <p className="text-xs text-blue-500 dark:text-blue-400">
-                  30 derniers jours
-                </p>
-              </div>
-            </div>
-          </AnimatedCard>
-        )}
       </div>
 
       {(charts.includes('statut') || charts.includes('division')) && (
@@ -278,7 +243,7 @@ export function DashboardPage() {
             <AnimatedCard
               title="Par division"
               subtitle="Répartition géographique"
-              Icon={ClockIcon}
+              Icon={Clock}
               delay={100}
             >
               <DivisionChart data={byDivision} />
@@ -291,7 +256,7 @@ export function DashboardPage() {
         <AnimatedCard
           title="Évolution (12 mois)"
           subtitle="Tendance des dossiers"
-          Icon={ClockIcon}
+          Icon={Clock}
           delay={0}
         >
           <EvolutionChart data={evolution} />

@@ -11,7 +11,6 @@ import roleRoutes from './routes/roleRoutes.js';
 import permissionRoutes from './routes/permissionRoutes.js';
 import dossierRoutes from './routes/dossierRoutes.js';
 import workflowRoutes from './routes/workflowRoutes.js';
-import documentRoutes from './routes/documentRoutes.js';
 import courrierRoutes from './routes/courrierRoutes.js';
 import divisionRoutes from './routes/divisionRoutes.js';
 import agentRoutes from './routes/agentRoutes.js';
@@ -32,7 +31,6 @@ import depouillementRoutes from './routes/depouillementRoutes.js';
 import mandatementRoutes from './routes/mandatementRoutes.js';
 import correspondanceRoutes from './routes/correspondanceRoutes.js';
 import archiveRoutes from './routes/archiveRoutes.js';
-import messageRoutes from './routes/messageRoutes.js';
 
 const app = express();
 
@@ -55,7 +53,6 @@ app.use('/api/geographie', geographieRoutes);
 app.use('/api/referentiel', referentielRoutes);
 app.use('/api/dossiers', dossierRoutes);
 app.use('/api/workflow', workflowRoutes);
-app.use('/api/documents', documentRoutes);
 app.use('/api/courriers', courrierRoutes);
 app.use('/api/divisions', divisionRoutes);
 app.use('/api/agents', agentRoutes);
@@ -73,7 +70,6 @@ app.use('/api/dossiers', depouillementRoutes);
 app.use('/api/dossiers', mandatementRoutes);
 app.use('/api/dossiers', secoursRoutes);
 app.use('/api/correspondances', correspondanceRoutes);
-app.use('/api/messages', messageRoutes);
 app.use('/api/archives', archiveRoutes);
 
 app.use(errorMiddleware);

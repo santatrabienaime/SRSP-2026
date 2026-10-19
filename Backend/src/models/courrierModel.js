@@ -62,3 +62,7 @@ export async function createCourrier(data) {
 export async function updateStatut(id, statut) {
   await db.query('UPDATE courriers SET statut = ? WHERE id = ?', [statut, id]);
 }
+
+export async function deleteCourrier(id) {
+  await db.query('DELETE FROM courriers WHERE id = ?', [id]);
+}

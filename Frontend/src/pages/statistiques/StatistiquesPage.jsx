@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Target, Files } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Files, Clock, AlertCircle } from 'lucide-react';
 import { statistiqueService } from '../../services/statistiqueService.js';
 import { dashboardService } from '../../services/dashboardService.js';
 import { StatCard } from '../../components/ui/StatCard.jsx';
@@ -8,17 +8,8 @@ import { PieChart } from '../../components/charts/PieChart.jsx';
 import { BarChart } from '../../components/charts/BarChart.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { STATUT_LABELS } from '../../config/constants.js';
+import { extractValue } from '../../utils/extractValue.js';
 import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
-
-/**
- * Récupère une valeur numérique depuis une réponse serveur.
- * Gère le cas où la valeur est un objet { count: X } ou directement un nombre.
- */
-function extractValue(val) {
-  if (val === null || val === undefined) return 0;
-  if (typeof val === 'object' && val.count !== undefined) return val.count;
-  return typeof val === 'number' ? val : parseInt(val, 10) || 0;
-}
 
 export function StatistiquesPage() {
   const [stats, setStats] = useState(null);
@@ -48,14 +39,17 @@ export function StatistiquesPage() {
       });
   }, []);
 
+  /* `stats` vaut null tant que la requête n'a pas répondu. On lit donc le
+     repli vide `statsData`, jamais `stats` : `stats.total` sur null faisait
+     planter la page au premier rendu. */
   const statsData = stats || {};
-  const total = extractValue(stats.total);
-  const valides = extractValue(stats.valides);
-  const enCours = extractValue(stats.enCours);
-  const enAttente = extractValue(stats.enAttente);
-  const rejetes = extractValue(stats.rejetes);
-  const tauxValidation = extractValue(stats.tauxValidation);
-  const tauxRejet = extractValue(stats.tauxRejet);
+  const total = extractValue(statsData.total);
+  const valides = extractValue(statsData.valides);
+  const enCours = extractValue(statsData.enCours);
+  const enAttente = extractValue(statsData.enAttente);
+  const rejetes = extractValue(statsData.rejetes);
+  const tauxValidation = extractValue(statsData.tauxValidation);
+  const tauxRejet = extractValue(statsData.tauxRejet);
 
   const statusRows = byStatus.map((d) => ({
     name: STATUT_LABELS[d.code] || d.statut || d.code,
@@ -86,6 +80,12 @@ export function StatistiquesPage() {
           <StatCard icon={Target} label="Validés" value={valides} tone="emerald" loading={loading} />
           <StatCard icon={TrendingUp} label="Taux de validation" value={tauxValidation ? `${tauxValidation} %` : null} tone="sky" loading={loading} />
           <StatCard icon={TrendingDown} label="Taux de correction" value={tauxRejet ? `${tauxRejet} %` : null} tone="amber" loading={loading} />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard icon={Clock} label="En cours de traitement" value={enCours} tone="sky" loading={loading} />
+          <StatCard icon={Clock} label="En attente de prise en charge" value={enAttente} tone="primary" loading={loading} />
+          <StatCard icon={AlertCircle} label="Corrections demandées" value={rejetes} tone="amber" loading={loading} />
         </div>
 
         <div className="grid gap-5 lg:grid-cols-2">

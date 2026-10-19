@@ -12,5 +12,8 @@ router.post('/', rbacMiddleware('system_config'), ctrl.create);
 /* Restauration : destructive (remplace la base par le contenu du dump) —
    le service crée automatiquement une sauvegarde de sécurité avant. */
 router.post('/:fichier/restore', rbacMiddleware('system_config'), ctrl.restore);
+router.get('/telecharger/:fichier', rbacMiddleware('system_config'), ctrl.telecharger);
+router.delete('/:fichier', rbacMiddleware('system_config'), ctrl.supprimer);
+router.post('/verifier/:fichier', rbacMiddleware('system_config'), ctrl.verifier);
 
 export default router;

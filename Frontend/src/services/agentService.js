@@ -6,6 +6,7 @@ export const agentService = {
   get: (id) => apiClient.get(`/agents/${id}`).then((r) => r.data),
   create: (data) => apiClient.post('/agents', data).then((r) => r.data),
   update: (id, data) => apiClient.put(`/agents/${id}`, data).then((r) => r.data),
+  delete: (id) => apiClient.delete(`/agents/${id}`).then((r) => r.data),
 };
 
 export default agentService;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, FolderKanban, Info, FileText, History, MessageSquare } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, FolderKanban, Info, History, MessageSquare, FileText } from 'lucide-react';
 import { useDossier } from '../../hooks/useDossier.js';
 import { Badge } from '../ui/Badge.jsx';
 import { Card } from '../ui/Card.jsx';
@@ -15,8 +15,6 @@ import { Mandatement } from './Mandatement.jsx';
 import { HistoriqueDossier } from './HistoriqueDossier.jsx';
 import { CommentairesDossier } from './CommentairesDossier.jsx';
 import { dossierService } from '../../services/dossierService.js';
-import { DocumentList } from '../document/DocumentList.jsx';
-import { DocumentUpload } from '../document/DocumentUpload.jsx';
 import { formatDateString, formatDateTime } from '../../utils/formatDate.js';
 import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
 import { historiqueService } from '../../services/historiqueService.js';
@@ -48,7 +46,8 @@ function InfoRow({ label, value }) {
 export function DossierDetail({ id }) {
   const { dossier, loading, error, refresh } = useDossier(id);
   const location = useLocation();
-  const [refreshKey, setRefreshKey] = useState(0);
+  const navigate = useNavigate();
+  const [refreshKey] = useState(0);
   const [onglet, setOnglet] = useState('infos');
 
   const historique = useApi(
@@ -93,7 +92,6 @@ export function DossierDetail({ id }) {
      et mandatement). Un onglet vide serait un clic qui ne mène nulle part. */
   const onglets = [
     { cle: 'infos', label: 'Informations', icon: Info },
-    { cle: 'documents', label: 'Documents', icon: FileText },
     { cle: 'historique', label: 'Historique', icon: History },
     { cle: 'commentaires', label: 'Commentaires', icon: MessageSquare },
     ...(dossier.type_code === 'SECOURS'
@@ -116,7 +114,10 @@ export function DossierDetail({ id }) {
             </span>
             <div>
               <h1 className="text-lg font-bold text-slate-800">{dossier.numero}</h1>
-              <p className="text-xs text-slate-500">{dossier.type_libelle}</p>
+              <p className="text-xs text-slate-500">
+                {dossier.type_libelle}
+                {dossier.matricule ? ` · Matricule : ${dossier.matricule}` : ''}
+              </p>
             </div>
           </div>
         </div>
@@ -130,7 +131,7 @@ export function DossierDetail({ id }) {
 
       {/* Actions workflow */}
       <Card className="bg-slate-50/60">
-        <DossierActions dossier={dossier} onDone={refresh} />
+        <DossierActions dossier={dossier} onDone={refresh} onDeleted={() => navigate('/dossiers')} />
       </Card>
 
       {/* Barre d'onglets. Rendue seulement s'il y a quelque chose à montrer :
@@ -173,7 +174,7 @@ export function DossierDetail({ id }) {
             <dl className="grid gap-x-8 sm:grid-cols-2">
               <InfoRow label="Objet" value={dossier.objet} />
               <InfoRow label="Demandeur" value={dossier.demandeur} />
-              <InfoRow label="Matricule" value={dossier.matricule} />
+              <InfoRow label="N° matricule (CIN)" value={dossier.matricule} />
               <InfoRow label="Division" value={dossier.division_nom} />
               <InfoRow label="Date de réception" value={formatDateString(dossier.date_reception)} />
               <InfoRow label="Agent responsable" value={dossier.agent_nom ? `${dossier.agent_nom} ${dossier.agent_prenom || ''}` : null} />
@@ -194,25 +195,6 @@ export function DossierDetail({ id }) {
               Règle forte : un dossier en « correction demandée » doit repasser par le
               traitement avant toute validation.
             </p>
-          </Card>
-        </div>
-      )}
-
-      {/* Onglet Documents */}
-      {onglet === 'documents' && (
-        <div id="documents" className="scroll-mt-20">
-          <Card
-            title="Documents"
-            subtitle="Pièces jointes et justificatifs du dossier"
-            actions={
-              <DocumentUpload
-                dossierId={dossier.id}
-                dossierNumero={dossier.numero}
-                onUploaded={() => setRefreshKey((k) => k + 1)}
-              />
-            }
-          >
-            <DocumentList key={refreshKey} dossierId={dossier.id} />
           </Card>
         </div>
       )}

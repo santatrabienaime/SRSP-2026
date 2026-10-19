@@ -1,5 +1,4 @@
 import * as dossierService from '../services/dossierService.js';
-import { envoyerMessageAction } from '../services/messageService.js';
 
 export async function list(req, res, next) {
   try {
@@ -34,15 +33,6 @@ export async function rechercherParCIN(req, res, next) {
 export async function create(req, res, next) {
   try {
     const dossier = await dossierService.createDossier(req.body, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: dossier.id,
-        action: 'CREATE',
-        message: `Dossier ${dossier.numero || dossier.id} créé.`,
-        destinataire_id: req.body.destinataire_id || dossier.agent_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.status(201).json(dossier);
   } catch (error) { next(error); }
 }
@@ -57,15 +47,6 @@ export async function update(req, res, next) {
 export async function orienter(req, res, next) {
   try {
     await dossierService.orienter(req.params.id, req.body, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'ORIENTE',
-        message: `Dossier #${req.params.id} orienté.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json({ message: 'Dossier orienté.' });
   } catch (error) { next(error); }
 }
@@ -73,15 +54,6 @@ export async function orienter(req, res, next) {
 export async function affecter(req, res, next) {
   try {
     await dossierService.affecter(req.params.id, req.body, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'AFFECTE',
-        message: `Dossier #${req.params.id} affecté.`,
-        destinataire_id: req.body.destinataire_id || req.body.agent_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json({ message: 'Dossier affecté.' });
   } catch (error) { next(error); }
 }
@@ -89,15 +61,6 @@ export async function affecter(req, res, next) {
 export async function traiter(req, res, next) {
   try {
     await dossierService.traiter(req.params.id, req.body, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'EN_TRAITEMENT',
-        message: `Dossier #${req.params.id} en traitement.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json({ message: 'Dossier en traitement.' });
   } catch (error) { next(error); }
 }
@@ -105,15 +68,6 @@ export async function traiter(req, res, next) {
 export async function verifier(req, res, next) {
   try {
     await dossierService.verifier(req.params.id, req.body, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'VERIFIER',
-        message: `Dossier #${req.params.id} vérifié.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json({ message: 'Vérification enregistrée.' });
   } catch (error) { next(error); }
 }
@@ -139,15 +93,6 @@ export async function validerMasse(req, res, next) {
     for (const id of ids) {
       try {
         await dossierService.valider(String(id), { decision: 'VALIDE', commentaire }, req.user.id);
-        try {
-          await envoyerMessageAction({
-            dossier_id: Number(id),
-            action: 'VALIDE',
-            message: `Dossier #${id} validé.`,
-            destinataire_id: req.body.destinataire_id || req.user.id,
-            type: 'INFO',
-          });
-        } catch (e) { /* message non bloquant */ }
         reussis.push(id);
       } catch (e) {
         echecs.push({ id, message: e.message });
@@ -171,15 +116,6 @@ export async function signerMasse(req, res, next) {
     for (const id of ids) {
       try {
         await dossierService.signer(String(id), { reference, observation }, req.user.id);
-        try {
-          await envoyerMessageAction({
-            dossier_id: Number(id),
-            action: 'SIGNE',
-            message: `Dossier #${id} signé.`,
-            destinataire_id: req.body.destinataire_id || req.user.id,
-            type: 'INFO',
-          });
-        } catch (e) { /* message non bloquant */ }
         reussis.push(id);
       } catch (e) {
         echecs.push({ id, message: e.message });
@@ -192,15 +128,6 @@ export async function signerMasse(req, res, next) {
 export async function valider(req, res, next) {
   try {
     await dossierService.valider(req.params.id, req.body, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'VALIDE',
-        message: `Dossier #${req.params.id} validé.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json({ message: 'Décision enregistrée.' });
   } catch (error) { next(error); }
 }
@@ -208,15 +135,6 @@ export async function valider(req, res, next) {
 export async function signer(req, res, next) {
   try {
     await dossierService.signer(req.params.id, req.body, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'SIGNE',
-        message: `Dossier #${req.params.id} signé.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json({ message: 'Dossier signé.' });
   } catch (error) { next(error); }
 }
@@ -224,15 +142,6 @@ export async function signer(req, res, next) {
 export async function cloturer(req, res, next) {
   try {
     await dossierService.cloturer(req.params.id, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'CLOTURE',
-        message: `Dossier #${req.params.id} clôturé.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json({ message: 'Dossier clôturé.' });
   } catch (error) { next(error); }
 }
@@ -240,16 +149,14 @@ export async function cloturer(req, res, next) {
 export async function archiver(req, res, next) {
   try {
     await dossierService.archiver(req.params.id, req.user.id);
-    try {
-      await envoyerMessageAction({
-        dossier_id: Number(req.params.id),
-        action: 'ARCHIVE',
-        message: `Dossier #${req.params.id} archivé.`,
-        destinataire_id: req.body.destinataire_id || req.user.id,
-        type: 'INFO',
-      });
-    } catch (e) { /* message non bloquant */ }
     res.json({ message: 'Dossier archivé.' });
+  } catch (error) { next(error); }
+}
+
+export async function remove(req, res, next) {
+  try {
+    await dossierService.deleteDossier(req.params.id, req.user.id);
+    res.status(204).send();
   } catch (error) { next(error); }
 }
 

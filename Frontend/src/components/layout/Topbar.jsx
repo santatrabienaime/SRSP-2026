@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User, Sun, Moon } from 'lucide-react';
+import { LogOut, User, Sun, Moon, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
@@ -20,7 +20,11 @@ export function Topbar() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
+  };
+
+  const handleRefresh = () => {
+    window.location.reload();
   };
 
   return (
@@ -46,6 +50,16 @@ export function Topbar() {
             title={estSombre ? 'Mode clair' : 'Mode sombre'}
           >
             {estSombre ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleRefresh}
+            className="rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+            aria-label="Actualiser la page"
+            title="Actualiser"
+          >
+            <RefreshCw className="h-5 w-5" />
           </button>
 
           <NotificationBell />

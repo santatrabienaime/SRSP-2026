@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { landingPathFor } from '../utils/landing.js';
+import { Spinner } from '../components/ui/Spinner.jsx';
 
 /**
  * Garde par rôle / permission (RBAC).

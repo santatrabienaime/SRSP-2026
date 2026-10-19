@@ -40,5 +40,6 @@ router.post('/:id/valider', rbacMiddleware(['verifier_dossier', 'valider_dossier
 router.post('/:id/signer', rbacMiddleware('signer_dossier'), ctrl.signer);
 router.post('/:id/cloturer', rbacMiddleware('cloturer_dossier'), ctrl.cloturer);
 router.post('/:id/archiver', rbacMiddleware('archiver_dossier'), ctrl.archiver);
+router.delete('/:id', rbacMiddleware('archiver_dossier'), ctrl.remove);
 
 export default router;

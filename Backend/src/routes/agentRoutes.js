@@ -14,5 +14,6 @@ router.get('/', ctrl.list);
 router.get('/:id', ctrl.getOne);
 router.post('/', rbacMiddleware('manage_personnel'), ctrl.create);
 router.put('/:id', rbacMiddleware('manage_personnel'), ctrl.update);
+router.delete('/:id', rbacMiddleware('manage_personnel'), ctrl.remove);
 
 export default router;

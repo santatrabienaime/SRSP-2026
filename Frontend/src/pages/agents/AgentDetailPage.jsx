@@ -27,12 +27,16 @@ export function AgentDetailPage() {
 
   return (
     <AnimatedCard title="Fiche agent" delay={0}>
-      <Card title="Liens">
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          Dossiers affectés à cet agent : voir la liste des dossiers en filtrant par agent
-          depuis le module « Dossiers ».
-        </p>
-      </Card>
+      <div className="space-y-4">
+        <AgentCard agent={agent} />
+
+        <Card title="Liens">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Dossiers affectés à cet agent : voir la liste des dossiers en filtrant par agent
+            depuis le module « Dossiers ».
+          </p>
+        </Card>
+      </div>
     </AnimatedCard>
   );
 }

@@ -5,6 +5,8 @@ export const courrierService = {
   get: (id) => apiClient.get(`/courriers/${id}`).then((r) => r.data),
   create: (data) => apiClient.post('/courriers', data).then((r) => r.data),
   updateStatut: (id, statut) => apiClient.put(`/courriers/${id}/statut`, { statut }).then((r) => r.data),
+
+  delete: (id) => apiClient.delete(`/courriers/${id}`).then((r) => r.data),
 };
 
 export default courrierService;

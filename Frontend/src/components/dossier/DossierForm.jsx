@@ -296,7 +296,7 @@ export function DossierForm({ initial = null, onSaved }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <NameInput label="Nom" required value={form.demandeur_nom} onChange={setVal('demandeur_nom')} placeholder="RAKOTO" />
           <FirstNameInput label="Prénom" value={form.demandeur_prenom} onChange={setVal('demandeur_prenom')} placeholder="Jean" />
-          <CINInput label="Matricule / CIN" value={form.matricule} onChange={setVal('matricule')} />
+          <CINInput label="N° matricule (CIN)" value={form.matricule} onChange={setVal('matricule')} />
           <PhoneInput label="Téléphone" value={form.demandeur_tel} onChange={setVal('demandeur_tel')} />
           <EmailInput label="Email" value={form.demandeur_email} onChange={setVal('demandeur_email')} placeholder="rakoto.jean@email.mg" />
           <AddressInput value={form.demandeur_adresse} onChange={setVal('demandeur_adresse')} />
@@ -348,7 +348,7 @@ export function DossierForm({ initial = null, onSaved }) {
             {avertissementsEtape.map((m) => <li key={m}>{m}</li>)}
           </ul>
           <p className="mt-1 text-[11px] text-slate-500">
-            Vous pouvez continuer : ces points n\'empêchent pas l\'enregistrement.
+            Vous pouvez continuer : ces points n'empêchent pas l'enregistrement.
           </p>
         </Alert>
       )}
@@ -456,7 +456,7 @@ export function DossierForm({ initial = null, onSaved }) {
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <CINInput
-              label="CIN du demandeur"
+              label="N° matricule (CIN) du demandeur"
               value={form.matricule}
               onChange={(v) => {
                 setVal('matricule')(v);

@@ -22,3 +22,12 @@ export async function createCourrier(data, userId) {
 export async function updateStatut(id, statut) {
   return courrierModel.updateStatut(id, statut);
 }
+
+export async function deleteCourrier(id, userId) {
+  await historiqueModel.log({
+    user_id: userId,
+    action: 'SUPPRESSION_COURRIER',
+    details: `Suppression du courrier #${id}`,
+  });
+  await courrierModel.deleteCourrier(id);
+}

@@ -17,6 +17,20 @@ export async function getStatistiques({ date_debut, date_fin } = {}) {
      ${where} AND s.code = 'CORRECTION_DEMANDEE'`,
     params
   );
+  /* Dossiers en cours de traitement et dossiers encore en attente de prise en
+     charge. Ces deux familles reprennent les mêmes regroupements que le triage
+     de la liste des dossiers, afin que les chiffres des deux écrans concordent. */
+  const [enCours] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d JOIN statuts_dossiers s ON d.statut_id = s.id
+     ${where} AND s.code IN ('ORIENTE', 'AFFECTE', 'EN_TRAITEMENT', 'SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE')`,
+    params
+  );
+  const [enAttente] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d JOIN statuts_dossiers s ON d.statut_id = s.id
+     ${where} AND s.code IN ('RECU', 'ENREGISTRE')`,
+    params
+  );
+
   const tauxValidation = total.total > 0 ? (valides.total / total.total) * 100 : 0;
   const tauxRejet = total.total > 0 ? (rejetes.total / total.total) * 100 : 0;
 
@@ -24,6 +38,8 @@ export async function getStatistiques({ date_debut, date_fin } = {}) {
     total: total.total,
     valides: valides.total,
     rejetes: rejetes.total,
+    enCours: enCours.total,
+    enAttente: enAttente.total,
     tauxValidation: Math.round(tauxValidation * 100) / 100,
     tauxRejet: Math.round(tauxRejet * 100) / 100,
   };

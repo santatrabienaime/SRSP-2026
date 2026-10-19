@@ -13,5 +13,6 @@ router.get('/', ctrl.list);
 router.get('/:id', ctrl.getOne);
 router.post('/', validateMiddleware(createCourrierSchema), ctrl.create);
 router.put('/:id/statut', ctrl.updateStatut);
+router.delete('/:id', ctrl.remove);
 
 export default router;

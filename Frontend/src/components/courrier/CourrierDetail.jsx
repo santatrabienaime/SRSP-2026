@@ -3,14 +3,13 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail } from 'lucide-react';
 import { courrierService } from '../../services/courrierService.js';
 import { useNotification } from '../../hooks/useNotification.js';
+import { COURRIER_STATUTS } from '../../config/constants.js';
 import { Badge } from '../ui/Badge.jsx';
 import { Card } from '../ui/Card.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Select } from '../ui/Select.jsx';
 import { Spinner } from '../ui/Spinner.jsx';
 import { Alert } from '../ui/Alert.jsx';
-import { DocumentList } from '../document/DocumentList.jsx';
-import { DocumentUpload } from '../document/DocumentUpload.jsx';
 import { formatDateTime } from '../../utils/formatDate.js';
 
 const SENS_BADGE = {
@@ -18,14 +17,13 @@ const SENS_BADGE = {
   SORTANT: 'border-violet-200 bg-violet-50 text-violet-700',
 };
 
-const COURRIER_STATUTS = ['RECU', 'TRANSMIS', 'TRAITE', 'CLASSE'];
+const SENS_LABELS = { ENTRANT: 'Entrant', SORTANT: 'Sortant' };
 
 export function CourrierDetail({ id }) {
   const { toastSuccess, toastError } = useNotification();
   const [courrier, setCourrier] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -71,16 +69,18 @@ export function CourrierDetail({ id }) {
             <h1 className="text-lg font-bold text-slate-800">{courrier.numero}</h1>
             <div className="mt-0.5 flex items-center gap-2">
               <Badge className={SENS_BADGE[courrier.sens] || 'border-slate-200'}>
-                {courrier.sens === 'ENTRANT' ? 'Entrant' : 'Sortant'}
+                {SENS_LABELS[courrier.sens] || courrier.sens || '—'}
               </Badge>
-              <Badge className="border-blue-200 bg-blue-50 text-blue-700">{courrier.statut}</Badge>
+              <Badge className="border-blue-200 bg-blue-50 text-blue-700">
+                {COURRIER_STATUTS[courrier.statut] || courrier.statut || '—'}
+              </Badge>
             </div>
           </div>
         </div>
         <div className="w-44">
           <Select label="Changer le statut" value={courrier.statut} onChange={handleStatut}>
-            {COURRIER_STATUTS.map((s) => (
-              <option key={s} value={s}>{s}</option>
+            {Object.entries(COURRIER_STATUTS).map(([code, libelle]) => (
+              <option key={code} value={code}>{libelle}</option>
             ))}
           </Select>
         </div>
@@ -125,12 +125,6 @@ export function CourrierDetail({ id }) {
         </dl>
       </Card>
 
-      <Card
-        title="Documents joint"
-        actions={<DocumentUpload courrierId={courrier.id} onUploaded={() => setRefreshKey((k) => k + 1)} />}
-      >
-        <DocumentList key={`docs-${refreshKey}`} courrierId={courrier.id} />
-      </Card>
     </div>
   );
 }

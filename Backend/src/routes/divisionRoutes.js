@@ -12,5 +12,6 @@ router.get('/', ctrl.list);
 router.get('/:id', ctrl.getOne);
 router.post('/', rbacMiddleware('manage_divisions'), ctrl.create);
 router.put('/:id', rbacMiddleware('manage_divisions'), ctrl.update);
+router.delete('/:id', rbacMiddleware('manage_divisions'), ctrl.remove);
 
 export default router;

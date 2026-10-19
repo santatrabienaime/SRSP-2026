@@ -31,7 +31,8 @@ export async function findDossiers(filters = {}) {
     SELECT d.id, d.numero, d.objet, d.demandeur, d.matricule, d.date_reception,
            d.demandeur_nom, d.demandeur_prenom, d.demandeur_tel,
            d.demandeur_email, d.demandeur_adresse,
-           d.observation, d.date_cloture, d.date_archivage, d.created_at,
+           d.observation, d.date_limite, d.date_cloture, d.date_archivage, d.created_at,
+           d.agent_responsable_id, d.priorite_id,
            t.libelle AS type_libelle, s.libelle AS statut_libelle, s.code AS statut_code,
            dv.nom AS division_nom, p.libelle AS priorite_libelle,
            a.nom AS agent_nom, a.prenom AS agent_prenom
@@ -342,4 +343,8 @@ export async function cloturer(id) {
 
 export async function archiver(id) {
   await db.query('UPDATE dossiers SET date_archivage = NOW() WHERE id = ?', [id]);
+}
+
+export async function deleteDossier(id) {
+  await db.query('DELETE FROM dossiers WHERE id = ?', [id]);
 }

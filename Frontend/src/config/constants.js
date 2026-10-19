@@ -47,6 +47,15 @@ export const STATUT_BADGE_CLASSES = {
   ARCHIVE: 'bg-gray-200 text-gray-700 border-gray-400',
 };
 
+/* Statuts d'un courrier (module « Courriers », CDC §14.1).
+   Le libellé est présenté à l'utilisateur ; le code part au serveur. */
+export const COURRIER_STATUTS = {
+  RECU: 'Reçu',
+  TRANSMIS: 'Transmis',
+  TRAITE: 'Traité',
+  CLASSE: 'Classé',
+};
+
 export const TYPES_DOSSIERS = {
   VISA: { code: 'VISA', label: 'Visa' },
   SOLDE: { code: 'SOLDE', label: 'Solde' },

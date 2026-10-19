@@ -1,7 +1,8 @@
 import {
-  FolderKanban, FileText, Stamp, ShieldCheck, FileBarChart2, BarChart3,
-  FilePlus2, MailPlus, Compass, Upload, Clock, AlertTriangle, Inbox,
+  FolderKanban, Stamp, ShieldCheck, FileBarChart2, BarChart3,
+  FilePlus2, MailPlus, Compass, Clock, AlertTriangle, Inbox,
 } from 'lucide-react';
+import { extractValue } from '../../utils/extractValue.js';
 
 /**
  * Tableaux de bord par rôle — spec UI-DASHBOARDS V2.0, lot pilote.
@@ -20,16 +21,6 @@ import {
  * `charts` pilote le rendu : 'statut' et 'division' partagent une grille à
  * deux colonnes, 'evolution' occupe toute la largeur.
  */
-
-/**
- * Récupère une valeur numérique depuis une réponse serveur.
- * Gère le cas où la valeur est un objet { count: X } ou directement un nombre.
- */
-function extractValue(val) {
-  if (val === null || val === undefined) return 0;
-  if (typeof val === 'object' && val.count !== undefined) return val.count;
-  return typeof val === 'number' ? val : parseInt(val, 10) || 0;
-}
 
 const CONFIG = {
   /* Spec §2 : total, validations, signatures, retards + répartition par
@@ -77,18 +68,15 @@ const CONFIG = {
      documents comptables, pièces de déplacement, secrétariat. */
   CHEF_BAAF: {
     titre: 'Tableau de bord — Chef BAAF',
-    sousTitre: 'Documents comptables et secrétariat.',
+    sousTitre: 'Secrétariat et courriers.',
     kpis: ({ ress }) => [
-      { icon: FileText, label: 'Documents', value: extractValue(ress?.documents?.total), tone: 'primary', sub: 'Documents comptables' },
-      { icon: Stamp, label: 'Ordres à signer', value: extractValue(ress?.courriers?.a_signer ?? 0), tone: 'amber', sub: 'En attente du Chef de Service' },
       { icon: MailPlus, label: 'Courriers', value: extractValue(ress?.courriers?.total), tone: 'violet', sub: 'Courriers du service' },
     ],
     actions: [
-      { to: '/documents/upload', label: 'Déposer un document', icon: Upload, perms: ['upload_document'] },
       { to: '/courriers/nouveau', label: 'Nouveau courrier', icon: MailPlus, perms: ['manage_courriers'] },
       { to: '/rapports', label: 'Rapports', icon: FileBarChart2, perms: ['consolidate_reports'] },
     ],
-    charts: ['statut'],
+    charts: [],
   },
 
   /* Spec §5, sans immatriculation/Augure/paiement (supprimés ou non construits) :
@@ -106,7 +94,6 @@ const CONFIG = {
     actions: [
       { to: '/statistiques', label: 'Statistiques', icon: BarChart3, perms: ['view_stats'] },
       { to: '/rapports', label: 'Rapports', icon: FileBarChart2, perms: ['view_stats', 'consolidate_reports', 'export_data'] },
-      { to: '/documents/upload', label: 'Déposer un document', icon: Upload, perms: ['upload_document'] },
       { to: '/dossiers', label: 'Dossiers', icon: FolderKanban },
     ],
     charts: ['division'],

@@ -1,5 +1,6 @@
 import express from 'express';
 import * as ctrl from '../controllers/referentielController.js';
+import * as crudCtrl from '../controllers/referentielCrudController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { rbacMiddleware } from '../middlewares/rbacMiddleware.js';
 
@@ -19,5 +20,22 @@ router.get('/service', ctrl.service);
 router.get('/fonctions', ctrl.lister);
 router.get('/bilan', rbacMiddleware(['view_audit', 'consolidate_reports']), ctrl.bilan);
 router.get('/postes', ctrl.postes);
+
+// CRUD types de dossiers
+router.get('/types-dossiers', crudCtrl.listTypesDossiers);
+router.post('/types-dossiers', rbacMiddleware('manage_divisions'), crudCtrl.createTypeDossier);
+router.delete('/types-dossiers/:id', rbacMiddleware('manage_divisions'), crudCtrl.deleteTypeDossier);
+
+// CRUD types de pieces
+router.get('/types-pieces', crudCtrl.listTypesPieces);
+router.post('/types-pieces', rbacMiddleware('manage_divisions'), crudCtrl.createTypePiece);
+router.delete('/types-pieces/:id', rbacMiddleware('manage_divisions'), crudCtrl.deleteTypePiece);
+
+/* CRUD types de courriers. La lecture est ouverte au même titre que les autres
+   données de référence : le formulaire de courrier en a besoin. L'écriture
+   demande `manage_courriers`, la permission du module concerné. */
+router.get('/types-courriers', crudCtrl.listTypesCourriers);
+router.post('/types-courriers', rbacMiddleware('manage_courriers'), crudCtrl.createTypeCourrier);
+router.delete('/types-courriers/:id', rbacMiddleware('manage_courriers'), crudCtrl.deleteTypeCourrier);
 
 export default router;

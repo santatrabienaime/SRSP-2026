@@ -40,3 +40,7 @@ export async function update(id, data) {
     [nom, prenom, matricule, fonction_id, division_id, email, telephone, actif, id]
   );
 }
+
+export async function remove(id) {
+  await db.query('DELETE FROM agents WHERE id = ?', [id]);
+}
