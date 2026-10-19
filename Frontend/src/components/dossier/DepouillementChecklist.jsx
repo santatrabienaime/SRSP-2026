@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { CircleCheck, CircleX, Loader2 } from 'lucide-react';
 import { dossierService } from '../../services/dossierService.js';
 import { useAuth } from '../../hooks/useAuth.js';
+import { useNotification } from '../../hooks/useNotification.js';
 import { Card } from '../ui/Card.jsx';
 import { Spinner } from '../ui/Spinner.jsx';
 import { Alert } from '../ui/Alert.jsx';
@@ -15,6 +16,7 @@ import { formatDateTime } from '../../utils/formatDate.js';
  */
 export function DepouillementChecklist({ dossierId }) {
   const { hasAnyPermission } = useAuth();
+  const { toastSuccess } = useNotification();
   const canControl = hasAnyPermission(['depouiller_pieces', 'gerer_ordonnancement', 'preparer_mandatement']);
 
   const [data, setData] = useState(null);
@@ -47,6 +49,13 @@ export function DepouillementChecklist({ dossierId }) {
         observation,
       });
       setData(next);
+      /* Chaque case cochée est un acte : l'agent doit savoir qu'il a été
+         enregistré, sinon il coche deux fois pour s'en assurer. */
+      toastSuccess(
+        presente
+          ? `« ${piece.libelle} » cochée.`
+          : `« ${piece.libelle} » décochée.`
+      );
     } catch (e) {
       setError(e);
     } finally {

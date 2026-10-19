@@ -15,7 +15,7 @@ import { destinationNotification, libelleAction } from '../../utils/notification
  * nulle part plutôt qu'à une page au hasard.
  */
 export function NotificationList({ compact = false, onNavigate = null }) {
-  const { notifications, markRead, markAllRead, refresh } = useNotification();
+  const { notifications, markRead, markAllRead, refresh, toastSuccess } = useNotification();
   const navigate = useNavigate();
 
   if (!notifications.length) {
@@ -47,6 +47,7 @@ export function NotificationList({ compact = false, onNavigate = null }) {
         <button
           onClick={async () => {
             await markAllRead();
+            toastSuccess('Toutes les notifications sont marquées comme lues.');
           }}
           className="flex items-center gap-1 text-xs text-primary-600 hover:underline"
         >

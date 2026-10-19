@@ -10,6 +10,7 @@ import { useNotification } from '../../hooks/useNotification.js';
 import { Table } from '../../components/ui/Table.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { DateInput } from '../../components/fields/index.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
@@ -62,6 +63,9 @@ export function HistoriquePage() {
   const [enCours, setEnCours] = useState(null);
 
   const set = (champ) => (e) => setCriteres((c) => ({ ...c, [champ]: e.target.value }));
+
+  /* Les composants de champ renvoient la valeur formatée, pas l'événement. */
+  const setVal = (champ) => (v) => setCriteres((c) => ({ ...c, [champ]: v }));
 
   const charger = useCallback(async () => {
     setLoading(true);
@@ -223,6 +227,8 @@ export function HistoriquePage() {
                 label="Recherche"
                 value={criteres.search}
                 onChange={set('search')}
+                clearable
+                hint="Numéro de dossier, agent, action, détail ou adresse IP."
                 placeholder="N° dossier, agent, action, détail, IP…"
               />
             </div>
@@ -249,8 +255,8 @@ export function HistoriquePage() {
                 <option key={a.id} value={a.id}>{a.nom} {a.prenom}</option>
               ))}
             </Select>
-            <Input label="Du" type="date" value={criteres.date_debut} onChange={set('date_debut')} />
-            <Input label="Au" type="date" value={criteres.date_fin} onChange={set('date_fin')} />
+            <DateInput label="Du" value={criteres.date_debut} onChange={setVal('date_debut')} />
+            <DateInput label="Au" value={criteres.date_fin} onChange={setVal('date_fin')} />
           </div>
         </form>
       </Card>

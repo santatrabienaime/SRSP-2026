@@ -15,7 +15,7 @@ import { Pagination } from '../../components/ui/Pagination.jsx';
 import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
-import { AutoCompleteInput, MatriculeInput } from '../../components/fields/index.jsx';
+import { AutoCompleteInput, MatriculeInput, TextInput } from '../../components/fields/index.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
@@ -528,10 +528,11 @@ export function ArchivesPage() {
           </>
         }
       >
-        <Input
+        <TextInput
           label="Nom de la recherche"
           value={nomSave}
-          onChange={(e) => setNomSave(e.target.value)}
+          onChange={setNomSave}
+          maxLength={60}
           placeholder="Dossiers Visa 2026"
         />
         <p className="mt-2 text-xs text-slate-500">
@@ -566,6 +567,8 @@ export function ArchivesPage() {
               label="Motif de restauration (obligatoire)"
               value={motif}
               onChange={(e) => setMotif(e.target.value)}
+              required
+              clearable
               placeholder="Archivé par erreur"
             />
           </>
