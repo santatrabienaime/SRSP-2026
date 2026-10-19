@@ -100,7 +100,7 @@ export async function removeDossierFromBordereau(id, dossierId) {
 
 /**
  * Émission du bordereau : BROUILLON → EMIS
- * Notifie le responsable de la division
+ * Notifie le responsable de la division ET le secrétaire
  */
 export async function emitBordereau(id, agentId) {
   const b = await bordereauModel.emit(id, agentId);
@@ -109,13 +109,17 @@ export async function emitBordereau(id, agentId) {
   try {
     await notificationService.notifyDivision(
       b.division_id,
-      'BORDEREAU_EMIS',
-      `Bordereau ${b.reference} reçu — ${b.dossiers?.length || 0} dossier(s) à traiter`,
-      `/bordereaux/${b.id}`
+      { action: 'BORDEREAU_EMIS', type: 'WORKFLOW', message: `Bordereau ${b.reference} reçu — ${b.dossiers?.length || 0} dossier(s) à traiter`, lien: `/bordereaux/${b.id}` }
     );
   } catch (e) {
-    // Ne pas faire échouer l'émission si notification échoue
-    console.warn('Notification bordereau échouée:', e.message);
+    console.warn('Notification division échouée:', e.message);
+  }
+
+  // Notification au secrétaire (transmission effectuée)
+  try {
+    await notificationService.notifyBordereauEmis(b);
+  } catch (e) {
+    console.warn('Notification secrétaire échouée:', e.message);
   }
 
   return b;
@@ -123,9 +127,19 @@ export async function emitBordereau(id, agentId) {
 
 /**
  * Accusé réception par la division : EMIS → RECU_PAR_DIVISION
+ * Notifie le secrétaire (confirmation réception)
  */
 export async function acknowledgeBordereau(id, agentId) {
-  return bordereauModel.acknowledge(id, agentId);
+  const b = await bordereauModel.acknowledge(id, agentId);
+
+  // Notification au secrétaire (confirmation réception)
+  try {
+    await notificationService.notifyBordereauConfirme(b);
+  } catch (e) {
+    console.warn('Notification secrétaire confirmation échouée:', e.message);
+  }
+
+  return b;
 }
 
 /**

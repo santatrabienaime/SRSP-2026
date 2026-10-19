@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FolderKanban, Mail, History, Archive,
   BarChart3, FileBarChart2, Settings, Users, Shield, Bell,
   UserCog, Building2, ScrollText, PanelLeftClose, PanelLeftOpen,
-  Database,
+  Database, FileCheck,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
@@ -24,6 +24,7 @@ const ICONS = {
   divisions: Building2,
   database: Database,
   audit: ScrollText,
+  filecheck: FileCheck,
 };
 
 /**
@@ -88,9 +89,10 @@ export function Sidebar() {
               label: `Dossiers ${user?.division_nom?.replace(/^Division /, '') || myDivision}`,
               icon: 'dossiers',
             }
-          : { to: '/dossiers', label: 'Dossiers', icon: 'dossiers' },
+          : { to: '/dossiers', label: 'Dossiers reçus', icon: 'dossiers' },
+        { to: '/dossiers', label: 'Vérification des pièces', icon: 'filecheck', perms: ['create_dossier', 'edit_dossier'] },
         { to: '/courriers', label: 'Courriers', icon: 'courriers', perms: ['manage_courriers'] },
-        { to: '/bordereaux', label: 'Bordereaux', icon: 'dossiers', perms: ['create_dossier', 'manage_courriers', 'view_all_dossiers'] },
+        { to: '/bordereaux', label: 'Transmission des dossiers', icon: 'dossiers', perms: ['create_dossier', 'manage_courriers', 'view_all_dossiers'] },
       ],
     },
     {

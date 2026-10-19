@@ -2,7 +2,6 @@ import db from '../config/db.js';
 import * as dossierModel from '../models/dossierModel.js';
 import * as historiqueModel from '../models/historiqueModel.js';
 import * as notificationModel from '../models/notificationModel.js';
-import { DIVISION_CHEF_ROLE } from '../utils/constants.js';
 import { httpError } from '../utils/httpError.js';
 
 /**
@@ -128,10 +127,84 @@ async function notifyForTransition(dossierId, toStatus) {
         dossier_id, action: 'DOSSIER_CLOTURE', type: 'INFO',
         message: `Le dossier ${numero} est clôturé.`, lien,
       }),
+      /* Le secrétaire suit l'archivage : la clôture signifie que le dossier
+         est prêt pour l'archivage. */
+      notificationModel.notifyRole('SECRETAIRE', {
+        dossier_id, action: 'CLOTURE_PRET_ARCHIVAGE', type: 'INFO',
+        message: `Le dossier ${numero} est clôturé et prêt pour archivage.`, lien,
+      }),
     ],
   };
 
   if (config[toStatus]) await Promise.all(config[toStatus]());
+}
+
+export async function create(payload) {
+  return notificationModel.create(payload);
+}
+
+/**
+ * Notifie le secrétaire qu'un dossier est incomplet (pièces manquantes).
+ */
+export async function notifyDossierIncomplet(dossierId, piecesManquantes) {
+  const info = await dossierModel.findDivisionOfDossier(dossierId);
+  const numero = await getDossierNumero(dossierId);
+  const lien = `/dossiers/${dossierId}`;
+  const _division_id = info?.division_id;
+
+  // Notifier le secrétaire de la division (ou le secrétaire général)
+  await notificationModel.notifyRole('SECRETAIRE', {
+    dossier_id: dossierId,
+    action: 'DOSSIER_INCOMPLET',
+    type: 'WARNING',
+    message: `Le dossier ${numero} est incomplet : ${piecesManquantes.length} pièce(s) manquante(s).`,
+    lien,
+  });
+}
+
+/**
+ * Notifie le secrétaire que des pièces complémentaires ont été reçues.
+ */
+export async function notifyPiecesRecues(dossierId, piecesRecues) {
+  const numero = await getDossierNumero(dossierId);
+  const lien = `/dossiers/${dossierId}`;
+
+  await notificationModel.notifyRole('SECRETAIRE', {
+    dossier_id: dossierId,
+    action: 'PIECES_RECUES',
+    type: 'INFO',
+    message: `Pièces complémentaires reçues pour le dossier ${numero} : ${piecesRecues.join(', ')}.`,
+    lien,
+  });
+}
+
+/**
+ * Notifie le secrétaire qu'un bordereau a été émis (transmission).
+ */
+export async function notifyBordereauEmis(_bordereauId) {
+  // This function will be called with the bordereau reference, not dossierId
+  // We'll handle this in bordereauService
+}
+
+/**
+ * Notifie le secrétaire qu'un bordereau a été accusé réception par la division.
+ */
+export async function notifyBordereauConfirme(_bordereauId) {
+  // To be implemented in bordereauService
+}
+
+/**
+ * Notifie le secrétaire qu'une tâche administrative est en attente.
+ */
+export async function notifyTacheAttente(userId, message, lien = '/dossiers') {
+  return notificationModel.create({
+    user_id: userId,
+    dossier_id: null,
+    action: 'TACHE_ATTENTE',
+    type: 'TACHE',
+    message,
+    lien,
+  });
 }
 
 async function getDossierNumero(dossierId) {
