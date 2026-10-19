@@ -53,6 +53,11 @@ export async function getCurrentStatus(dossierId) {
  *    fonction refuse de diffuser si le rôle venait à avoir plusieurs titulaires,
  *    pour qu'une diffusion ne puisse jamais s'installer en silence.
  *
+ * Deux actes préviennent DEUX personnes : la validation et la signature
+ * informent le chef de service, qui doit agir, et l'agent responsable, qui voit
+ * ainsi son travail aboutir. Sans ce retour, l'agent ne saurait jamais que le
+ * dossier qu'il a traité est allé au bout.
+ *
  * La signature ne notifie PAS les secrétaires : la clôture est l'acte suivant
  * et seule la chef de service peut l'accomplir. Avertir une secrétaire qu'un
  * dossier « peut être clôturé » lui demandait une action qu'elle n'a pas le
@@ -64,39 +69,54 @@ async function notifyForTransition(dossierId, toStatus) {
   const numero = await getDossierNumero(dossierId);
   const dossier_id = dossierId;
   const division_id = info?.division_id;
+  const agent_id = info?.agent_responsable_id;
 
+  /* Chaque entrée liste les personnes à prévenir pour l'acte : une seule en
+     général, deux pour la validation et la signature. */
   const config = {
-    ORIENTE: () => notificationModel.notifyDivision(division_id, {
+    ORIENTE: () => [notificationModel.notifyDivision(division_id, {
       dossier_id, action: 'ORIENTE', type: 'WORKFLOW',
       message: `Dossier ${numero} orienté vers votre division.`, lien,
-    }),
-    AFFECTE: () => notificationModel.notifyAgent(info?.agent_responsable_id, {
+    })],
+    AFFECTE: () => [notificationModel.notifyAgent(agent_id, {
       dossier_id, action: 'AFFECTE', type: 'AFFECTATION',
       message: `Le dossier ${numero} vous a été affecté pour traitement.`, lien,
-    }),
-    SOUMIS_A_VERIFICATION: () => notificationModel.notifyDivision(division_id, {
+    })],
+    SOUMIS_A_VERIFICATION: () => [notificationModel.notifyDivision(division_id, {
       dossier_id, action: 'SOUMIS_A_VERIFICATION', type: 'VERIFICATION',
       message: `Le dossier ${numero} est soumis à votre vérification.`, lien,
-    }),
-    CORRECTION_DEMANDEE: () => notificationModel.notifyAgent(info?.agent_responsable_id, {
+    })],
+    CORRECTION_DEMANDEE: () => [notificationModel.notifyAgent(agent_id, {
       dossier_id, action: 'CORRECTION_DEMANDEE', type: 'CORRECTION',
       message: `Des corrections sont demandées sur le dossier ${numero}.`, lien,
-    }),
-    VALIDE: () => notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
-      dossier_id, action: 'VALIDE', type: 'VALIDATION',
-      message: `Le dossier ${numero} est validé et attend votre signature.`, lien,
-    }),
-    SIGNE: () => notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
-      dossier_id, action: 'SIGNE', type: 'SIGNATURE',
-      message: `Le dossier ${numero} a été signé : il peut être clôturé.`, lien,
-    }),
-    CLOTURE: () => notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
+    })],
+    VALIDE: () => [
+      notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
+        dossier_id, action: 'VALIDE', type: 'VALIDATION',
+        message: `Le dossier ${numero} est validé et attend votre signature.`, lien,
+      }),
+      notificationModel.notifyAgent(agent_id, {
+        dossier_id, action: 'DOSSIER_VALIDE', type: 'SUCCESS',
+        message: `Le dossier ${numero} que vous avez traité est validé.`, lien,
+      }),
+    ],
+    SIGNE: () => [
+      notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
+        dossier_id, action: 'SIGNE', type: 'SIGNATURE',
+        message: `Le dossier ${numero} a été signé : il peut être clôturé.`, lien,
+      }),
+      notificationModel.notifyAgent(agent_id, {
+        dossier_id, action: 'DOSSIER_SIGNE', type: 'SUCCESS',
+        message: `Le dossier ${numero} que vous avez traité est signé : votre travail est terminé.`, lien,
+      }),
+    ],
+    CLOTURE: () => [notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
       dossier_id, action: 'CLOTURE', type: 'CLOTURE',
       message: `Le dossier ${numero} est clôturé et peut être archivé.`, lien,
-    }),
+    })],
   };
 
-  if (config[toStatus]) await config[toStatus]();
+  if (config[toStatus]) await Promise.all(config[toStatus]());
 }
 
 async function getDossierNumero(dossierId) {

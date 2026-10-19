@@ -91,6 +91,18 @@ export async function markAllAsRead(userId) {
   await db.query('UPDATE notifications SET lu = TRUE WHERE user_id = ? AND lu = FALSE', [userId]);
 }
 
+/**
+ * Supprime les notifications rattachées à un lien.
+ *
+ * Sert aux objets qui n'ont pas de colonne dédiée dans cette table — les
+ * courriers : quand la pièce est supprimée, l'alerte qui y menait doit
+ * disparaître, sinon elle renvoie vers une fiche qui n'existe plus. Le lien est
+ * celui utilisé à la création, construit par le même module appelant.
+ */
+export async function supprimerParLien(lien) {
+  await db.query('DELETE FROM notifications WHERE lien = ?', [lien]);
+}
+
 /** Identifiant utilisateur du responsable désigné d'une division. */
 export async function getChefDivisionUserId(divisionId) {
   if (!divisionId) return null;
@@ -160,9 +172,12 @@ export async function notifyUser(userId, payload) {
  * pas d'une division identifiée (validation, signature, clôture) : la liste
  * obtenue est celle des personnes réellement concernées, et non une diffusion
  * aveugle à tous les membres du rôle.
+ *
+ * `exclure` écarte un utilisateur de l'envoi — l'auteur de l'acte, le plus
+ * souvent : se notifier soi-même de son propre geste n'apprend rien à personne.
  */
-export async function notifyRole(roleNom, payload) {
-  const ids = await getUserIdsByRole(roleNom);
+export async function notifyRole(roleNom, payload, { exclure = null } = {}) {
+  const ids = (await getUserIdsByRole(roleNom)).filter((id) => id !== exclure);
   let envoyees = 0;
   for (const id of ids) {
     if (await create({ ...payload, user_id: id })) envoyees += 1;

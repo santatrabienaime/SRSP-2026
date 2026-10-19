@@ -1,6 +1,6 @@
 import {
   CheckCircle2, Info, XCircle, ChevronRight,
-  Compass, UserCheck, ShieldCheck, AlertTriangle, Stamp, Archive,
+  Compass, UserCheck, ShieldCheck, AlertTriangle, Stamp, Archive, MailPlus,
 } from 'lucide-react';
 import { formatDateTime } from '../../utils/formatDate.js';
 
@@ -21,6 +21,7 @@ const ICONS = {
   VALIDATION: CheckCircle2,
   SIGNATURE: Stamp,
   CLOTURE: Archive,
+  COURRIER: MailPlus,
 };
 
 const COULEURS = {
@@ -32,6 +33,7 @@ const COULEURS = {
   CLOTURE: 'text-emerald-500',
   VERIFICATION: 'text-violet-500',
   AFFECTATION: 'text-blue-500',
+  COURRIER: 'text-sky-500',
 };
 
 /**

@@ -88,6 +88,8 @@ export function libelleAction(notification) {
       return 'Signer le dossier';
     case 'DOCUMENT':
       return 'Voir les documents';
+    case 'COURRIER':
+      return 'Ouvrir le courrier';
     default:
       return 'Ouvrir le dossier';
   }
