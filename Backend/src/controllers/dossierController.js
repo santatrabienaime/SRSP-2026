@@ -1,4 +1,5 @@
 import * as dossierService from '../services/dossierService.js';
+import { genererFicheReception } from '../services/pdfService.js';
 
 export async function list(req, res, next) {
   try {
@@ -174,5 +175,22 @@ export async function tracabilite(req, res, next) {
     if (!dossier) return res.status(404).json({ message: 'Dossier introuvable.' });
     const timeline = await dossierService.getTracabilite(req.params.id);
     res.json(timeline);
+  } catch (error) { next(error); }
+}
+
+/**
+ * Génère et retourne le PDF de la fiche de réception / récépissé.
+ */
+export async function ficheReceptionPDF(req, res, next) {
+  try {
+    const dossier = await dossierService.getDossierById(req.params.id);
+    if (!dossier) return res.status(404).json({ message: 'Dossier introuvable.' });
+
+    const pdfBuffer = await genererFicheReception(dossier);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="recepisse-${dossier.numero}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
   } catch (error) { next(error); }
 }

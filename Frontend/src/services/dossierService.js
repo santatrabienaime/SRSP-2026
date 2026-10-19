@@ -102,6 +102,12 @@ export const dossierService = {
   delete: (id) =>
     apiClient.delete(`/dossiers/${id}`).then((r) => r.data),
 
+  /**
+   * Télécharge la fiche de réception (PDF).
+   */
+  ficheReceptionPDF: (id) =>
+    apiClient.get(`/dossiers/${id}/fiche-reception`, { responseType: 'blob' }).then((r) => r.data),
+
   transition: (id, toStatus, details) =>
     apiClient.post(`/workflow/${id}/transition`, { toStatus, details }).then(async (r) => {
       // Notifier après transition de statut

@@ -23,6 +23,7 @@ router.post('/masse/valider', rbacMiddleware(['verifier_dossier', 'valider_dossi
 router.post('/masse/signer', rbacMiddleware('signer_dossier'), ctrl.signerMasse);
 
 router.get('/:id/tracabilite', assertDossierAccessMiddleware, ctrl.tracabilite);
+router.get('/:id/fiche-reception', assertDossierAccessMiddleware, ctrl.ficheReceptionPDF);
 router.get('/:id', assertDossierAccessMiddleware, ctrl.getOne);
 router.get('/:id/statut', ctrl.statut);
 router.post('/', rbacMiddleware('create_dossier'), validateMiddleware(createDossierSchema), ctrl.create);

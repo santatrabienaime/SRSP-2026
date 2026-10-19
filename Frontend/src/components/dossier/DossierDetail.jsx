@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FolderKanban, Info, History, MessageSquare, FileText } from 'lucide-react';
+import { ArrowLeft, FolderKanban, Info, History, MessageSquare, FileText, Download, Printer } from 'lucide-react';
 import { useDossier } from '../../hooks/useDossier.js';
 import { Badge } from '../ui/Badge.jsx';
 import { Card } from '../ui/Card.jsx';
@@ -67,6 +67,28 @@ export function DossierDetail({ id }) {
     historique: 'historique',
   };
 
+  const downloadFicheReception = async (forceDownload = false) => {
+    try {
+      const blob = await dossierService.ficheReceptionPDF(dossier.id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `recepisse-${dossier.numero}.pdf`;
+      document.body.appendChild(link);
+      if (forceDownload) {
+        link.click();
+      } else {
+        // Ouvrir dans un nouvel onglet pour impression
+        window.open(url, '_blank');
+      }
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erreur téléchargement fiche réception:', err);
+      alert('Impossible de générer la fiche de réception.');
+    }
+  };
+
   useEffect(() => {
     const ancre = (location.hash || '').replace('#', '');
     if (!ancre) return;
@@ -122,6 +144,14 @@ export function DossierDetail({ id }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => downloadFicheReception()} title="Imprimer / Télécharger la fiche de réception">
+            <Printer className="h-4 w-4" />
+            <span className="hidden sm:inline">Fiche réception</span>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => downloadFicheReception(true)} title="Télécharger la fiche de réception (PDF)">
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">PDF</span>
+          </Button>
           <Badge className={statusClass}>{formatStatus(dossier.statut_code)}</Badge>
           <Badge className="border-amber-200 bg-amber-50 text-amber-700">
             {dossier.priorite_libelle}
