@@ -48,17 +48,28 @@ const CONFIG = {
      maquette a été supprimé avec la chronologie : il n'a pas de KPI. */
   SECRETAIRE: {
     titre: 'Tableau de bord — Secrétaire',
-    sousTitre: 'Réception, enregistrement et orientation des dossiers.',
-    kpis: ({ s, files, ress }) => [
-      { icon: Inbox, label: 'Nouveaux reçus', value: extractValue(s?.RECU), tone: 'blue', sub: "En attente d'enregistrement" },
-      { icon: Compass, label: 'À orienter', value: extractValue(files?.aOrienter), tone: 'amber', sub: 'Enregistrés / orientés' },
-      { icon: MailPlus, label: 'Courriers', value: extractValue(ress?.courriers?.total), tone: 'sky', sub: `Reçus : ${ress?.courriers?.recus ?? 0}` },
-      { icon: FolderKanban, label: 'Total dossiers', value: extractValue(s?.total), tone: 'violet', sub: 'Tous statuts' },
+    sousTitre: 'Réception, enregistrement, orientation et suivi des dossiers.',
+    // Les KPIs sont enrichis par secretaireKPIs (chargé dans DashboardPage)
+    kpis: ({ s, files, ress, sk }) => [
+      // Ligne 1 : Volume réception
+      { icon: Inbox, label: 'Total reçus', value: extractValue(sk?.totalRecus ?? s?.RECU), tone: 'blue', sub: 'Statut REÇU' },
+      { icon: Inbox, label: 'Reçus aujourd\'hui', value: extractValue(sk?.recusAujourdhui), tone: 'blue', sub: 'Date du jour' },
+      { icon: FilePlus2, label: 'Attente enregistrement', value: extractValue(sk?.attenteEnregistrementComplet), tone: 'amber', sub: 'REÇU + ENREGISTRÉ non orientés' },
+      { icon: Compass, label: 'À transmettre', value: extractValue(sk?.aTransmettreDivisions ?? files?.aOrienter), tone: 'amber', sub: 'Orientés, en attente transmission' },
+      // Ligne 2 : Suivi & alertes
+      { icon: AlertTriangle, label: 'Incomplets', value: extractValue(sk?.incomplets), tone: 'red', sub: 'Pièces obligatoires manquantes' },
+      { icon: ArrowRight, label: 'Retournés divisions', value: extractValue(sk?.retournesDivisions ?? s?.CORRECTION_DEMANDEE), tone: 'red', sub: 'Correction demandée' },
+      { icon: Clock, label: 'Transmis (attente confirmation)', value: extractValue(sk?.transmisAttenteConfirmation), tone: 'sky', sub: 'Bordereau envoyé, réception non confirmée' },
+      { icon: Archive, label: 'Clôturés (attente archivage)', value: extractValue(sk?.cloturesAttenteArchivage ?? s?.CLOTURE), tone: 'violet', sub: 'Signés, non archivés' },
+      // Ligne 3 : Notifications & priorités
+      { icon: Bell, label: 'Notifications', value: extractValue(sk?.notificationsNonLues), tone: 'emerald', sub: 'Non lues' },
+      { icon: ShieldCheck, label: 'Tâches prioritaires', value: extractValue(sk?.tachesPrioritaires), tone: 'amber', sub: 'Dossiers prioritaires en attente' },
     ],
     actions: [
       { to: '/dossiers/nouveau', label: 'Nouveau dossier', icon: FilePlus2, perms: ['create_dossier'] },
       { to: '/courriers/nouveau', label: 'Nouveau courrier', icon: MailPlus, perms: ['manage_courriers'] },
       { to: '/dossiers', label: 'Orienter un dossier', icon: Compass, perms: ['orienter_dossier'] },
+      { to: '/dossiers', label: 'Transmettre (bordereau)', icon: Send, perms: ['create_dossier'] },
     ],
     charts: [],
     liste: { titre: 'Derniers dossiers reçus' },

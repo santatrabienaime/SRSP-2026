@@ -46,3 +46,15 @@ export async function ressources(req, res, next) {
     res.json(await dashboardService.getRessources());
   } catch (e) { next(e); }
 }
+
+export async function secretaireKPIs(req, res, next) {
+  try {
+    const scope = await scopeService.getScope(req.user.id);
+    // Only allow for SECRETAIRE role
+    if (scope.roleNom !== 'SECRETAIRE') {
+      return res.status(403).json({ message: 'Accès réservé au rôle Secrétaire' });
+    }
+    const kpis = await dashboardService.getSecretaireKPIs(scope);
+    res.json(kpis);
+  } catch (e) { next(e); }
+}

@@ -10,5 +10,6 @@ router.get('/by-division', ctrl.byDivision);
 router.get('/by-status', ctrl.byStatus);
 router.get('/evolution', ctrl.evolution);
 router.get('/ressources', ctrl.ressources);
+router.get('/secretaire-kpis', ctrl.secretaireKPIs);
 
 export default router;

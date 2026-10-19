@@ -81,6 +81,7 @@ export function DashboardPage() {
   const [evolution, setEvolution] = useState([]);
   const [recent, setRecent] = useState([]);
   const [ress, setRess] = useState(null);
+  const [secretaireKPIs, setSecretaireKPIs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -102,6 +103,12 @@ export function DashboardPage() {
       setEvolution(Array.isArray(ev) ? ev : []);
       setRecent(Array.isArray(rec) ? rec.slice(0, 6) : []);
       setRess(r);
+
+      // Charger les KPIs spécifiques Secrétaire si rôle SECRETAIRE
+      if (role === 'SECRETAIRE') {
+        const sk = await dashboardService.secretaireKPIs();
+        setSecretaireKPIs(sk);
+      }
     } catch (e) {
       setError(e);
     } finally {
@@ -147,7 +154,7 @@ export function DashboardPage() {
   const files = summary?.files;
   /* Rôle couvert par la spec V2.0 → configuration dédiée ; sinon, tri par
      périmètre (comportement historique, inchangé). */
-  const cfg = configRole(role, { s: summary, files, ress });
+  const cfg = configRole(role, { s: summary, files, ress, sk: secretaireKPIs });
   const kpis = cfg?.kpis || kpiPour(perimetre, summary, files);
   /* Répartitions (statut, division) : le tableau de bord ne les affiche que
      lorsqu'elles sont restreintes au périmètre de l'utilisateur, c'est-à-dire

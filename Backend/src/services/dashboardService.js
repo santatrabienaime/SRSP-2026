@@ -104,12 +104,10 @@ export async function getEvolution(scope) {
  * les listes elles-mêmes restent protégées par leurs permissions.
  */
 export async function getRessources() {
-  const [courriers] = await Promise.all([
-    db.query(
-      `SELECT COUNT(*) AS total, COALESCE(SUM(statut = 'RECU'), 0) AS recus
-       FROM courriers`
-    ),
-  ]);
+  const courriers = await db.query(
+    `SELECT COUNT(*) AS total, COALESCE(SUM(statut = 'RECU'), 0) AS recus
+     FROM courriers`
+  );
   const c = courriers[0];
   return {
     courriers: { total: Number(c.total), recus: Number(c.recus) },
@@ -166,4 +164,118 @@ export async function getFilesAttente(scope) {
   }
 
   return Object.fromEntries(lignes);
+}
+
+/**
+ * Indicateurs spécifiques au Secrétaire (cahier des charges §1).
+ * Retourne un objet avec les 10 compteurs demandés.
+ */
+export async function getSecretaireKPIs(scope) {
+  const f = await filterFor(scope);
+
+  // 1. Total dossiers reçus (statut RECU)
+  const [totalRecus] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE s.code = 'RECU'${f.where}`,
+    f.params
+  );
+
+  // 2. Reçus aujourd'hui
+  const [recusAujourdhui] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE s.code = 'RECU'
+       AND DATE(d.date_reception) = CURDATE()${f.where}`,
+    f.params
+  );
+
+  // 3. En attente d'enregistrement complet (RECU + ENREGISTRE non orientés)
+  // Un dossier est "complètement enregistré" quand il a été orienté (ORIENTE+)
+  const [attenteEnregistrement] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE s.code IN ('RECU', 'ENREGISTRE')${f.where}`,
+    f.params
+  );
+
+  // 4. À transmettre aux divisions (orientés mais pas encore transmis/affectés)
+  // = ORIENTE (le secrétariat a orienté, mais pas encore transmis physiquement/bordereau)
+  // On utilise aOrienter qui inclut ENREGISTRE+ORIENTE, mais pour "à transmettre" c'est ORIENTE
+  const [aTransmettre] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE s.code = 'ORIENTE'${f.where}`,
+    f.params
+  );
+
+  // 5. Dossiers incomplets (pièces manquantes au dépouillement)
+  const [incomplets] = await db.query(
+    `SELECT COUNT(DISTINCT d.id) AS total FROM dossiers d
+     JOIN depouillements dp ON dp.dossier_id = d.id
+     WHERE dp.presente = 0${f.where.replace('d.', 'd.')}`,
+    f.params
+  );
+
+  // 6. Retournés par les divisions (CORRECTION_DEMANDEE)
+  const [retournes] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE s.code = 'CORRECTION_DEMANDEE'${f.where}`,
+    f.params
+  );
+
+  // 7. Transmis dont la réception reste à confirmer
+  // Dossiers ORIENTE qui ont un bordereau mais pas de confirmation
+  // Pour l'instant, on approxime par ORIENTE sans bordereau (à affiner avec table bordereaux)
+  const [transmisAttenteConfirmation] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE s.code = 'ORIENTE'${f.where}`,
+    f.params
+  );
+
+  // 8. Clôturés en attente d'archivage
+  const [cloturesAttenteArchivage] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE s.code = 'CLOTURE'${f.where}`,
+    f.params
+  );
+
+  // 9. Notifications récentes non lues (pour le secrétaire connecté)
+  // Note: scope contient userId
+  let notificationsNonLues = 0;
+  if (scope.userId) {
+    const [notif] = await db.query(
+      `SELECT COUNT(*) AS total FROM notifications
+       WHERE user_id = ? AND lu = 0`,
+      [scope.userId]
+    );
+    notificationsNonLues = notif.total;
+  }
+
+  // 10. Tâches prioritaires (dossiers priorité haute/urgente en attente d'action secrétaire)
+  // = dossiers priorité >= 3 qui sont en RECU, ENREGISTRE ou ORIENTE
+  const [tachesPrioritaires] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN priorites p ON d.priorite_id = p.id
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE p.niveau >= 3
+       AND s.code IN ('RECU', 'ENREGISTRE', 'ORIENTE')${f.where}`,
+    f.params
+  );
+
+  return {
+    totalRecus: Number(totalRecus.total),
+    recusAujourdhui: Number(recusAujourdhui.total),
+    attenteEnregistrementComplet: Number(attenteEnregistrement.total),
+    aTransmettreDivisions: Number(aTransmettre.total),
+    incomplets: Number(incomplets.total),
+    retournesDivisions: Number(retournes.total),
+    transmisAttenteConfirmation: Number(transmisAttenteConfirmation.total),
+    cloturesAttenteArchivage: Number(cloturesAttenteArchivage.total),
+    notificationsNonLues,
+    tachesPrioritaires: Number(tachesPrioritaires.total),
+  };
 }

@@ -50,6 +50,7 @@ export const dashboardService = {
   byStatus: () => apiClient.get('/dashboard/by-status').then((r) => r.data || []),
   evolution: () => apiClient.get('/dashboard/evolution').then((r) => r.data || []),
   ressources: () => apiClient.get('/dashboard/ressources').then((r) => r.data || {}),
+  secretaireKPIs: () => apiClient.get('/dashboard/secretaire-kpis').then((r) => r.data || {}),
 };
 
 export default dashboardService;
