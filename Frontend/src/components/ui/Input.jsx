@@ -30,7 +30,7 @@ const DARK = {
     'text-white placeholder:text-white/30 backdrop-blur-sm transition-all duration-200 ' +
     'focus:outline-none focus:bg-white/[.10] focus:border-cyan-300/70 focus:ring-4 ' +
     'focus:ring-cyan-400/15',
-  inputAvecBouton: 'pr-16',
+  inputAvecBouton: 'pr-20',
   error: 'border-red-400/70 bg-red-500/10 focus:border-red-400 focus:ring-red-500/20',
   success: 'border-emerald-400/60 bg-emerald-500/10 focus:border-emerald-300',
   hint: 'flex items-center gap-1 text-white/40',
@@ -44,7 +44,7 @@ const DARK = {
 const CLAIR = {
   label: 'mb-1 block text-sm font-medium text-slate-700',
   required: 'text-red-500',
-  inputAvecBouton: 'pr-16',
+  inputAvecBouton: 'pr-20',
   hint: 'mt-1 text-xs text-slate-500',
   errorText: 'mt-1 flex items-center gap-1 text-xs text-red-600',
   okText: 'mt-1 flex items-center gap-1 text-xs text-emerald-600',
