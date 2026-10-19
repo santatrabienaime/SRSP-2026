@@ -202,31 +202,9 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* Section dédiée aux nouveaux dossiers reçus (couleur bleue) */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <AnimatedCard
-          title="Nouveaux dossiers"
-          subtitle="À traiter en priorité"
-          Icon={Inbox}
-          delay={0}
-        >
-          <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100 dark:bg-blue-900/20 dark:border-blue-500/30">
-            <Inbox className="h-8 w-8 text-blue-600 shrink-0" />
-            <div>
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider dark:text-blue-400">
-                Nouveaux reçus
-              </p>
-              <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
-                {files?.aOrienter ?? 0}
-              </p>
-              <p className="text-xs text-blue-500 dark:text-blue-400">
-                À traiter en priorité
-              </p>
-            </div>
-          </div>
-        </AnimatedCard>
-      </div>
-
+      {/* Pas de section « Nouveaux reçus » séparée : la carte KPI
+          « Nouveaux / reçus » de la rangée ci-dessus porte déjà files.aOrienter.
+          Deux blocs pour le même chiffre se lisaient comme une redondance. */}
       {(charts.includes('statut') || charts.includes('division')) && (
         <div className={`grid gap-5 ${deuxGraphiques ? 'lg:grid-cols-2' : ''}`}>
           {charts.includes('statut') && (
