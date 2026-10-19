@@ -27,6 +27,7 @@ import { RapportsPage } from '../pages/rapports/RapportsPage.jsx';
 import { ProfilePage } from '../pages/profile/ProfilePage.jsx';
 
 import { PersonnelPage } from '../pages/personnel/PersonnelPage.jsx';
+import { BordereauPage } from '../pages/bordereau/BordereauPage.jsx';
 import { RolesAdminPage } from '../pages/administration/RolesAdminPage.jsx';
 import { SettingsPage } from '../pages/administration/SettingsPage.jsx';
 import { BackupPage } from '../pages/administration/BackupPage.jsx';
@@ -111,6 +112,16 @@ export function AppRouter() {
             element={
               <RoleRoute permissions={['manage_courriers']}>
                 <CourrierDetailPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* Bordereaux de transmission : Secrétaire, Admin (create_dossier) */}
+          <Route
+            path="/bordereaux"
+            element={
+              <RoleRoute permissions={['create_dossier', 'manage_courriers', 'view_all_dossiers']}>
+                <BordereauPage />
               </RoleRoute>
             }
           />

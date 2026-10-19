@@ -90,6 +90,7 @@ export function Sidebar() {
             }
           : { to: '/dossiers', label: 'Dossiers', icon: 'dossiers' },
         { to: '/courriers', label: 'Courriers', icon: 'courriers', perms: ['manage_courriers'] },
+        { to: '/bordereaux', label: 'Bordereaux', icon: 'dossiers', perms: ['create_dossier', 'manage_courriers', 'view_all_dossiers'] },
       ],
     },
     {
