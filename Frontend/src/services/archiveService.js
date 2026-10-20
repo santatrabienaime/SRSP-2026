@@ -26,6 +26,9 @@ export const archiveService = {
   restaurer: (dossierId, motif) =>
     apiClient.post(`${base}/${dossierId}/restaurer`, { motif }).then((r) => r.data),
 
+  majMeta: (archiveId, { reference_archivage, emplacement_physique, localisation_numerique }) =>
+    apiClient.put(`${base}/${archiveId}/meta`, { reference_archivage, emplacement_physique, localisation_numerique }).then((r) => r.data),
+
   /**
    * Télécharge un export. Le serveur renvoie un fichier : on le récupère en
    * blob et on déclenche l'enregistrement, sinon le navigateur afficherait le

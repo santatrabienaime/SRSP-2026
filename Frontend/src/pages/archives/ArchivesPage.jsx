@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Archive, Search, RotateCcw, Bookmark, BookmarkPlus, Trash2,
   FolderKanban, AlertTriangle, FileText, FileSpreadsheet, FileDown,
+  Edit, MapPin, FileSearch,
 } from 'lucide-react';
 import { archiveService, recherchesSauvegardees } from '../../services/archiveService.js';
 import { dossierService } from '../../services/dossierService.js';
@@ -55,6 +56,10 @@ export function ArchivesPage() {
   const [nomSave, setNomSave] = useState('');
   const [motif, setMotif] = useState('');
   const [enCours, setEnCours] = useState(false);
+
+  // Modal pour modifier les métadonnées d'archivage (admin)
+  const [metaModal, setMetaModal] = useState(null); // { archiveId, archive }
+  const [metaForm, setMetaForm] = useState({ reference_archivage: '', emplacement_physique: '', localisation_numerique: '' });
 
   const peutRestaurer = isRole('ADMIN');
   const peutArchiver = hasPermission('archiver_dossier');
@@ -263,6 +268,30 @@ export function ArchivesPage() {
     return [...set].sort((a, b) => b - a);
   }, [stats]);
 
+  const ouvrirMeta = (archive) => {
+    setMetaForm({
+      reference_archivage: archive.reference_archivage || '',
+      emplacement_physique: archive.emplacement_physique || '',
+      localisation_numerique: archive.localisation_numerique || '',
+    });
+    setMetaModal(archive);
+  };
+
+  const validerMeta = async () => {
+    if (!metaModal) return;
+    setEnCours(true);
+    try {
+      await archiveService.majMeta(metaModal.archive_id, metaForm);
+      toastSuccess('Métadonnées d\'archivage mises à jour.');
+      setMetaModal(null);
+      await charger();
+    } catch (e) {
+      toastError(e.message);
+    } finally {
+      setEnCours(false);
+    }
+  };
+
   const enTeteTri = (cle, libelle) => {
     const actif = (criteres.tri || 'archivage_desc') === cle;
     return (
@@ -288,6 +317,9 @@ export function ArchivesPage() {
         </Link>
       ),
     },
+    { key: 'reference_archivage', label: 'Référence archivage', render: (r) => <span className="font-mono text-sm">{r.reference_archivage || '—'}</span> },
+    { key: 'emplacement_physique', label: 'Emplacement physique', render: (r) => <span className="text-sm text-slate-600">{r.emplacement_physique || '—'}</span> },
+    { key: 'localisation_numerique', label: 'Localisation numérique', render: (r) => <span className="text-sm text-slate-500 truncate max-w-xs" title={r.localisation_numerique || ''}>{r.localisation_numerique || '—'}</span> },
     { key: 'objet', label: 'Objet', render: (r) => <p className="max-w-xs truncate text-slate-700">{r.objet || '—'}</p> },
     { key: 'demandeur', label: 'Demandeur', render: (r) => <span className="text-slate-700">{r.demandeur || '—'}</span> },
     { key: 'type_libelle', label: 'Type', render: (r) => r.type_libelle || '—' },
@@ -306,11 +338,18 @@ export function ArchivesPage() {
       key: 'actions',
       label: '',
       render: (r) => (
-        peutRestaurer ? (
-          <Button size="sm" variant="outline" onClick={() => { setModal({ dossier: r }); setMotif(''); }}>
-            Restaurer
-          </Button>
-        ) : null
+        <div className="flex items-center gap-1">
+          {peutRestaurer ? (
+            <Button size="sm" variant="outline" onClick={() => { setModal({ dossier: r }); setMotif(''); }}>
+              Restaurer
+            </Button>
+          ) : null}
+          {isRole('ADMIN') ? (
+            <Button size="sm" variant="ghost" title="Modifier les métadonnées" onClick={() => ouvrirMeta(r)}>
+              <Edit className="h-3.5 w-3.5" />
+            </Button>
+          ) : null}
+        </div>
       ),
     },
   ];
@@ -573,6 +612,39 @@ export function ArchivesPage() {
             />
           </>
         )}
+      </Modal>
+
+      {/* Modification des métadonnées d'archivage (admin) */}
+      <Modal
+        open={metaModal !== null}
+        onClose={() => setMetaModal(null)}
+        title={`Métadonnées archivage — ${metaModal?.reference_archivage || ''}`}
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setMetaModal(null)}>Annuler</Button>
+            <Button onClick={validerMeta} loading={enCours}>Enregistrer</Button>
+          </>
+        }
+      >
+        <Input
+          label="Référence archivage"
+          value={metaForm.reference_archivage}
+          onChange={(e) => setMetaForm((f) => ({ ...f, reference_archivage: e.target.value }))}
+          placeholder="ARCH-2026-000001"
+        />
+        <Input
+          label="Emplacement physique"
+          value={metaForm.emplacement_physique}
+          onChange={(e) => setMetaForm((f) => ({ ...f, emplacement_physique: e.target.value }))}
+          placeholder="Armoire 3, Étagère B, Boîte 12"
+        />
+        <Input
+          label="Localisation numérique"
+          value={metaForm.localisation_numerique}
+          onChange={(e) => setMetaForm((f) => ({ ...f, localisation_numerique: e.target.value }))}
+          placeholder="https://drive.example.com/archives/ARCH-2026-000001.pdf"
+        />
       </Modal>
     </div>
   );

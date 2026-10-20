@@ -40,6 +40,18 @@ export async function restaurer(req, res, next) {
   } catch (e) { next(e); }
 }
 
+/**
+ * Met à jour les métadonnées d'une archive (référence, emplacement, localisation numérique).
+ * Réservé à l'administrateur.
+ */
+export async function majMeta(req, res, next) {
+  try {
+    const { reference_archivage, emplacement_physique, localisation_numerique } = req.body;
+    const archive = await service.majMeta(req.user.id, req.params.id, { reference_archivage, emplacement_physique, localisation_numerique });
+    res.json({ message: 'Métadonnées archivage mises à jour.', archive });
+  } catch (e) { next(e); }
+}
+
 /* ------------------------------------------------------------------ */
 /* Exports                                                             */
 /* ------------------------------------------------------------------ */

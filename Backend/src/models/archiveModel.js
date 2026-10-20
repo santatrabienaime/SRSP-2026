@@ -14,33 +14,62 @@ import db from '../config/db.js';
  */
 
 /**
+ * Génère une référence d'archivage : ARCH-ANNEE-XXXXXX
+ */
+async function genererReferenceArchivage() {
+  const annee = new Date().getFullYear();
+  const [row] = await db.query(
+    `SELECT COUNT(*) AS n FROM archives WHERE reference_archivage LIKE ?`,
+    [`ARCH-${annee}-%`]
+  );
+  const seq = (row.n || 0) + 1;
+  return `ARCH-${annee}-${String(seq).padStart(6, '0')}`;
+}
+
+/**
  * Enregistre l'archivage d'un dossier. Utilisé par le service dossier.
  *
  * Si le dossier avait été restauré puis réarchivé, sa ligne d'archive
  * précédente est réutilisée plutôt que dupliquée : sinon chaque aller-retour
  * laissait une ligne de plus, et les dossiers archivés comptés deux fois.
  */
-export async function createArchive({ dossier_id, archive_par, motif }) {
+export async function createArchive({ dossier_id, archive_par, motif, reference_archivage, emplacement_physique, localisation_numerique }) {
   const [precedente] = await db.query(
     'SELECT id FROM archives WHERE dossier_id = ? ORDER BY id DESC LIMIT 1',
     [dossier_id]
   );
+  const ref = reference_archivage || await genererReferenceArchivage();
   if (precedente) {
     await db.query(
-      'UPDATE archives SET date_archivage = CURRENT_TIMESTAMP, archive_par = ?, motif = ?, restaure = FALSE WHERE id = ?',
-      [archive_par || null, motif || null, precedente.id]
+      'UPDATE archives SET date_archivage = CURRENT_TIMESTAMP, archive_par = ?, motif = ?, reference_archivage = ?, emplacement_physique = ?, localisation_numerique = ?, restaure = FALSE WHERE id = ?',
+      [archive_par || null, motif || null, ref, emplacement_physique || null, localisation_numerique || null, precedente.id]
     );
-    return { id: precedente.id };
+    return { id: precedente.id, reference_archivage: ref };
   }
   const result = await db.query(
-    'INSERT INTO archives (dossier_id, archive_par, motif) VALUES (?, ?, ?)',
-    [dossier_id, archive_par || null, motif || null]
+    'INSERT INTO archives (dossier_id, archive_par, motif, reference_archivage, emplacement_physique, localisation_numerique) VALUES (?, ?, ?, ?, ?, ?)',
+    [dossier_id, archive_par || null, motif || null, ref, emplacement_physique || null, localisation_numerique || null]
   );
-  return { id: result.insertId };
+  return { id: result.insertId, reference_archivage: ref };
+}
+
+/**
+ * Met à jour les métadonnées d'archivage (référence, emplacement, localisation numérique).
+ */
+export async function updateArchiveMeta(archiveId, { reference_archivage, emplacement_physique, localisation_numerique }) {
+  const sets = [];
+  const params = [];
+  if (reference_archivage !== undefined) { sets.push('reference_archivage = ?'); params.push(reference_archivage); }
+  if (emplacement_physique !== undefined) { sets.push('emplacement_physique = ?'); params.push(emplacement_physique); }
+  if (localisation_numerique !== undefined) { sets.push('localisation_numerique = ?'); params.push(localisation_numerique); }
+  if (!sets.length) return findById(archiveId);
+  params.push(archiveId);
+  await db.query(`UPDATE archives SET ${sets.join(', ')} WHERE id = ?`, params);
+  return findById(archiveId);
 }
 
 /** Tris acceptés. La colonne est choisie par liste blanche, jamais concaténée. */
-export const TRIS = {
+const TRIS = {
   'archivage_desc': 'a.date_archivage DESC, d.numero DESC',
   'archivage_asc': 'a.date_archivage ASC, d.numero ASC',
   'numero_asc': 'd.numero ASC',
@@ -49,9 +78,11 @@ export const TRIS = {
   'type_asc': 't.libelle ASC, d.numero ASC',
   'division_asc': 'dv.nom ASC, d.numero ASC',
   'agent_asc': 'ag.nom IS NULL, ag.nom ASC, d.numero ASC',
+  'reference_asc': 'a.reference_archivage ASC, d.numero ASC',
+  'reference_desc': 'a.reference_archivage DESC, d.numero ASC',
 };
 
-export const LIBELLES_TRIS = {
+const LIBELLES_TRIS = {
   'archivage_desc': "Date d'archivage (récent → ancien)",
   'archivage_asc': "Date d'archivage (ancien → récent)",
   'numero_asc': 'Numéro de dossier (A → Z)',
@@ -60,6 +91,8 @@ export const LIBELLES_TRIS = {
   'type_asc': 'Type de dossier',
   'division_asc': 'Division',
   'agent_asc': 'Agent responsable',
+  'reference_asc': 'Référence archivage (A → Z)',
+  'reference_desc': 'Référence archivage (Z → A)',
 };
 
 /** Colonnes de restitution communes à la liste et à l'export. */
@@ -69,6 +102,9 @@ const SELECT_COLONNES = `
      d'archive (restauration) viserait l'archive de ce numéro de dossier —
      souvent inexistante, donc silencieusement sans effet. */
   a.id AS archive_id,
+  a.reference_archivage,
+  a.emplacement_physique,
+  a.localisation_numerique,
   d.date_reception, d.date_cloture, d.observation,
   t.id AS type_id, t.code AS type_code, t.libelle AS type_libelle,
   dv.id AS division_id, dv.code AS division_code, dv.nom AS division_nom,
@@ -303,4 +339,4 @@ export async function alertesConservation(filtres = {}, { joursAvant = 90 } = {}
   return alertes.sort((a, b) => a.jours_restants - b.jours_restants);
 }
 
-export { DURES_CONSERVATION };
+export { DURES_CONSERVATION, TRIS, LIBELLES_TRIS };

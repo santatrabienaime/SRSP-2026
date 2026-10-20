@@ -24,4 +24,8 @@ router.get('/:id', rbacMiddleware('view_archives'), ctrl.detail);
    désigner un rôle, pas à garantir qu'une seule personne l'exerce. */
 router.post('/:id/restaurer', ctrl.restaurer);
 
+/* Métadonnées d'archivage (référence, emplacement physique, localisation numérique)
+   : administrateur uniquement. */
+router.put('/:id/meta', ctrl.majMeta);
+
 export default router;

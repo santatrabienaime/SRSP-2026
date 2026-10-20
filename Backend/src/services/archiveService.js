@@ -1,5 +1,4 @@
 import * as model from '../models/archiveModel.js';
-import * as dossierModel from '../models/dossierModel.js';
 import * as scopeService from './scopeService.js';
 import db from '../config/db.js';
 import { httpError } from '../utils/httpError.js';
@@ -122,6 +121,24 @@ export async function restaurer(userId, dossierId, motif) {
   );
 
   return { dossier_id: dossierId, statut: 'CLOTURE', motif: texte };
+}
+
+/**
+ * Met à jour les métadonnées d'une archive (référence, emplacement, localisation numérique).
+ * Réservé à l'admin ou au secrétariat.
+ */
+export async function majMeta(userId, archiveId, { reference_archivage, emplacement_physique, localisation_numerique }) {
+  // Pour l'instant, admin only - à ajuster si le secrétariat a le droit
+  const [user] = await db.query(
+    `SELECT r.nom AS role_nom FROM users u JOIN roles r ON r.id = u.role_id WHERE u.id = ? LIMIT 1`,
+    [userId]
+  );
+  if (user?.role_nom !== 'ADMIN') {
+    throw httpError(403, 'Seul l\'administrateur peut modifier les métadonnées d\'archivage.');
+  }
+  const archive = await model.updateArchiveMeta(archiveId, { reference_archivage, emplacement_physique, localisation_numerique });
+  if (!archive) throw httpError(404, 'Archive introuvable.');
+  return archive;
 }
 
 export { model };
