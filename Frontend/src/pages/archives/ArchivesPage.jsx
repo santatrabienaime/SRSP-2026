@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Archive, Search, RotateCcw, Bookmark, BookmarkPlus, Trash2,
   FolderKanban, AlertTriangle, FileText, FileSpreadsheet, FileDown,
-  Edit, MapPin, FileSearch,
+  Edit,
 } from 'lucide-react';
 import { archiveService, recherchesSauvegardees } from '../../services/archiveService.js';
 import { dossierService } from '../../services/dossierService.js';
