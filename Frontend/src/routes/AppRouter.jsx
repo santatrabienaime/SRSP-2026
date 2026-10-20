@@ -65,6 +65,15 @@ export function AppRouter() {
 
           {/* Dossiers */}
           <Route path="/dossiers" element={<DossierListPage />} />
+          {/* Vérification des pièces : liste des dossiers incomplets (pièces manquantes) */}
+          <Route
+            path="/verification-pieces"
+            element={
+              <RoleRoute permissions={['create_dossier', 'edit_dossier']}>
+                <DossierListPage initialGroupe="INCOMPLETS" />
+              </RoleRoute>
+            }
+          />
           {/* Dossiers d'une division : n'affiche que le type qui la concerne,
               et redirige vers son propre périmètre si ce n'est pas la sienne. */}
           <Route

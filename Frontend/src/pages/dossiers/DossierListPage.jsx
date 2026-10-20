@@ -63,11 +63,18 @@ const GROUPES = [
     filters: { statut: 'ARCHIVE' },
     compte: (c) => c.ARCHIVE || 0,
   },
+  {
+    code: 'INCOMPLETS', label: 'Incomplets', icon: AlertTriangle,
+    actif: 'border-red-600 bg-red-600 shadow-[0_0_16px_rgba(239,68,68,0.35)]',
+    hint: 'Pièces obligatoires manquantes',
+    filters: { incomplets: 1 },
+    compte: (c) => c.incomplets || 0,
+  },
 ];
 
-export function DossierListPage() {
+export function DossierListPage({ initialGroupe = 'NOUVEAUX' }) {
   const { user, hasPermission } = useAuth();
-  const [groupe, setGroupe] = useState('NOUVEAUX');
+  const [groupe, setGroupe] = useState(initialGroupe);
   const [compteurs, setCompteurs] = useState(null);
   const [chargement, setChargement] = useState(true);
 

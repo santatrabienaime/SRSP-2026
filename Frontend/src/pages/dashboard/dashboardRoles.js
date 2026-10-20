@@ -1,6 +1,7 @@
 import {
   FolderKanban, Stamp, ShieldCheck, FileBarChart2, BarChart3,
   FilePlus2, MailPlus, Compass, Clock, AlertTriangle, Inbox,
+  Send, ArrowRight,
 } from 'lucide-react';
 import { extractValue } from '../../utils/extractValue.js';
 

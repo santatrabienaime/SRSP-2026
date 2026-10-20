@@ -90,7 +90,7 @@ export function Sidebar() {
               icon: 'dossiers',
             }
           : { to: '/dossiers', label: 'Dossiers reçus', icon: 'dossiers' },
-        { to: '/dossiers', label: 'Vérification des pièces', icon: 'filecheck', perms: ['create_dossier', 'edit_dossier'] },
+        { to: '/verification-pieces', label: 'Vérification des pièces', icon: 'filecheck', perms: ['create_dossier', 'edit_dossier'] },
         { to: '/courriers', label: 'Courriers', icon: 'courriers', perms: ['manage_courriers'] },
         { to: '/bordereaux', label: 'Transmission des dossiers', icon: 'dossiers', perms: ['create_dossier', 'manage_courriers', 'view_all_dossiers'] },
       ],
