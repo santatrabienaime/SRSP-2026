@@ -2,26 +2,32 @@ import db from '../config/db.js';
 import * as dossierModel from '../models/dossierModel.js';
 import * as historiqueModel from '../models/historiqueModel.js';
 import * as notificationModel from '../models/notificationModel.js';
+import { emitDossier } from '../realtime.js';
 import { httpError } from '../utils/httpError.js';
 
 /**
  * Transitions autorisées conformes au cahier des charges v2.0 (§10.2).
  * RECU → ENREGISTRE → ORIENTE → AFFECTE → EN_TRAITEMENT
- * EN_TRAITEMENT → SOUMIS_A_VERIFICATION
- * SOUMIS_A_VERIFICATION → VALIDE | CORRECTION_DEMANDEE
+ * EN_TRAITEMENT → SOUMIS_A_VERIFICATION | CORRECTION_DEMANDEE | EN_ATTENTE_COMPLEMENT
+ * SOUMIS_A_VERIFICATION → VALIDE | CORRECTION_DEMANDEE | EN_ATTENTE_COMPLEMENT
+ * EN_ATTENTE_COMPLEMENT → EN_TRAITEMENT  (le complément reçu rouvre le dossier)
  * CORRECTION_DEMANDEE → EN_TRAITEMENT   (règle forte : jamais directement VALIDE)
  * VALIDE → SIGNE → CLOTURE → ARCHIVE
+ * SIGNE → ARCHIVE                       (VISA : archivage direct après signature)
  */
 const TRANSITIONS = {
+  /* Un brouillon est publié : il entre alors dans le circuit normal. */
+  BROUILLON: ['ENREGISTRE'],
   RECU: ['ENREGISTRE'],
   ENREGISTRE: ['ORIENTE'],
   ORIENTE: ['AFFECTE'],
   AFFECTE: ['EN_TRAITEMENT'],
-  EN_TRAITEMENT: ['SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE'],
-  SOUMIS_A_VERIFICATION: ['VALIDE', 'CORRECTION_DEMANDEE'],
+  EN_TRAITEMENT: ['SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE', 'EN_ATTENTE_COMPLEMENT'],
+  SOUMIS_A_VERIFICATION: ['VALIDE', 'CORRECTION_DEMANDEE', 'EN_ATTENTE_COMPLEMENT'],
+  EN_ATTENTE_COMPLEMENT: ['EN_TRAITEMENT'],
   CORRECTION_DEMANDEE: ['EN_TRAITEMENT'],
   VALIDE: ['SIGNE'],
-  SIGNE: ['CLOTURE'],
+  SIGNE: ['CLOTURE', 'ARCHIVE'],
   CLOTURE: ['ARCHIVE'],
   ARCHIVE: [],
 };
@@ -66,7 +72,7 @@ export async function getCurrentStatus(dossierId) {
  * dossier « peut être clôturé » lui demandait une action qu'elle n'a pas le
  * droit de faire, et lui révélait un dossier qui n'est pas le sien.
  */
-async function notifyForTransition(dossierId, toStatus) {
+async function notifyForTransition(dossierId, toStatus, details = '') {
   const info = await dossierModel.findDivisionOfDossier(dossierId); // { division_id, agent_responsable_id }
   const lien = `/dossiers/${dossierId}`;
   const numero = await getDossierNumero(dossierId);
@@ -93,6 +99,16 @@ async function notifyForTransition(dossierId, toStatus) {
       dossier_id, action: 'CORRECTION_DEMANDEE', type: 'CORRECTION',
       message: `Des corrections sont demandées sur le dossier ${numero}.`, lien,
     })],
+    EN_ATTENTE_COMPLEMENT: () => [
+      notificationModel.notifyAgent(agent_id, {
+        dossier_id, action: 'EN_ATTENTE_COMPLEMENT', type: 'WARNING',
+        message: `Le dossier ${numero} est en attente d'un complément : ${details || 'voir la fiche.'}`, lien,
+      }),
+      notificationModel.notifyRole('SECRETAIRE', {
+        dossier_id, action: 'EN_ATTENTE_COMPLEMENT', type: 'INFO',
+        message: `Le dossier ${numero} attend un complément du demandeur.`, lien,
+      }),
+    ],
     VALIDE: () => [
       notificationModel.notifyTitulaireRole('CHEF_SERVICE', {
         dossier_id, action: 'VALIDE', type: 'VALIDATION',
@@ -231,7 +247,21 @@ export async function transition(dossierId, toStatus, userId, details = '') {
     details,
   });
 
-  await notifyForTransition(dossierId, toStatus);
+  await notifyForTransition(dossierId, toStatus, details);
+
+  /* Temps réel : les écrans des personnes concernées se rafraîchissent sans
+     qu'elles aient à recharger la page. Le canal ne transporte que l'alerte —
+     l'identifiant et le nouveau statut — la donnée affichée reste relue
+     depuis l'API, qui seule fait foi.
+
+     L'échec d'émission ne doit jamais faire échouer la transition : le
+     dossier est enregistré, l'affichage suivra au prochain rafraîchissement. */
+  try {
+    const concernees = await dossierModel.utilisateursConcernes(dossierId);
+    emitDossier(dossierId, toStatus, [...concernees, userId]);
+  } catch (e) {
+    console.warn('[temps réel] signal de dossier non émis :', e.message);
+  }
 
   return { dossierId, from: current, to: toStatus };
 }

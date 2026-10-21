@@ -146,6 +146,7 @@ export async function dossiersParDistrict(divisionId = null) {
   return db.query(
     `SELECT
        a.id AS antenne_id, a.code AS antenne_code, a.libelle AS antenne_libelle,
+       a.siege AS antenne_siege,
        di.id AS district_id, di.code AS district_code, di.libelle AS district_libelle,
        COUNT(*) AS total_dossiers,
        SUM(CASE WHEN s.code IN ('EN_TRAITEMENT') THEN 1 ELSE 0 END) AS en_cours,
@@ -188,7 +189,9 @@ export async function syntheseParAntenne(divisionId = null) {
         antenne_id: l.antenne_id,
         antenne_code: l.antenne_code,
         antenne_libelle: l.antenne_libelle,
-        siege: l.antenne_libelle ? undefined : undefined,
+        /* L'antenne siège est celle qui porte le service central : elle
+           se distingue des antennes locales, et la synthèse doit le dire. */
+        siege: Number(l.antenne_siege || 0) === 1,
         total: 0, en_cours: 0, en_retard: 0, districts: 0,
       });
     }

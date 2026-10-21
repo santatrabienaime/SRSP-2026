@@ -2,6 +2,8 @@ import * as model from '../models/depouillementModel.js';
 import * as historiqueModel from '../models/historiqueModel.js';
 import * as notificationService from './notificationService.js';
 import db from '../config/db.js';
+import { ETATS_PIECE, ETATS_PIECE_LABELS, ETATS_PIECE_VALIDES, ETATS_PIECE_A_MOTIVER } from '../utils/constants.js';
+import { httpError } from '../utils/httpError.js';
 
 /** Résout l'agent (agents.id) lié à l'utilisateur qui agit. */
 async function agentIdOf(userId) {
@@ -26,49 +28,60 @@ export async function getChecklist(dossierId) {
 
 /**
  * Enregistre l'état d'une pièce.
- * Journalise l'acte (dépouillement) et notifie le secrétaire si incomplet/pièces reçues.
+ *
+ * Une pièce qui n'est pas « présente » doit être motivée : « illisible » ou
+ * « à corriger » sans explication ne permet pas à l'agent de savoir quoi
+ * rapporter. Le motif est conservé et affiché dans la fiche.
  */
-export async function controlerPiece(dossierId, { piece, presente, observation }, userId) {
+export async function controlerPiece(
+  dossierId,
+  { piece, presente, etat, observation, motif },
+  userId
+) {
+  const etatFinal = etat
+    || (presente ? ETATS_PIECE.PRESENTE : ETATS_PIECE.MANQUANTE);
+
+  if (!Object.values(ETATS_PIECE).includes(etatFinal)) {
+    throw httpError(422, 'État de pièce invalide.');
+  }
+  if (ETATS_PIECE_A_MOTIVER.includes(etatFinal) && !String(motif || observation || '').trim()) {
+    throw httpError(
+      422,
+      `Une pièce « ${ETATS_PIECE_LABELS[etatFinal]} » doit être motivée.`
+    );
+  }
+
   const agentId = await agentIdOf(userId);
   const pieces = await model.savePiece({
     dossier_id: dossierId,
     piece,
-    presente,
+    presente: ETATS_PIECE_VALIDES.includes(etatFinal),
+    etat: etatFinal,
     observation,
+    motif,
     agent_id: agentId,
   });
 
   await historiqueModel.log({
     user_id: userId,
-    action: 'DEPOUILLEMENT',
+    action: 'DEPOUUILLEMENT',
     dossier_id: dossierId,
-    nouvelle_valeur: `${piece} : ${presente ? 'présente' : 'manquante'}`,
-    details: observation || null,
+    nouvelle_valeur: `${piece} : ${ETATS_PIECE_LABELS[etatFinal]}`,
+    details: motif || observation || null,
   });
 
-  // Après changement d'état d'une pièce, vérifier l'état d'incomplétude
+  // Après changement d'état d'une pièce, vérifier l'état d'incomplétude.
   const resume = await model.getResume(dossierId);
 
-  if (!presente) {
-    // Pièce marquée manquante : vérifier si le dossier devient incomplet
-    const manquantesObligatoires = resume.pieces
-      .filter((p) => p.obligatoire === 1 && p.presente === 0)
-      .map((p) => p.libelle);
+  if (!ETATS_PIECE_VALIDES.includes(etatFinal)) {
+    const manquantesObligatoires = resume.pieces_a_traiter.map((p) => p.libelle);
     if (manquantesObligatoires.length > 0) {
       await notificationService.notifyDossierIncomplet(dossierId, manquantesObligatoires);
     }
   } else {
-    // Pièce marquée présente : vérifier si c'était la dernière manquante
-    const manquantesObligatoires = resume.pieces
-      .filter((p) => p.obligatoire === 1 && p.presente === 0)
-      .map((p) => p.libelle);
-    if (manquantesObligatoires.length === 0) {
-      // Plus aucune pièce obligatoire manquante : toutes reçues
-      await notificationService.notifyPiecesRecues(dossierId, [piece]);
-    } else {
-      // Pièces reçues mais il en reste : notifier la réception de cette pièce
-      await notificationService.notifyPiecesRecues(dossierId, [piece]);
-    }
+    // Une pièce reçue est signalée au secrétariat, qu'il en reste ou non :
+    // c'est le retour attendu par la personne qui a déposé le complément.
+    await notificationService.notifyPiecesRecues(dossierId, [piece]);
   }
 
   return { dossier_id: Number(dossierId), resume, pieces };

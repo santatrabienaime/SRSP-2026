@@ -1,4 +1,6 @@
 import * as dossierService from '../services/dossierService.js';
+import * as prochaineActionService from '../services/prochaineActionService.js';
+import * as bordereauModel from '../models/bordereauModel.js';
 import { genererFicheReception } from '../services/pdfService.js';
 
 export async function list(req, res, next) {
@@ -63,6 +65,13 @@ export async function traiter(req, res, next) {
   try {
     await dossierService.traiter(req.params.id, req.body, req.user.id);
     res.json({ message: 'Dossier en traitement.' });
+  } catch (error) { next(error); }
+}
+
+export async function demanderComplement(req, res, next) {
+  try {
+    await dossierService.demanderComplement(req.params.id, req.body, req.user.id);
+    res.json({ message: 'Complément demandé.' });
   } catch (error) { next(error); }
 }
 
@@ -156,8 +165,31 @@ export async function archiver(req, res, next) {
 
 export async function remove(req, res, next) {
   try {
-    await dossierService.deleteDossier(req.params.id, req.user.id);
-    res.status(204).send();
+    const resultat = await dossierService.deleteDossier(req.params.id, req.user.id, req.body?.motif);
+    // 200 et non 204 : la réponse porte la confirmation et le rappel de la
+    // trace conservée, que l'écran affiche à l'administrateur.
+    res.json(resultat);
+  } catch (error) { next(error); }
+}
+
+/**
+ * Trace des suppressions de dossiers.
+ *
+ * Ces dossiers n'existent plus : sans cette table, leur suppression serait
+ * muette. La trace reste consultable par l'audit, avec son motif et
+ * l'instantané du journal.
+ */
+export async function suppressions(req, res, next) {
+  try {
+    res.json(await dossierService.listSuppressions({ limite: req.query.limite }));
+  } catch (error) { next(error); }
+}
+
+export async function suppression(req, res, next) {
+  try {
+    const ligne = await dossierService.getSuppression(req.params.id);
+    if (!ligne) return res.status(404).json({ message: 'Suppression introuvable.' });
+    res.json(ligne);
   } catch (error) { next(error); }
 }
 
@@ -175,6 +207,38 @@ export async function tracabilite(req, res, next) {
     if (!dossier) return res.status(404).json({ message: 'Dossier introuvable.' });
     const timeline = await dossierService.getTracabilite(req.params.id);
     res.json(timeline);
+  } catch (error) { next(error); }
+}
+
+/**
+ * « À faire ensuite » : la prochaine action du dossier, et l'acteur qui doit
+ * l'accomplir. La règle est calculée par le service, en un seul endroit.
+ */
+export async function prochaineAction(req, res, next) {
+  try {
+    const dossier = await dossierService.getDossierById(req.params.id);
+    if (!dossier) return res.status(404).json({ message: 'Dossier introuvable.' });
+    res.json(await prochaineActionService.prochaineAction(dossier, req.user));
+  } catch (error) { next(error); }
+}
+
+/**
+ * Transmissions du dossier : bordereaux, expéditeur, destinataire, date et
+ * référence. C'est l'historique des passages d'un dossier d'un service à
+ * l'autre, sans avoir à chercher dans plusieurs registres.
+ */
+export async function transmissions(req, res, next) {
+  try {
+    const dossier = await dossierService.getDossierById(req.params.id);
+    if (!dossier) return res.status(404).json({ message: 'Dossier introuvable.' });
+    res.json(await bordereauModel.transmissionsDossier(req.params.id));
+  } catch (error) { next(error); }
+}
+
+/** Publication d'un brouillon : il entre dans le circuit. */
+export async function publier(req, res, next) {
+  try {
+    res.json(await dossierService.publier(req.params.id, req.user.id));
   } catch (error) { next(error); }
 }
 

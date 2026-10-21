@@ -1,6 +1,7 @@
 import express from 'express';
 import * as ctrl from '../controllers/referentielController.js';
 import * as crudCtrl from '../controllers/referentielCrudController.js';
+import * as schemaCtrl from '../controllers/schemaOperationController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { rbacMiddleware } from '../middlewares/rbacMiddleware.js';
 
@@ -17,19 +18,48 @@ router.use(authMiddleware);
    lisible : `/referentiel` est le premier appel que fait un formulaire. */
 router.get('/', ctrl.getReferentiel);
 router.get('/service', ctrl.service);
-router.get('/fonctions', ctrl.lister);
+/* Le registre de conformité : les exigences du cahier, une par une, avec
+   leur état. La route s'appelait « /fonctions », ce qui se confondait avec
+   les fonctions d'emploi du personnel — deux choses sans rapport, dans le
+   même écran. Elle porte le même contrôle que le bilan : ce registre dit ce
+   qui manque, et il n'est pas public. */
+router.get('/conformite', rbacMiddleware(['view_audit', 'consolidate_reports']), ctrl.lister);
 router.get('/bilan', rbacMiddleware(['view_audit', 'consolidate_reports']), ctrl.bilan);
-router.get('/postes', ctrl.postes);
+router.get('/postes', rbacMiddleware(['view_audit', 'consolidate_reports']), ctrl.postes);
 
 // CRUD types de dossiers
 router.get('/types-dossiers', crudCtrl.listTypesDossiers);
 router.post('/types-dossiers', rbacMiddleware('manage_divisions'), crudCtrl.createTypeDossier);
 router.delete('/types-dossiers/:id', rbacMiddleware('manage_divisions'), crudCtrl.deleteTypeDossier);
 
-// CRUD types de pieces
+/* Sous-types de dossiers (types d'acte). La lecture est ouverte aux
+   formulaires ; l'écriture demande `gerer_sous_types`, permission distincte de
+   l'administration technique des divisions. */
+router.get('/sous-types', crudCtrl.listSousTypes);
+router.post('/sous-types', rbacMiddleware('gerer_sous_types'), crudCtrl.createSousType);
+router.put('/sous-types/:id', rbacMiddleware('gerer_sous_types'), crudCtrl.updateSousType);
+router.delete('/sous-types/:id', rbacMiddleware('gerer_sous_types'), crudCtrl.deleteSousType);
+
+/* Types de pièces requises. La lecture sert au formulaire et au dépouillement ;
+   l'écriture demande `configurer_pieces`. La suppression désactive la pièce au
+   lieu de l'effacer, pour que les contrôles passés restent lisibles. */
 router.get('/types-pieces', crudCtrl.listTypesPieces);
-router.post('/types-pieces', rbacMiddleware('manage_divisions'), crudCtrl.createTypePiece);
-router.delete('/types-pieces/:id', rbacMiddleware('manage_divisions'), crudCtrl.deleteTypePiece);
+router.post('/types-pieces', rbacMiddleware('configurer_pieces'), crudCtrl.createTypePiece);
+router.put('/types-pieces/:id', rbacMiddleware('configurer_pieces'), crudCtrl.updateTypePiece);
+router.delete('/types-pieces/:id', rbacMiddleware('configurer_pieces'), crudCtrl.deleteTypePiece);
+
+/* Schémas de données par type d'opération.
+   Un schéma décrit les champs que l'agent saisit pour une opération : c'est
+   ce qui permet au SRSP de faire évoluer ses formulaires sans développement. */
+router.get('/schemas-operations', rbacMiddleware('configurer_operations'), schemaCtrl.lister);
+router.put(
+  '/schemas-operations/:id',
+  rbacMiddleware('configurer_operations'),
+  schemaCtrl.remplacer
+);
+/* Retirer un champ un par un n'a pas d'intérêt : l'écran prépare le
+   schéma complet et l'enregistre en une fois. Un second chemin pour la même
+   action risquerait de laisser le schéma à moitié configuré. */
 
 /* CRUD types de courriers. La lecture est ouverte au même titre que les autres
    données de référence : le formulaire de courrier en a besoin. L'écriture

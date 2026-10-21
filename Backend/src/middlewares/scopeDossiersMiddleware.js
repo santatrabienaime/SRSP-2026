@@ -52,6 +52,16 @@ export async function scopeDossiersMiddleware(req, res, next) {
       req.user.id
     );
 
+    /* Brouillons : la liste des brouillons ne montre que ceux de l'agent
+       connecté. Le filtre est posé ici, sur le serveur : une liste de
+       brouillons qui laisserait voir ceux des autres n'aurait aucun sens —
+       un brouillon est une saisie en cours. */
+    if (req.query.brouillon) {
+      req.query.auteur_id = req.user.id;
+      req.query.brouillon = '1';
+      return next();
+    }
+
     // Chef de division : accès métier large (view_all_dossiers), mais
     // cloisonnement sur SA division. Sans ce filtre, un chef de division Visa
     // voyait les dossiers Pension et Solde, ce que le document interdit
@@ -126,6 +136,21 @@ export async function assertDossierAccessMiddleware(req, res, next) {
     const { permissions, roleNom, agentId, divisionId } = await resoudrePerimetre(
       req.user.id
     );
+
+    /* Un brouillon appartient à son seul auteur : ni le chef de division, ni
+       l'administrateur technique n'ont à le voir dans le circuit. L'agent
+       qui l'a saisi, lui, doit pouvoir le retrouver et le terminer. */
+    const [statutCourant] = await db.query(
+      `SELECT s.code, d.created_by FROM dossiers d
+       JOIN statuts_dossiers s ON s.id = d.statut_id
+       WHERE d.id = ?`,
+      [req.params.id]
+    );
+    if (statutCourant?.code === 'BROUILLON' && Number(statutCourant.created_by) !== Number(req.user.id)) {
+      return res.status(403).json({
+        message: 'Accès refusé : ce brouillon n’est visible que de son auteur.',
+      });
+    }
 
     // Même cloisonnement que scopeDossiersMiddleware : un chef de division
     // n'ouvre pas un dossier d'une autre division en devinant son identifiant.

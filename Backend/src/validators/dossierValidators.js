@@ -93,6 +93,22 @@ export const createDossierSchema = Joi.object({
     'any.required': 'La priorité est requise',
   }),
   observation: Joi.string().allow('', null).max(2000),
+  /* Enregistrement en brouillon : le dossier est enregistré mais n'entre pas
+     dans le circuit. Il ne reste visible que de son auteur. */
+  brouillon: Joi.boolean().allow('', null, 0, 1, 'true', 'false'),
+  // Référentiel VISA : sous-type (type d'acte) configurable, et données de la
+  // fiche de réception. Les champs VISA réellement obligatoires sont contrôlés
+  // par le service après lecture du type, car ils ne concernent que le VISA.
+  sous_type_id: Joi.number().integer().allow(null, ''),
+  reference_visa: Joi.string().trim().allow('', null).max(50),
+  date_heure_reception: Joi.date().iso().allow(null),
+  origine_presentateur: Joi.string().trim().allow('', null).max(255),
+  comptable_presentateur: Joi.string().trim().allow('', null).max(255),
+  type_acte: Joi.string().trim().allow('', null).max(150),
+  annee_reference: Joi.number().integer().min(2000).max(2100).allow(null, ''),
+  beneficiaire: Joi.string().trim().allow('', null).max(200),
+  organisme: Joi.string().trim().allow('', null).max(200),
+  verificateur_id: Joi.number().integer().allow(null, ''),
   date_limite: Joi.date().iso().allow('', null)
     .when('date_reception', {
       // La date limite n'a de sens que par rapport à la date de réception :
@@ -123,6 +139,17 @@ export const updateDossierSchema = Joi.object({
   division_id: Joi.number().integer().allow(null, ''),
   priorite_id: Joi.number().integer().required(),
   observation: Joi.string().allow('', null),
+  // Référentiel VISA (voir createDossierSchema).
+  sous_type_id: Joi.number().integer().allow(null, ''),
+  reference_visa: Joi.string().trim().allow('', null).max(50),
+  date_heure_reception: Joi.date().iso().allow(null),
+  origine_presentateur: Joi.string().trim().allow('', null).max(255),
+  comptable_presentateur: Joi.string().trim().allow('', null).max(255),
+  type_acte: Joi.string().trim().allow('', null).max(150),
+  annee_reference: Joi.number().integer().min(2000).max(2100).allow(null, ''),
+  beneficiaire: Joi.string().trim().allow('', null).max(200),
+  organisme: Joi.string().trim().allow('', null).max(200),
+  verificateur_id: Joi.number().integer().allow(null, ''),
   // Règle 3 : motif obligatoire pour une dérogation de division.
   motif_changement_division: Joi.string().allow('', null),
 }).unknown(true);

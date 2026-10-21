@@ -58,3 +58,17 @@ export async function secretaireKPIs(req, res, next) {
     res.json(kpis);
   } catch (e) { next(e); }
 }
+
+export async function boiteTravail(req, res, next) {
+  try {
+    const scope = await scopeService.getScope(req.user.id);
+    res.json({
+      ...(await dashboardService.getBoiteTravail(scope)),
+      perimetre: {
+        type: scope.agentScoped ? 'AGENT' : scope.divisionScoped ? 'DIVISION' : 'GLOBAL',
+        libelle: scopeService.libellePerimetre(scope),
+        role: scope.roleNom,
+      },
+    });
+  } catch (e) { next(e); }
+}

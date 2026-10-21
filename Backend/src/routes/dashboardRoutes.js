@@ -11,5 +11,6 @@ router.get('/by-status', ctrl.byStatus);
 router.get('/evolution', ctrl.evolution);
 router.get('/ressources', ctrl.ressources);
 router.get('/secretaire-kpis', ctrl.secretaireKPIs);
+router.get('/boite-travail', ctrl.boiteTravail);
 
 export default router;

@@ -89,3 +89,43 @@ export async function statsParTypePeriodeDivisionPdf(req, res, next) {
 export async function statsParTypePeriodeDivisionExcel(req, res, next) {
   try { await rapportService.excelStatsParTypePeriodeDivision(res, req.query); } catch (e) { next(e); }
 }
+
+// 11. Dossiers VISA (période mensuelle, trimestrielle ou annuelle)
+export async function visaPdf(req, res, next) {
+  try { await rapportService.pdfVisa(res, req.query); } catch (e) { next(e); }
+}
+export async function visaExcel(req, res, next) {
+  try { await rapportService.excelVisa(res, req.query); } catch (e) { next(e); }
+}
+
+// 12. Dossiers VISA par vérificateur
+export async function visaParVerificateurPdf(req, res, next) {
+  try { await rapportService.pdfVisaParVerificateur(res, req.query); } catch (e) { next(e); }
+}
+export async function visaParVerificateurExcel(req, res, next) {
+  try { await rapportService.excelVisaParVerificateur(res, req.query); } catch (e) { next(e); }
+}
+
+// 13. Opérations par division
+export async function operationDivisionPdf(req, res, next) {
+  try { await rapportService.pdfOperationDivision(res, req.query); } catch (e) { next(e); }
+}
+export async function operationDivisionExcel(req, res, next) {
+  try { await rapportService.excelOperationDivision(res, req.query); } catch (e) { next(e); }
+}
+
+// 14. Opérations par division et par type
+export async function operationParTypePdf(req, res, next) {
+  try { await rapportService.pdfOperationParType(res, req.query); } catch (e) { next(e); }
+}
+export async function operationParTypeExcel(req, res, next) {
+  try { await rapportService.excelOperationParType(res, req.query); } catch (e) { next(e); }
+}
+
+// 15. Suivi des dossiers Secours de décès
+export async function secoursPdf(req, res, next) {
+  try { await rapportService.pdfSecours(res, req.query); } catch (e) { next(e); }
+}
+export async function secoursExcel(req, res, next) {
+  try { await rapportService.excelSecours(res, req.query); } catch (e) { next(e); }
+}

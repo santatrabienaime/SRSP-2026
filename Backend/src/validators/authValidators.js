@@ -37,6 +37,46 @@ export const changePasswordSchema = Joi.object({
   nouveau_mot_de_passe: motDePasseFort.required(),
 });
 
+/**
+ * Demande de réinitialisation.
+ *
+ * `identifiant` est le nom d'utilisateur ou l'e-mail. Le champ est volontairement
+ * large : c'est le service qui décide si un compte correspond, et sa réponse
+ * ne doit rien révéler.
+ */
+export const forgotPasswordSchema = Joi.object({
+  identifiant: Joi.string().trim().max(255).required().messages({
+    'any.required': "L'identifiant est requis",
+    'string.empty': "L'identifiant est requis",
+  }),
+}).unknown(false);
+
+/**
+ * Consommation du code de réinitialisation.
+ *
+ * Le code est composé de six chiffres ; le message d'erreur ne distingue pas
+ * un code faux d'un code expiré.
+ */
+export const resetPasswordSchema = Joi.object({
+  identifiant: Joi.string().trim().max(255).required().messages({
+    'any.required': "L'identifiant est requis",
+    'string.empty': "L'identifiant est requis",
+  }),
+  code: Joi.string().trim().length(6).pattern(/^[0-9]{6}$/).required().messages({
+    'any.required': 'Le code est requis',
+    'string.length': 'Le code comporte six chiffres.',
+    'string.pattern.base': 'Le code comporte six chiffres.',
+  }),
+  nouveau_mot_de_passe: motDePasseFort.required().messages({
+    'any.required': 'Le nouveau mot de passe est requis',
+  }),
+}).unknown(false);
+
+/** Motif de l'annulation d'une demande (administrateur). */
+export const annulationDemandeSchema = Joi.object({
+  motif: Joi.string().trim().allow('', null).max(500),
+}).unknown(false);
+
 /** Schéma de création de compte : applique la même politique. */
 export const userPasswordSchema = Joi.object({
   password: motDePasseFort.required(),

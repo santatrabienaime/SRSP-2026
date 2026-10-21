@@ -1,4 +1,5 @@
 import db from '../config/db.js';
+import { invaliderCacheSession } from '../utils/sessionCache.js';
 import { FICHE_DU_COMPTE } from './joins.js';
 
 export async function findUserById(id) {
@@ -70,23 +71,34 @@ export async function updateUser(id, { email, role_id, actif }) {
 
 export async function updatePassword(id, password_hash) {
   // Le changement de mot de passe relance le delai de renouvellement (1.5).
+  // NOW(3) : la colonne est en millisecondes, et la comparaison avec
+  // l'instant d'émission du jeton doit être exacte.
   await db.query(
-    'UPDATE users SET password_hash = ?, mot_de_passe_change_le = NOW() WHERE id = ?',
+    'UPDATE users SET password_hash = ?, mot_de_passe_change_le = NOW(3) WHERE id = ?',
     [password_hash, id]
   );
+  /* Le mot de passe vient de changer : les sessions ouvertes sur ce compte
+     doivent mourir immédiatement. Le cache d'état de compte est donc vidé
+     dans la foulée — sans cela, la révocation ne prendrait effet qu'à
+     l'expiration de l'entrée de cache, dix secondes plus tard. */
+  invaliderCacheSession(id);
 }
 
 export async function toggleUser(id) {
   await db.query('UPDATE users SET actif = NOT actif WHERE id = ?', [id]);
+  /* Une désactivation doit couper les sessions ouvertes sans attendre. */
+  invaliderCacheSession(id);
   return findUserById(id);
 }
 
 export async function setActif(id, actif) {
   await db.query('UPDATE users SET actif = ? WHERE id = ?', [actif ? 1 : 0, id]);
+  invaliderCacheSession(id);
 }
 
 export async function deleteUser(id) {
   await db.query('DELETE FROM users WHERE id = ?', [id]);
+  invaliderCacheSession(id);
 }
 
 export async function updateLastConnection(id) {

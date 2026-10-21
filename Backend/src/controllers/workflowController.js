@@ -1,15 +1,8 @@
 import * as workflowService from '../services/workflowService.js';
 
-export async function getStatus(req, res, next) {
-  try {
-    const status = await workflowService.getCurrentStatus(req.params.id);
-    if (!status) return res.status(404).json({ message: 'Dossier introuvable.' });
-    res.json({
-      statut: status,
-      transitions_autorisees: workflowService.getAllowedTransitions(status),
-    });
-  } catch (e) { next(e); }
-}
+/* Le statut se lit par `GET /dossiers/:id/statut` : c'est le même service et
+   la même réponse. Ce doublon pouvait diverger du point d'entrée retenu sans
+   qu'on s'en aperçoive. */
 
 export async function transition(req, res, next) {
   try {

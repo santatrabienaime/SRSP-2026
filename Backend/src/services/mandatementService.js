@@ -224,3 +224,27 @@ export async function creerCorrespondance(data, userId) {
   });
   return res;
 }
+
+/**
+ * Met à jour le suivi d'une correspondance.
+ *
+ * C'est ce qui permet de tracer une opposition ou des derniers arrérages
+ * jusqu'au niveau central : la référence, l'état de réponse, la date de
+ * transmission, le destinataire central et l'état de réception.
+ */
+export async function mettreAJourCorrespondance(id, data, userId) {
+  const res = await model.updateCorrespondance(id, data);
+  if (!res) throw httpError(404, 'Correspondance introuvable.');
+  await historiqueModel.log({
+    user_id: userId,
+    action: 'CORRESPONDANCE_SUIVI',
+    dossier_id: res.dossier_id || null,
+    nouvelle_valeur: model.TYPES_CORRESPONDANCE[res.type] || res.type,
+    details: data.etat_reponse
+      ? `État de réponse : ${data.etat_reponse}.`
+      : data.etat_reception_central
+        ? `Réception centrale : ${data.etat_reception_central}.`
+        : 'Suivi de la correspondance mis à jour.',
+  });
+  return res;
+}

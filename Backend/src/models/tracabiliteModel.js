@@ -19,11 +19,21 @@ import db from '../config/db.js';
 /* Écritures                                                          */
 /* ------------------------------------------------------------------ */
 
-export async function insertAffectation({ dossier_id, division_id, agent_id, motif }) {
+export async function insertAffectation({
+  dossier_id, division_id, agent_id, ancien_agent_id, motif, auteur_id,
+}) {
   await db.query(
-    `INSERT INTO affectations (dossier_id, division_id, agent_id, motif)
-     VALUES (?, ?, ?, ?)`,
-    [dossier_id, division_id || null, agent_id || null, motif || null]
+    `INSERT INTO affectations
+       (dossier_id, division_id, agent_id, ancien_agent_id, motif, auteur_id)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      dossier_id,
+      division_id || null,
+      agent_id || null,
+      ancien_agent_id || null,
+      motif || null,
+      auteur_id || null,
+    ]
   );
 }
 
@@ -103,9 +113,13 @@ const agentName = (row) => `${row.agent_prenom || ''} ${row.agent_nom || ''}`.tr
 export async function getTimeline(dossier_id) {
   const [affectations, transferts, traitements, verifications, validations] = await Promise.all([
     db.query(
-      `SELECT a.*, ag.nom AS agent_nom, ag.prenom AS agent_prenom, d.nom AS division_nom
+      `SELECT a.*, ag.nom AS agent_nom, ag.prenom AS agent_prenom,
+              anc.nom AS ancien_nom, anc.prenom AS ancien_prenom,
+              aut.username AS auteur_username, d.nom AS division_nom
        FROM affectations a
        LEFT JOIN agents ag ON ag.id = a.agent_id
+       LEFT JOIN agents anc ON anc.id = a.ancien_agent_id
+       LEFT JOIN users aut ON aut.id = a.auteur_id
        LEFT JOIN divisions d ON d.id = a.division_id
        WHERE a.dossier_id = ?
        ORDER BY a.date_affectation ASC`,
@@ -153,9 +167,13 @@ export async function getTimeline(dossier_id) {
     acts.push({
       type: 'AFFECTATION',
       date: a.date_affectation,
-      acteur: agentName(a),
+      acteur: a.auteur_username || agentName(a),
       detail: [
         a.division_nom ? `Division : ${a.division_nom}` : null,
+        a.ancien_nom
+          ? `De ${a.ancien_prenom || ''} ${a.ancien_nom}`.trim()
+          : null,
+        `Vers ${agentName(a)}`.trim(),
         a.motif,
       ].filter(Boolean).join(' — '),
     });

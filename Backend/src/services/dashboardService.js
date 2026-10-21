@@ -1,5 +1,7 @@
 import db from '../config/db.js';
-import { filterFor } from './scopeService.js';
+import {
+  filterFor, perimetrePour, HORS_STATUT_BROUILLON,
+} from './scopeService.js';
 
 /**
  * Agrégats du tableau de bord, restreints au périmètre de l'utilisateur.
@@ -8,47 +10,152 @@ import { filterFor } from './scopeService.js';
 
 const CODES = [
   'RECU', 'ENREGISTRE', 'ORIENTE', 'AFFECTE', 'EN_TRAITEMENT',
-  'SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE', 'VALIDE', 'SIGNE',
-  'CLOTURE', 'ARCHIVE',
+  'EN_ATTENTE_COMPLEMENT', 'SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE',
+  'VALIDE', 'SIGNE', 'CLOTURE', 'ARCHIVE',
 ];
+
+/** Condition SQL d'incomplétude : une pièce obligatoire non « présente ». */
+const CONDITION_INCOMPLET = `EXISTS (
+  SELECT 1 FROM types_pieces tp
+  WHERE tp.obligatoire = 1
+    AND tp.phase = 'DEPOUILLEMENT'
+    AND (tp.type_dossier_id IS NULL OR tp.type_dossier_id = d.type_id)
+    AND (tp.sous_type_id IS NULL OR tp.sous_type_id = d.sous_type_id)
+    AND NOT EXISTS (
+      SELECT 1 FROM depouillements dp
+      WHERE dp.dossier_id = d.id AND dp.piece = tp.code AND dp.etat = 'PRESENTE'
+    )
+)`;
+
+/**
+ * Condition « à traiter par moi », adaptée au rôle.
+ *
+ * Pour un agent, c'est le travail affecté qui n'est pas terminé. Pour un chef
+ * de division, ce sont les dossiers soumis à sa vérification ; pour le chef de
+ * service, ceux qui attendent sa signature ; pour le secrétariat, les dossiers
+ * à enregistrer ou orienter. Le tableau de bord ne doit pas appeler « à traiter
+ * par moi » une file que l'utilisateur ne peut pas traiter.
+ */
+function conditionATraiter(scope) {
+  if (scope.agentScoped && scope.agentId) {
+    return {
+      where: ` AND d.agent_responsable_id = ?
+               AND s.code IN ('AFFECTE', 'EN_TRAITEMENT', 'CORRECTION_DEMANDEE')`,
+      params: [scope.agentId],
+    };
+  }
+  if (scope.roleNom === 'CHEF_SERVICE') {
+    return { where: ` AND s.code = 'VALIDE'`, params: [] };
+  }
+  if (scope.roleNom?.startsWith('CHEF_DIVISION_')) {
+    return { where: ` AND s.code = 'SOUMIS_A_VERIFICATION'`, params: [] };
+  }
+  if (scope.roleNom === 'SECRETAIRE') {
+    return {
+      where: ` AND s.code IN ('RECU', 'ENREGISTRE', 'ORIENTE')`,
+      params: [],
+    };
+  }
+  if (scope.agentId) {
+    return {
+      where: ` AND d.agent_responsable_id = ?
+               AND s.code NOT IN ('CLOTURE', 'ARCHIVE')`,
+      params: [scope.agentId],
+    };
+  }
+  return { where: ` AND s.code NOT IN ('CLOTURE', 'ARCHIVE')`, params: [] };
+}
 
 export async function getSummary(scope) {
   const f = await filterFor(scope);
 
   const [total] = await db.query(
-    `SELECT COUNT(*) AS total FROM dossiers d WHERE 1=1${f.where}`,
+    `SELECT COUNT(*) AS total
+     FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE 1=1${f.where}`,
     f.params
   );
 
   const stats = { total: total.total };
 
-  // Un seul aller-retour pour tous les statuts.
+  /* Un seul aller-retour pour tous les statuts.
+     La répartition porte sur des **statuts** : c'est le pseudo-statut
+     BROUILLON qu'on retire de la liste, et non les dossiers qu'il contient.
+     Les statuts sans dossier restent listés, avec un total nul — le
+     tableau doit montrer le circuit complet, pas seulement ce qui est
+     occupé aujourd'hui. */
+  const perimetre = await perimetrePour(scope);
   const rows = await db.query(
     `SELECT s.code, COUNT(d.id) AS total
      FROM statuts_dossiers s
      LEFT JOIN dossiers d ON d.statut_id = s.id
-     WHERE 1=1${f.where}
+     WHERE 1=1${perimetre.where}${HORS_STATUT_BROUILLON}
      GROUP BY s.id, s.code`,
-    f.params
+    perimetre.params
   );
   const parCode = Object.fromEntries(rows.map((r) => [r.code, r.total]));
   for (const code of CODES) stats[code] = parCode[code] || 0;
 
-  // Dossiers en retard : en attente depuis plus de 30 jours, non clôturés.
-  const [retard] = await db.query(
+  /* Ancienneté des dossiers ouverts, en tranches. Le cahier des charges ne
+     valide pas de délai : on affiche l'âge réel, on ne qualifie pas
+     arbitrairement un dossier de « en retard ». */
+  const [ages] = await db.query(
+    `SELECT
+       COALESCE(SUM(DATEDIFF(CURDATE(), DATE(d.date_reception)) < 7), 0) AS moins_7,
+       COALESCE(SUM(DATEDIFF(CURDATE(), DATE(d.date_reception)) BETWEEN 7 AND 30), 0) AS de_7_a_30,
+       COALESCE(SUM(DATEDIFF(CURDATE(), DATE(d.date_reception)) BETWEEN 31 AND 90), 0) AS de_31_a_90,
+       COALESCE(SUM(DATEDIFF(CURDATE(), DATE(d.date_reception)) > 90), 0) AS plus_90,
+       COALESCE(ROUND(AVG(DATEDIFF(CURDATE(), DATE(d.date_reception)))), 0) AS age_moyen
+     FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE s.code NOT IN ('CLOTURE', 'ARCHIVE')${f.where}`,
+    f.params
+  );
+  stats.anciennete = {
+    moins_7_jours: Number(ages.moins_7),
+    de_7_a_30_jours: Number(ages.de_7_a_30),
+    de_31_a_90_jours: Number(ages.de_31_a_90),
+    plus_90_jours: Number(ages.plus_90),
+    age_moyen_jours: Number(ages.age_moyen),
+  };
+  // Conservé pour les anciens écrans ; il désigne désormais la tranche > 30 j.
+  stats.enRetard = stats.anciennete.de_31_a_90_jours + stats.anciennete.plus_90_jours;
+
+  const [incomplets] = await db.query(
     `SELECT COUNT(*) AS total FROM dossiers d
      JOIN statuts_dossiers s ON d.statut_id = s.id
      WHERE s.code NOT IN ('CLOTURE', 'ARCHIVE')
-       AND d.date_reception < DATE_SUB(CURDATE(), INTERVAL 30 DAY)${f.where}`,
+       AND ${CONDITION_INCOMPLET}${f.where}`,
     f.params
   );
-  stats.enRetard = retard.total;
+  stats.incomplets = Number(incomplets.total);
+
+  const [cloturesRecents] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE s.code IN ('CLOTURE', 'ARCHIVE')
+       AND COALESCE(d.date_cloture, d.date_archivage, d.updated_at)
+           >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)${f.where}`,
+    f.params
+  );
+  stats.cloturesRecents = Number(cloturesRecents.total);
+
+  const aTraiter = conditionATraiter(scope);
+  const [aTraiterParMoi] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE 1=1${f.where}${aTraiter.where}`,
+    [...f.params, ...aTraiter.params]
+  );
+  stats.aTraiterParMoi = Number(aTraiterParMoi.total);
 
   // Dossiers prioritaires : priorité haute ou urgente (niveau 3 ou 4).
   // Le triage de la liste des dossiers affiche ce même ensemble, le compteur
   // doit donc provenir de la même règle pour ne pas contredire la liste.
   const [prioritaires] = await db.query(
     `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
      JOIN priorites p ON d.priorite_id = p.id
      WHERE p.niveau >= 3${f.where}`,
     f.params
@@ -59,11 +166,23 @@ export async function getSummary(scope) {
 }
 
 export async function getByDivision(scope) {
-  const f = await filterFor(scope);
+  /* Cette requête part des **divisions** et joint les dossiers à gauche :
+     une division sans dossier doit rester visible, avec un total nul. La
+     règle « hors brouillons » est donc appliquée dans la clause ON — sinon
+     elle filtrerait la division entière, et le tableau mentirait sur
+     l'existence d'une division sans aucun dossier.
+
+     C'est pour cela que la règle est exprimée sur `d.statut_id` et non sur un
+     alias de table : elle s'applique aussi bien ici, dans la clause ON, que
+     dans les requêtes qui comptent les dossiers, dans la clause WHERE. */
+  const f = await perimetrePour(scope);
   return db.query(
     `SELECT dv.nom AS division, COUNT(d.id) AS total
      FROM divisions dv
-     LEFT JOIN dossiers d ON d.division_id = dv.id
+     LEFT JOIN dossiers d
+       ON d.division_id = dv.id
+      AND d.statut_id <> COALESCE(
+            (SELECT id FROM statuts_dossiers WHERE code = 'BROUILLON'), -1)
      WHERE 1=1${f.where}
      GROUP BY dv.id, dv.nom
      ORDER BY dv.nom`,
@@ -72,15 +191,18 @@ export async function getByDivision(scope) {
 }
 
 export async function getByStatus(scope) {
-  const f = await filterFor(scope);
+  /* Comme le compteur de statuts du résumé : on liste des statuts, donc on
+     retire le pseudo-statut BROUILLON, et les statuts sans dossier restent
+     listés avec un total nul. */
+  const perimetre = await perimetrePour(scope);
   return db.query(
     `SELECT s.code, s.libelle AS statut, COUNT(d.id) AS total
      FROM statuts_dossiers s
      LEFT JOIN dossiers d ON d.statut_id = s.id
-     WHERE 1=1${f.where}
+     WHERE 1=1${perimetre.where}${HORS_STATUT_BROUILLON}
      GROUP BY s.id, s.code, s.libelle
      ORDER BY s.ordre`,
-    f.params
+    perimetre.params
   );
 }
 
@@ -89,6 +211,7 @@ export async function getEvolution(scope) {
   return db.query(
     `SELECT DATE_FORMAT(d.date_reception, '%Y-%m') AS mois, COUNT(*) AS total
      FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
      WHERE 1=1${f.where}
      GROUP BY mois
      ORDER BY mois ASC
@@ -115,6 +238,111 @@ export async function getRessources() {
 }
 
 /**
+ * Boîte de travail : les quatre files que le tableau de bord doit montrer.
+ *
+ * « À traiter par moi », « En attente de validation », « Incomplets » et
+ * « Clôturés récemment » sont calculés dans le périmètre de l'utilisateur, avec
+ * un aperçu des dossiers concernés et un total. Les liens de l'interface
+ * renvoient vers la liste filtrée correspondante.
+ */
+const SELECT_BOITE = `
+  SELECT d.id, d.numero, d.reference_visa, d.objet, d.demandeur,
+         d.date_reception, d.date_heure_reception,
+         DATEDIFF(CURDATE(), DATE(d.date_reception)) AS age_jours,
+         t.code AS type_code, t.libelle AS type_libelle,
+         s.code AS statut_code, s.libelle AS statut_libelle,
+         dv.nom AS division_nom,
+         a.nom AS agent_nom, a.prenom AS agent_prenom
+  FROM dossiers d
+  JOIN types_dossiers t ON t.id = d.type_id
+  JOIN statuts_dossiers s ON d.statut_id = s.id
+  JOIN divisions dv ON dv.id = d.division_id
+  JOIN priorites p ON p.id = d.priorite_id
+  LEFT JOIN agents a ON a.id = d.agent_responsable_id
+`;
+
+async function fileDossiers(scope, condition, params, limit = 8) {
+  const f = await filterFor(scope);
+  const dossiers = await db.query(
+    `${SELECT_BOITE}
+     WHERE 1=1${f.where}${condition}
+     ORDER BY p.niveau DESC, d.date_reception ASC, d.id ASC
+     LIMIT ?`,
+    [...f.params, ...params, Number(limit)]
+  );
+  const [total] = await db.query(
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE 1=1${f.where}${condition}`,
+    [...f.params, ...params]
+  );
+  return { total: Number(total.total), dossiers };
+}
+
+export async function getBoiteTravail(scope) {
+  const aTraiter = conditionATraiter(scope);
+
+  const [aTraiterParMoi, enAttenteValidation, incomplets, cloturesRecents] =
+    await Promise.all([
+      fileDossiers(scope, aTraiter.where, aTraiter.params),
+      fileDossiers(scope, ` AND s.code = 'SOUMIS_A_VERIFICATION'`, []),
+      fileDossiers(
+        scope,
+        ` AND s.code NOT IN ('CLOTURE', 'ARCHIVE') AND ${CONDITION_INCOMPLET}`,
+        []
+      ),
+      fileDossiers(
+        scope,
+        ` AND s.code IN ('CLOTURE', 'ARCHIVE')
+          AND COALESCE(d.date_cloture, d.date_archivage, d.updated_at)
+              >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`,
+        []
+      ),
+    ]);
+
+  const f = await filterFor(scope);
+  const [lignesCategories, parStatut] = await Promise.all([
+    db.query(
+      `SELECT t.code AS type_code, t.libelle AS type_libelle,
+              s.code AS statut_code, COUNT(*) AS total
+       FROM dossiers d
+       JOIN types_dossiers t ON t.id = d.type_id
+       JOIN statuts_dossiers s ON d.statut_id = s.id
+       WHERE 1=1${f.where}
+       GROUP BY t.id, t.code, t.libelle, s.id, s.code, s.ordre
+       ORDER BY t.libelle, s.ordre`,
+      f.params
+    ),
+    getByStatus(scope),
+  ]);
+
+  const categories = [];
+  for (const ligne of lignesCategories) {
+    let categorie = categories.find((c) => c.type_code === ligne.type_code);
+    if (!categorie) {
+      categorie = {
+        type_code: ligne.type_code,
+        type_libelle: ligne.type_libelle,
+        total: 0,
+        statuts: {},
+      };
+      categories.push(categorie);
+    }
+    categorie.statuts[ligne.statut_code] = Number(ligne.total);
+    categorie.total += Number(ligne.total);
+  }
+
+  return {
+    a_traiter_par_moi: aTraiterParMoi,
+    en_attente_validation: enAttenteValidation,
+    incomplets,
+    clotures_recents: cloturesRecents,
+    par_categorie: categories,
+    par_statut: parStatut,
+  };
+}
+
+/**
  * Files d'attente par rôle (écrans décrits dans le cahier des charges).
  * Les libellés sont construits pour être affichés tels quels.
  */
@@ -130,6 +358,8 @@ export async function getFilesAttente(scope) {
     aTraiter: ['AFFECTE'],
     // Agent : en cours
     enCours: ['EN_TRAITEMENT'],
+    // Dossier bloqué par une pièce ou une information à rapporter
+    enAttenteComplement: ['EN_ATTENTE_COMPLEMENT'],
     // Agent / chef : retours à corriger
     aCorriger: ['CORRECTION_DEMANDEE'],
     // Chef de division : contrôle
@@ -140,8 +370,10 @@ export async function getFilesAttente(scope) {
     aSigner: ['VALIDE'],
     // Clôture
     aCloturer: ['SIGNE'],
-    // Archivage
+    // Archivage après clôture
     aArchiver: ['CLOTURE'],
+    // VISA : le dossier signé s'archive directement
+    aArchiverSignes: ['SIGNE'],
     // Terminés
     termines: ['SIGNE', 'CLOTURE', 'ARCHIVE'],
   };
@@ -210,10 +442,12 @@ export async function getSecretaireKPIs(scope) {
   );
 
   // 5. Dossiers incomplets (pièces manquantes au dépouillement)
+  // Un dossier peut avoir plusieurs pièces dépouillées : on compte les
+  // dossiers distincts, pas les pièces.
   const [incomplets] = await db.query(
     `SELECT COUNT(DISTINCT d.id) AS total FROM dossiers d
      JOIN depouillements dp ON dp.dossier_id = d.id
-     WHERE dp.presente = 0${f.where.replace('d.', 'd.')}`,
+     WHERE dp.presente = 0${f.where}`,
     f.params
   );
 

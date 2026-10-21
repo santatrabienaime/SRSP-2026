@@ -22,13 +22,22 @@ async function agentOf(userId) {
  * Enregistre une affectation. Si le dossier avait déjà un agent responsable
  * différent, on trace aussi le transfert.
  */
-export async function tracerAffectation(dossierId, { division_id, agent_id, motif, userId }) {
-  const ancienAgentId = await traceModel.getAgentResponsableId(dossierId);
+export async function tracerAffectation(dossierId, {
+  division_id, agent_id, motif, userId, ancien_agent_id,
+}) {
+  /* L'appelant peut fournir l'ancien agent : dans une réaffectation, le service
+     met à jour le responsable AVANT d'écrire la trace. Sans cette valeur, la
+     lecture en base renverrait déjà le nouvel agent et le transfert serait perdu. */
+  const ancienAgentId = ancien_agent_id !== undefined
+    ? ancien_agent_id
+    : await traceModel.getAgentResponsableId(dossierId);
   await traceModel.insertAffectation({
     dossier_id: dossierId,
     division_id: division_id || null,
     agent_id: agent_id || null,
+    ancien_agent_id: ancienAgentId,
     motif: motif || null,
+    auteur_id: userId || null,
   });
   if (ancienAgentId && agent_id && ancienAgentId !== agent_id) {
     await traceModel.insertTransfert({

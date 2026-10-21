@@ -1,5 +1,4 @@
 import * as service from '../services/mandatementService.js';
-import * as model from '../models/mandatementModel.js';
 
 /* --- Mandatement --- */
 
@@ -32,11 +31,5 @@ export async function liquider(req, res, next) {
   try {
     const resultat = await service.liquider(req.params.id, req.user.id);
     res.json(resultat);
-  } catch (e) { next(e); }
-}
-
-export async function listPieces(req, res, next) {
-  try {
-    res.json(await model.chargerPiecesReference());
   } catch (e) { next(e); }
 }

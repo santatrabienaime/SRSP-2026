@@ -22,3 +22,12 @@ export async function createCorrespondance(req, res, next) {
     res.status(201).json(resultat);
   } catch (e) { next(e); }
 }
+
+/** Mise à jour du suivi d'une correspondance (réponse, transmission). */
+export async function updateCorrespondance(req, res, next) {
+  try {
+    res.json(await service.mettreAJourCorrespondance(
+      req.params.id, req.body || {}, req.user.id
+    ));
+  } catch (e) { next(e); }
+}

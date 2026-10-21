@@ -15,7 +15,11 @@ router.get(
   assertDossierAccessMiddleware,
   ctrl.getMandatement
 );
-router.get('/mandatement/pieces', ctrl.listPieces);
+/* Les pièces de référence du mandat sont déjà renvoyées avec le mandatement
+   lui-même (`GET /dossiers/:id/mandatement`) : la liste complète, avec l'état
+   d'impression de chacune. Un second point d'entrée pour la même liste ne
+   pouvait que diverger. */
+
 router.post(
   '/:id/mandatement',
   rbacMiddleware(['preparer_mandatement', 'gerer_ordonnancement']),

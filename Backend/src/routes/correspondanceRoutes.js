@@ -19,4 +19,13 @@ router.post(
   ctrl.createCorrespondance
 );
 
+/* Suivi d'une correspondance : réponse reçue, transmission centrale, état de
+   réception. C'est ce qui permet de tracer une opposition jusqu'au niveau
+   central. */
+router.put(
+  '/:id',
+  rbacMiddleware('gerer_correspondances'),
+  ctrl.updateCorrespondance
+);
+
 export default router;

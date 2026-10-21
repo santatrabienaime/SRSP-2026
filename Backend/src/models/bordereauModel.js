@@ -99,6 +99,37 @@ export async function findById(id) {
 }
 
 /**
+ * Transmissions d'un dossier : les bordereaux qui l'ont porté.
+ *
+ * Le cahier des fonctionnalités demande de retrouver « toutes les
+ * transmissions » sans fouiller dans plusieurs registres, et de distinguer
+ * l'expéditeur, le destinataire, la date et la référence.
+ *
+ * Le bordereau porte la division **destinataire**. L'expéditeur est la
+ * division de l'agent qui émet : quand elle diffère, le dossier a changé de
+ * division — c'est exactement le cas d'usage d'une transmission.
+ */
+export async function transmissionsDossier(dossierId) {
+  return db.query(
+    `SELECT b.id, b.reference, b.statut, b.date_transmission, b.observation,
+            b.date_reception_division,
+            dv.id AS division_id, dv.nom AS division_nom, dv.code AS division_code,
+            a.id AS agent_id, a.nom AS agent_nom, a.prenom AS agent_prenom,
+            dva.nom AS division_expediteur_nom, dva.code AS division_expediteur_code,
+            r.nom AS recu_par_nom, r.prenom AS recu_par_prenom
+     FROM bordereaux_dossiers bd
+     JOIN bordereaux b ON b.id = bd.bordereau_id
+     JOIN divisions dv ON dv.id = b.division_id
+     LEFT JOIN agents a ON a.id = b.agent_id
+     LEFT JOIN divisions dva ON dva.id = a.division_id
+     LEFT JOIN agents r ON r.id = b.recu_par
+     WHERE bd.dossier_id = ?
+     ORDER BY b.date_transmission DESC, b.id DESC`,
+    [dossierId]
+  );
+}
+
+/**
  * Crée un bordereau (statut BROUILLON)
  */
 export async function create({ division_id, agent_id, observation, dossiers }) {
@@ -258,7 +289,9 @@ export async function dossiersEligibles(division_id) {
  */
 export async function getStats() {
   const [total] = await db.query(`SELECT COUNT(*) AS total FROM bordereaux`);
-  const [parStatut] = await db.query(
+  /* Le regroupement par statut renvoie **plusieurs** lignes : le déstructurer
+     n'en garderait qu'une, et le tableau des états serait faux. */
+  const parStatut = await db.query(
     `SELECT statut, COUNT(*) AS total FROM bordereaux GROUP BY statut`
   );
   const [aConfirmer] = await db.query(

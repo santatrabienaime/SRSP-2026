@@ -49,10 +49,51 @@ export async function getScope(userId) {
 }
 
 /**
- * Construit le fragment SQL de filtrage correspondant à la portée.
- * Retourne { where, params } à concaténer à une requête sur `dossiers d`.
+ * La règle de circuit : un brouillon n'est pas dans le circuit.
+ *
+ * Elle est exprimée sur le **statut du dossier** (`d.statut_id`) et non sur
+ * un alias de table. La raison est simple : une condition qui nomme un alias
+ * n'est valable que si la requête joint effectivement cet alias. Or la
+ * même règle doit s'appliquer à des requêtes de formes différentes — un
+ * dossier joint (`JOIN statuts_dossiers s`), un dossier joint à gauche
+ * (`LEFT JOIN dossiers d`) — et il suffit que l'une d'elles oublie la
+ * jointure pour que la condition devienne une erreur serveur au lieu d'une
+ * exclusion.
+ *
+ * En passant par le sous-état, la condition reste vraie partout où les
+ * dossiers sont présents, et elle devient une exclusion dans une clause ON
+ * comme dans une clause WHERE.
+ *
+ * Un brouillon ne doit gonfler aucun compteur, apparaître dans aucune file
+ * d'attente, ni fausser les statistiques du service. Son auteur le retrouve
+ * seul, dans « Mes brouillons ».
  */
-export async function filterFor(scope) {
+export const HORS_BROUILLONS = ` AND d.statut_id <> COALESCE(
+  (SELECT id FROM statuts_dossiers WHERE code = 'BROUILLON'), -1)`;
+
+/**
+ * La même règle, lue du côté des statuts.
+ *
+ * Quand on **liste des statuts** — la répartition par statut du tableau de
+ * bord — c'est le pseudo-statut BROUILLON qu'il faut retirer de la liste,
+ * et non les dossiers qu'il contient : un brouillon n'appartient qu'à ce
+ * statut, donc retirer le statut suffit à ce qu'aucun brouillon ne soit
+ * compté.
+ *
+ * Les deux écritures ne se confondent pas : celle-ci porte sur `s.code`,
+ * l'autre sur `d.statut_id`. Les employer à la place l'une de l'autre
+ * ferait disparaître de la répartition les statuts qui n'ont aucun dossier
+ * — le tableau cesserait de montrer le circuit complet.
+ */
+export const HORS_STATUT_BROUILLON = " AND s.code <> 'BROUILLON'";
+
+/**
+ * Le périmètre d'affichage : les dossiers que l'utilisateur voit.
+ *
+ * Il ne dépend que de `d` : il s'applique à toute requête sur les dossiers,
+ * quelle que soit la manière dont ils sont joints.
+ */
+export async function perimetrePour(scope) {
   if (scope.agentScoped && scope.agentId) {
     return { where: ' AND d.agent_responsable_id = ?', params: [scope.agentId] };
   }
@@ -60,6 +101,23 @@ export async function filterFor(scope) {
     return { where: ' AND d.division_id = ?', params: [scope.divisionId] };
   }
   return { where: '', params: [] };
+}
+
+/**
+ * Construit le fragment SQL de filtrage correspondant à la portée.
+ * Retourne { where, params } à concaténer à une requête sur `dossiers d`.
+ *
+ * Le fragment est le **périmètre** plus l'**exclusion des brouillons**. Les
+ * deux sont dans un même objet parce qu'ils se combinent toujours — mais
+ * seule la seconde dépend du statut, et `perimetrePour` permet de l'isoler
+ * pour les requêtes dont la jointure sur le statut est facultative.
+ */
+export async function filterFor(scope) {
+  const perimetre = await perimetrePour(scope);
+  return {
+    where: `${perimetre.where}${HORS_BROUILLONS}`,
+    params: perimetre.params,
+  };
 }
 
 /** Libellé du périmètre, affiché dans l'interface. */

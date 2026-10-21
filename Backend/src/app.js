@@ -6,7 +6,6 @@ import { errorMiddleware } from './middlewares/errorMiddleware.js';
 import { rateLimiter } from './middlewares/rateLimiter.js';
 
 import authRoutes from './routes/authRoutes.js';
-import userRoutes from './routes/userRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import permissionRoutes from './routes/permissionRoutes.js';
 import dossierRoutes from './routes/dossierRoutes.js';
@@ -17,7 +16,6 @@ import agentRoutes from './routes/agentRoutes.js';
 import personnelRoutes from './routes/personnelRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import historiqueRoutes from './routes/historiqueRoutes.js';
-import auditRoutes from './routes/auditRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import statistiqueRoutes from './routes/statistiqueRoutes.js';
 import performanceRoutes from './routes/performanceRoutes.js';
@@ -33,6 +31,10 @@ import mandatementRoutes from './routes/mandatementRoutes.js';
 import correspondanceRoutes from './routes/correspondanceRoutes.js';
 import archiveRoutes from './routes/archiveRoutes.js';
 import bordereauRoutes from './routes/bordereauRoutes.js';
+import documentRoutes from './routes/documentRoutes.js';
+import reinitialisationRoutes from './routes/reinitialisationRoutes.js';
+import operationRoutes from './routes/operationRoutes.js';
+import immatriculationRoutes from './routes/immatriculationRoutes.js';
 
 const app = express();
 
@@ -46,7 +48,9 @@ app.get('/api/health', (req, res) =>
 );
 
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+/* Les comptes se gèrent par `/api/personnel` : la fiche et le compte de
+   connexion ne font qu'un. `/api/users` en était un doublon qui permettait
+   précisément ce que l'écran Personnel interdit — un compte sans fiche. */
 app.use('/api/roles', roleRoutes);
 app.use('/api/permissions', permissionRoutes);
 // L'API geographie est montee AVANT les routes de dossiers : `/dossiers/:id`
@@ -62,7 +66,6 @@ app.use('/api/agents', agentRoutes);
 app.use('/api/personnel', personnelRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/historique', historiqueRoutes);
-app.use('/api/audit', auditRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/statistiques', statistiqueRoutes);
 app.use('/api/performance', performanceRoutes);
@@ -76,6 +79,15 @@ app.use('/api/dossiers', secoursRoutes);
 app.use('/api/correspondances', correspondanceRoutes);
 app.use('/api/archives', archiveRoutes);
 app.use('/api/bordereaux', bordereauRoutes);
+// Pièces jointes : /api/dossiers/:id/documents. Monté après dossierRoutes,
+// dont les routes /:id ne capturent pas les chemins à deux segments.
+app.use('/api/dossiers', documentRoutes);
+// Demandes de réinitialisation de mot de passe (administration).
+app.use('/api/reinitialisations', reinitialisationRoutes);
+// Données propres à l'opération d'un dossier : /api/dossiers/:id/operation
+app.use('/api/dossiers', operationRoutes);
+// Module d'immatriculation de la Coordination.
+app.use('/api/immatriculations', immatriculationRoutes);
 
 app.use(errorMiddleware);
 

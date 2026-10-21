@@ -12,6 +12,9 @@ const __dirname = path.dirname(__filename);
 
 const uploadDir = path.resolve(__dirname, '..', 'uploads');
 
+/** Racine des pièces déposées, partagée avec le service de sauvegarde. */
+export const UPLOAD_DIR = uploadDir;
+
 ['documents', 'courriers', 'temp'].forEach((dir) => {
   const fullPath = path.join(uploadDir, dir);
   if (!fs.existsSync(fullPath)) {

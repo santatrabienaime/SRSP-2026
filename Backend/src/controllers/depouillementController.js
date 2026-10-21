@@ -6,13 +6,13 @@ export async function checklist(req, res, next) {
 
 export async function controler(req, res, next) {
   try {
-    const { piece, presente, observation } = req.body || {};
+    const { piece, presente, etat, observation, motif } = req.body || {};
     if (!piece) {
       return res.status(400).json({ message: 'La pièce à contrôler est obligatoire.' });
     }
     const resultat = await service.controlerPiece(
       req.params.id,
-      { piece, presente: !!presente, observation },
+      { piece, presente: !!presente, etat, observation, motif },
       req.user.id
     );
     res.json(resultat);

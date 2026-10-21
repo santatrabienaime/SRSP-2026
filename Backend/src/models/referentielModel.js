@@ -68,6 +68,36 @@ export async function getStatuts() {
   );
 }
 
+/**
+ * Sous-types de dossiers actifs (types d'acte configurables).
+ *
+ * Les formulaires en ont besoin au même titre que les types de dossiers : le
+ * type d'acte VISA n'est pas une liste figée dans le code, il se règle dans le
+ * référentiel. Les renvoyer avec les autres données de référence évite un
+ * second appel et garantit que les deux listes viennent de la même source.
+ */
+export async function getSousTypes() {
+  return db.query(
+    `SELECT st.id, st.type_dossier_id, st.code, st.libelle, st.actif, st.ordre,
+            t.code AS type_code
+     FROM sous_types_dossiers st
+     JOIN types_dossiers t ON t.id = st.type_dossier_id
+     WHERE st.actif = 1
+     ORDER BY t.libelle, st.ordre, st.libelle`
+  );
+}
+
+/** Pièces requises actives, avec leur portée type / sous-type. */
+export async function getTypesPieces() {
+  return db.query(
+    `SELECT tp.id, tp.code, tp.libelle, tp.obligatoire, tp.actif, tp.phase,
+            tp.ordre, tp.division_code, tp.type_dossier_id, tp.sous_type_id
+     FROM types_pieces tp
+     WHERE tp.actif = 1
+     ORDER BY tp.division_code, tp.phase, tp.ordre, tp.libelle`
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Fonctions                                                           */
 /* ------------------------------------------------------------------ */

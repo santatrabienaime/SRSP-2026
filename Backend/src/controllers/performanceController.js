@@ -1,66 +1,51 @@
 import * as performanceService from '../services/performanceService.js';
+import * as scopeService from '../services/scopeService.js';
 
 /**
- * Contrôleur des statistiques de performance du service.
- * Fournit les indicateurs de performance basés sur les données réelles des dossiers.
+ * Contrôleur des indicateurs de performance.
+ *
+ * Chaque point d'entrée applique le **périmètre** de l'utilisateur : sans
+ * cela, un profil de division pourrait interroger la performance de toutes
+ * les divisions et de tous les agents. Le cloisonnement doit tenir sur les
+ * données, pas seulement sur ce que l'écran affiche.
  */
 
-/**
- * Récupère les indicateurs de performance globaux.
- */
+/** Les indicateurs globaux. */
 export async function getStats(req, res, next) {
   try {
-    const stats = await performanceService.getStats();
-    res.json(stats);
-  } catch (e) {
-    next(e);
-  }
+    const scope = await scopeService.getScope(req.user.id);
+    res.json(await performanceService.getStats(scope));
+  } catch (e) { next(e); }
 }
 
-/**
- * Récupère les dossiers en retard.
- */
+/** Les dossiers dont la date limite est dépassée. */
 export async function getEnRetard(req, res, next) {
   try {
-    const retards = await performanceService.getEnRetard();
-    res.json(retards);
-  } catch (e) {
-    next(e);
-  }
+    const scope = await scopeService.getScope(req.user.id);
+    res.json(await performanceService.getEnRetard(scope));
+  } catch (e) { next(e); }
 }
 
-/**
- * Récupère les performances par division.
- */
+/** La performance par division. */
 export async function getParDivision(req, res, next) {
   try {
-    const stats = await performanceService.getParDivision();
-    res.json(stats);
-  } catch (e) {
-    next(e);
-  }
+    const scope = await scopeService.getScope(req.user.id);
+    res.json(await performanceService.getParDivision(scope));
+  } catch (e) { next(e); }
 }
 
-/**
- * Récupère les performances par agent.
- */
+/** La performance par agent. */
 export async function getParAgent(req, res, next) {
   try {
-    const stats = await performanceService.getParAgent();
-    res.json(stats);
-  } catch (e) {
-    next(e);
-  }
+    const scope = await scopeService.getScope(req.user.id);
+    res.json(await performanceService.getParAgent(scope));
+  } catch (e) { next(e); }
 }
 
-/**
- * Récupère l'évolution des dossiers sur 12 mois.
- */
+/** L'évolution du volume sur douze mois. */
 export async function getEvolution(req, res, next) {
   try {
-    const evolution = await performanceService.getEvolution();
-    res.json(evolution);
-  } catch (e) {
-    next(e);
-  }
+    const scope = await scopeService.getScope(req.user.id);
+    res.json(await performanceService.getEvolution(scope));
+  } catch (e) { next(e); }
 }

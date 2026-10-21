@@ -134,10 +134,12 @@ export async function findCorrespondances(dossier_id = null) {
   let where = '';
   if (dossier_id) { where = ' WHERE c.dossier_id = ?'; params.push(dossier_id); }
   return db.query(
-    `SELECT c.*, d.numero AS dossier_numero, u.username AS auteur
+    `SELECT c.*, d.numero AS dossier_numero, u.username AS auteur,
+            doc.nom_fichier AS document_nom_fichier
      FROM correspondances c
      LEFT JOIN dossiers d ON d.id = c.dossier_id
      LEFT JOIN users u ON u.id = c.created_by
+     LEFT JOIN documents doc ON doc.id = c.document_id
      ${where}
      ORDER BY c.created_at DESC`,
     params
@@ -147,11 +149,64 @@ export async function findCorrespondances(dossier_id = null) {
 export async function saveCorrespondance(data, userId) {
   const res = await db.query(
     `INSERT INTO correspondances
-       (dossier_id, type, destinataire, objet, contenu, etat, date_envoi, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, IF(? = 'ENVOYEE', NOW(), NULL), ?)`,
-    [data.dossier_id || null, data.type, data.destinataire, data.objet,
-     data.contenu || null, data.etat, data.etat, userId]
+       (dossier_id, type, reference, document_id, destinataire, objet, contenu,
+        etat, date_envoi, etat_reponse, date_reponse, reponse,
+        date_transmission_central, destinataire_central, reference_bordereau,
+        etat_reception_central, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, IF(? = 'ENVOYEE', NOW(), NULL),
+             ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      data.dossier_id || null,
+      data.type,
+      data.reference || null,
+      data.document_id || null,
+      data.destinataire || null,
+      data.objet || null,
+      data.contenu || null,
+      data.etat,
+      data.etat,
+      data.etat_reponse || null,
+      data.date_reponse || null,
+      data.reponse || null,
+      data.date_transmission_central || null,
+      data.destinataire_central || null,
+      data.reference_bordereau || null,
+      data.etat_reception_central || null,
+      userId,
+    ]
   );
   const rows = await db.query('SELECT * FROM correspondances WHERE id = ?', [res.insertId]);
   return rows[0];
+}
+
+/** Met à jour le suivi d'une correspondance (réponse, transmission). */
+export async function updateCorrespondance(id, data) {
+  const champs = [
+    'reference', 'document_id', 'destinataire', 'objet', 'contenu', 'etat',
+    'etat_reponse', 'date_reponse', 'reponse', 'date_transmission_central',
+    'destinataire_central', 'reference_bordereau', 'etat_reception_central',
+  ];
+  const sets = [];
+  const params = [];
+  for (const champ of champs) {
+    if (data[champ] === undefined) continue;
+    sets.push(`${champ} = ?`);
+    params.push(data[champ] === '' ? null : data[champ]);
+  }
+  if (!sets.length) {
+    const [courant] = await db.query('SELECT * FROM correspondances WHERE id = ?', [id]);
+    return courant || null;
+  }
+
+  /* Passer une correspondance en « Envoyée » doit dater l'envoi, comme le
+     fait la création : sans cela, la date d'envoi resterait vide après un
+     changement d'état, et la trace serait fausse. */
+  if (data.etat === 'ENVOYEE') {
+    sets.push('date_envoi = COALESCE(date_envoi, NOW())');
+  }
+
+  params.push(id);
+  await db.query(`UPDATE correspondances SET ${sets.join(', ')} WHERE id = ?`, params);
+  const [courant] = await db.query('SELECT * FROM correspondances WHERE id = ?', [id]);
+  return courant || null;
 }

@@ -6,7 +6,10 @@ import { rbacMiddleware } from '../middlewares/rbacMiddleware.js';
 const router = express.Router();
 router.use(authMiddleware);
 
-router.get('/:id/statut', ctrl.getStatus);
+/* Le statut d'un dossier se lit par `GET /dossiers/:id/statut`, qui rend la
+   même chose — le statut et les transitions autorisées. Ce point d'entrée
+   était un doublon exact, et le second chemin pouvait diverger du premier
+   sans qu'on s'en aperçoive. */
 // Transition générique réservée aux acteurs de fin de workflow (§14.2),
 // pour ne pas contourner le RBAC des actions métier.
 router.post('/:id/transition', rbacMiddleware(['valider_dossier', 'signer_dossier', 'cloturer_dossier', 'archiver_dossier']), ctrl.transition);

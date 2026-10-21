@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import db from '../config/db.js';
+import { httpError } from '../utils/httpError.js';
 
 /* ════════════════════════════════════════════════════════════════════
    CONSTANTES ET UTILITAIRES PDF/EXCEL (partagés)
@@ -321,6 +322,7 @@ export async function statsParTypePeriodeDivision(filtres = {}) {
   if (filtres.date_debut) where.push('DATE(d.date_reception) >= ?');
   if (filtres.date_fin) where.push('DATE(d.date_reception) <= ?');
   const whereSQL = where.join(' AND ');
+  const params = [filtres.date_debut, filtres.date_fin].filter(Boolean);
 
   const parType = await db.query(
     `SELECT t.libelle AS type_dossier, COUNT(*) AS total
@@ -328,7 +330,7 @@ export async function statsParTypePeriodeDivision(filtres = {}) {
      JOIN types_dossiers t ON d.type_id = t.id
      WHERE ${where.join(' AND ')}
      GROUP BY t.id, t.libelle ORDER BY total DESC`,
-    []
+    params
   );
 
   const parDivision = await db.query(
@@ -337,7 +339,7 @@ export async function statsParTypePeriodeDivision(filtres = {}) {
      JOIN divisions dv ON d.division_id = dv.id
      WHERE ${where.join(' AND ')}
      GROUP BY dv.id, dv.nom ORDER BY total DESC`,
-    []
+    params
   );
 
   const parMois = await db.query(
@@ -345,10 +347,314 @@ export async function statsParTypePeriodeDivision(filtres = {}) {
      FROM dossiers d
      WHERE ${where.join(' AND ')}
      GROUP BY mois ORDER BY mois ASC`,
-    []
+    params
   );
 
   return { titre: 'Statistiques par type, période et division', parType, parDivision, parMois };
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   RAPPORTS VISA — périodes mensuelle, trimestrielle et annuelle
+   ═════════════════════════════════════════════════════════════════════ */
+
+function deuxChiffres(n) {
+  return String(n).padStart(2, '0');
+}
+
+function dernierJourDuMois(annee, mois) {
+  return new Date(annee, mois, 0).getDate();
+}
+
+/**
+ * Période d'un rapport VISA.
+ *
+ * `periode=mensuel|trimestriel|annuel` avec `annee`, `mois` ou `trimestre`.
+ * Des dates explicites (`date_debut`, `date_fin`) restent prioritaires : elles
+ * permettent un export libre sans perdre les rapports normalisés.
+ */
+export function periodeVisa(filtres = {}) {
+  const annee = Number(filtres.annee) || new Date().getFullYear();
+  const type = String(filtres.periode || 'annuel').toLowerCase();
+
+  if (filtres.date_debut || filtres.date_fin) {
+    return {
+      debut: filtres.date_debut || `${annee}-01-01`,
+      fin: filtres.date_fin || `${annee}-12-31`,
+      libelle: `du ${filtres.date_debut || `${annee}-01-01`} au ${filtres.date_fin || `${annee}-12-31`}`,
+      type: 'libre',
+    };
+  }
+
+  if (type === 'mensuel') {
+    const mois = Math.min(12, Math.max(1, Number(filtres.mois) || new Date().getMonth() + 1));
+    return {
+      debut: `${annee}-${deuxChiffres(mois)}-01`,
+      fin: `${annee}-${deuxChiffres(mois)}-${deuxChiffres(dernierJourDuMois(annee, mois))}`,
+      libelle: `mois ${deuxChiffres(mois)}/${annee}`,
+      type,
+    };
+  }
+
+  if (type === 'trimestriel') {
+    const trimestre = Math.min(4, Math.max(1, Number(filtres.trimestre) || Math.ceil((new Date().getMonth() + 1) / 3)));
+    const premierMois = (trimestre - 1) * 3 + 1;
+    const dernierMois = premierMois + 2;
+    return {
+      debut: `${annee}-${deuxChiffres(premierMois)}-01`,
+      fin: `${annee}-${deuxChiffres(dernierMois)}-${deuxChiffres(dernierJourDuMois(annee, dernierMois))}`,
+      libelle: `trimestre ${trimestre}/${annee}`,
+      type,
+    };
+  }
+
+  return {
+    debut: `${annee}-01-01`,
+    fin: `${annee}-12-31`,
+    libelle: `année ${annee}`,
+    type: 'annuel',
+  };
+}
+
+function conditionsVisa(filtres = {}) {
+  const periode = periodeVisa(filtres);
+  const where = [
+    "t.code = 'VISA'",
+    'DATE(d.date_reception) BETWEEN ? AND ?',
+  ];
+  const params = [periode.debut, periode.fin];
+
+  if (filtres.verificateur_id) {
+    where.push('d.verificateur_id = ?');
+    params.push(Number(filtres.verificateur_id));
+  }
+  if (filtres.statut) {
+    where.push('s.code = ?');
+    params.push(String(filtres.statut).toUpperCase());
+  }
+
+  return { where, params, periode };
+}
+
+const FROM_VISA = `
+  FROM dossiers d
+  JOIN types_dossiers t ON t.id = d.type_id
+  JOIN statuts_dossiers s ON d.statut_id = s.id
+  LEFT JOIN sous_types_dossiers st ON st.id = d.sous_type_id
+  LEFT JOIN agents ag ON ag.id = d.verificateur_id
+  LEFT JOIN users u ON u.id = d.signataire_id
+`;
+
+export async function rapportVisa(filtres = {}) {
+  const { where, params, periode } = conditionsVisa(filtres);
+  const rows = await db.query(
+    `SELECT d.reference_visa, d.numero, d.date_reception,
+            d.origine_presentateur, d.comptable_presentateur,
+            d.type_acte, d.annee_reference,
+            COALESCE(st.libelle, d.type_acte) AS sous_type,
+            TRIM(CONCAT(COALESCE(ag.prenom, ''), ' ', COALESCE(ag.nom, ''))) AS verificateur,
+            s.libelle AS statut,
+            d.date_signature, u.username AS signataire,
+            DATEDIFF(COALESCE(d.date_signature, CURDATE()), d.date_reception) AS delai_jours
+     ${FROM_VISA}
+     WHERE ${where.join(' AND ')}
+     ORDER BY d.date_reception ASC, d.numero ASC`,
+    params
+  );
+  return {
+    titre: `Dossiers VISA — ${periode.libelle}`,
+    periode: periode.libelle,
+    lignes: rows,
+  };
+}
+
+export async function rapportVisaParVerificateur(filtres = {}) {
+  const { where, params, periode } = conditionsVisa(filtres);
+  const rows = await db.query(
+    `SELECT TRIM(CONCAT(COALESCE(ag.prenom, ''), ' ', COALESCE(ag.nom, ''))) AS verificateur,
+            COUNT(*) AS total,
+            SUM(CASE WHEN s.code IN ('SIGNE', 'CLOTURE', 'ARCHIVE') THEN 1 ELSE 0 END) AS signes,
+            SUM(CASE WHEN s.code = 'ARCHIVE' THEN 1 ELSE 0 END) AS archives,
+            SUM(CASE WHEN s.code = 'EN_ATTENTE_COMPLEMENT' THEN 1 ELSE 0 END) AS en_attente_complement,
+            ROUND(AVG(DATEDIFF(COALESCE(d.date_signature, CURDATE()), d.date_reception)), 1) AS delai_moyen_jours
+     ${FROM_VISA}
+     WHERE ${where.join(' AND ')}
+     GROUP BY d.verificateur_id, ag.nom, ag.prenom
+     ORDER BY total DESC, verificateur ASC`,
+    params
+  );
+  return {
+    titre: `Dossiers VISA par vérificateur — ${periode.libelle}`,
+    periode: periode.libelle,
+    lignes: rows,
+  };
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════
+   RAPPORTS PAR DIVISION (§ 12.4 du cahier des fonctionnalités)
+   ════════════════════════════════════════════════════════════════════ */
+
+/** Divisions couvertes par le rapport d'opérations. */
+const DIVISIONS_OPERATION = {
+  SOLDE: 'SOLDE',
+  PENSION: 'PENSION',
+  SECOURS: 'SECOURS',
+};
+
+/**
+ * Conditions de filtrage d'un rapport d'opérations.
+ *
+ * La période suit la même normalisation que le rapport VISA — mensuel,
+ * trimestriel, annuel — pour que les deux se lisent de la même façon.
+ */
+function conditionsOperation(filtres = {}) {
+  const periode = periodeVisa(filtres);
+  const where = ['DATE(d.date_reception) BETWEEN ? AND ?'];
+  const params = [periode.debut, periode.fin];
+
+  /* Une division vide couvre les trois divisions de production : c'est
+     le cas par défaut de l'écran des rapports, et un rapport qui n'en
+     montrerait qu'une serait trompeur. */
+  const type = String(filtres.type || filtres.division || '').toUpperCase();
+  if (type) {
+    if (!Object.values(DIVISIONS_OPERATION).includes(type)) {
+      throw httpError(422, `Division inconnue pour le rapport d'opérations : ${type}.`);
+    }
+    where.push('t.code = ?');
+    params.push(type);
+  } else {
+    where.push(`t.code IN (${Object.values(DIVISIONS_OPERATION).map(() => '?').join(', ')})`);
+    params.push(...Object.values(DIVISIONS_OPERATION));
+  }
+
+  if (filtres.sous_type_id) {
+    where.push('st.id = ?');
+    params.push(Number(filtres.sous_type_id));
+  }
+  if (filtres.statut) {
+    where.push('s.code = ?');
+    params.push(String(filtres.statut).toUpperCase());
+  }
+  if (filtres.agent_id) {
+    where.push('d.agent_responsable_id = ?');
+    params.push(Number(filtres.agent_id));
+  }
+
+  return { where, params, periode, type };
+}
+
+/**
+ * Détail, dossier par dossier, des opérations d'une division.
+ *
+ * Les colonnes portent ce que la division doit pouvoir suivre : l'opération,
+ * le montant **saisi**, sa source, et qui l'a **validé** ou **contrôlé** —
+ * ainsi que l'agent responsable.
+ */
+export async function rapportOperation(filtres = {}) {
+  const { where, params, periode, type } = conditionsOperation(filtres);
+  const rows = await db.query(
+    `SELECT d.numero, d.objet, d.demandeur, d.matricule, d.date_reception,
+            COALESCE(st.libelle, '—') AS operation,
+            s.libelle AS statut,
+            TRIM(CONCAT(COALESCE(ag.prenom, ''), ' ', COALESCE(ag.nom, ''))) AS responsable,
+            o.reference_externe, o.reference_dossier_mere, o.periode,
+            o.montant, o.source_montant,
+            CASE WHEN o.valide_par IS NOT NULL THEN 'Oui' ELSE 'Non' END AS montant_valide,
+            o.date_validation,
+            o.decision_controle, o.date_controle,
+            TRIM(CONCAT(COALESCE(ctrl.prenom, ''), ' ', COALESCE(ctrl.nom, ''))) AS controleur,
+            o.destinataire, o.localisation, o.observation
+     FROM dossiers d
+     JOIN types_dossiers t ON t.id = d.type_id
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     LEFT JOIN sous_types_dossiers st ON st.id = d.sous_type_id
+     LEFT JOIN agents ag ON ag.id = d.agent_responsable_id
+     LEFT JOIN donnees_operation o ON o.dossier_id = d.id
+     LEFT JOIN users cu ON cu.id = o.controleur_id
+     LEFT JOIN agents ctrl ON ctrl.user_id = cu.id
+     WHERE ${where.join(' AND ')}
+     ORDER BY st.ordre, st.libelle, d.date_reception ASC, d.numero ASC`,
+    params
+  );
+  return {
+    titre: `Opérations ${type || 'Solde, Pensions et Secours'} — ${periode.libelle}`,
+    periode: periode.libelle,
+    lignes: rows,
+  };
+}
+
+/**
+ * Agrégat par type d'opération : combien de dossiers, quels montants saisis,
+ * combien validés, combien en attente de contrôle.
+ *
+ * C'est la lecture de pilotage d'une division : elle dit d'un coup d'œil ce
+ * qui a été instruit, ce qui a été contrôlé et ce qui ne l'a pas été.
+ */
+export async function rapportOperationParType(filtres = {}) {
+  const { where, params, periode, type } = conditionsOperation(filtres);
+  const rows = await db.query(
+    `SELECT COALESCE(st.libelle, '—') AS operation,
+            st.code AS operation_code,
+            COUNT(d.id) AS total,
+            COALESCE(SUM(o.montant), 0) AS montant_saisi,
+            COALESCE(SUM(CASE WHEN o.valide_par IS NOT NULL THEN o.montant ELSE 0 END), 0) AS montant_valide,
+            COALESCE(SUM(CASE WHEN o.montant IS NOT NULL AND o.valide_par IS NULL THEN 1 ELSE 0 END), 0) AS en_attente_validation,
+            COALESCE(SUM(CASE WHEN o.decision_controle = 'APPROUVE' THEN 1 ELSE 0 END), 0) AS controles_approuves,
+            COALESCE(SUM(CASE WHEN o.decision_controle = 'RETOURNE' THEN 1 ELSE 0 END), 0) AS controles_retournes,
+            COALESCE(SUM(CASE WHEN o.decision_controle IS NULL THEN 1 ELSE 0 END), 0) AS non_controls
+     FROM dossiers d
+     JOIN types_dossiers t ON t.id = d.type_id
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     LEFT JOIN sous_types_dossiers st ON st.id = d.sous_type_id
+     LEFT JOIN donnees_operation o ON o.dossier_id = d.id
+     WHERE ${where.join(' AND ')}
+     GROUP BY st.id, st.code, st.libelle, st.ordre
+     ORDER BY st.ordre, st.libelle`,
+    params
+  );
+  return {
+    titre: `Opérations ${type || 'Solde, Pensions et Secours'} par type — ${periode.libelle}`,
+    periode: periode.libelle,
+    lignes: rows,
+  };
+}
+
+/**
+ * Secours : état d'avancement des cinq étapes du mandat.
+ *
+ * Le cahier (§ 12.4) demande de suivre « les dossiers reçus du contrôle
+ * financier, mandatement préparé, pièces produites, émargement, signatures en
+ * attente et dossiers archivés ». C'est ce que raconte ce rapport.
+ */
+export async function rapportSecours(filtres = {}) {
+  const { where, params, periode } = conditionsOperation({ ...filtres, type: 'SECOURS' });
+  const rows = await db.query(
+    `SELECT d.numero, d.objet, d.demandeur, d.date_reception,
+            s.libelle AS statut,
+            v.numero_visa, v.date_visa,
+            m.etat AS etat_mandatement,
+            m.montant_total,
+            CASE WHEN e.id IS NOT NULL THEN 'Oui' ELSE 'Non' END AS emargement,
+            CASE WHEN so.id IS NOT NULL THEN 'Oui' ELSE 'Non' END AS signature,
+            CASE WHEN c.id IS NOT NULL THEN 'Oui' ELSE 'Non' END AS cachet,
+            d.date_archivage
+     FROM dossiers d
+     JOIN types_dossiers t ON t.id = d.type_id
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     LEFT JOIN visas_controle_financier v ON v.dossier_id = d.id
+     LEFT JOIN mandatements m ON m.dossier_id = d.id
+     LEFT JOIN etats_emargement e ON e.mandatement_id = m.id
+     LEFT JOIN signatures_ordonnateur so ON so.mandatement_id = m.id
+     LEFT JOIN cachets_mandatement c ON c.mandatement_id = m.id
+     WHERE ${where.join(' AND ')}
+     ORDER BY d.date_reception ASC, d.numero ASC`,
+    params
+  );
+  return {
+    titre: `Dossiers Secours de décès — ${periode.libelle}`,
+    periode: periode.libelle,
+    lignes: rows,
+  };
 }
 
 /* ═════════════════════════════════════════════════════════════════════
@@ -550,17 +856,157 @@ const rapportsConfig = {
       { header: 'Archivé par', key: 'archive_par', width: 18 },
     ],
   },
+  visa: {
+    titre: 'Dossiers VISA',
+    getLignes: rapportVisa,
+    pdfColonnes: [
+      { header: 'Référence', key: 'reference_visa', width: 90 },
+      { header: 'Réception', key: 'date_reception', width: 70 },
+      { header: 'Origine', key: 'origine_presentateur', width: 100 },
+      { header: 'Comptable', key: 'comptable_presentateur', width: 100 },
+      { header: 'Type d’acte', key: 'sous_type', width: 90 },
+      { header: 'Année', key: 'annee_reference', width: 45 },
+      { header: 'Vérificateur', key: 'verificateur', width: 90 },
+      { header: 'Statut', key: 'statut', width: 80 },
+      { header: 'Signature', key: 'date_signature', width: 70 },
+      { header: 'Signataire', key: 'signataire', width: 70 },
+    ],
+    excelColonnes: [
+      { header: 'Référence VISA', key: 'reference_visa', width: 20 },
+      { header: 'N° dossier', key: 'numero', width: 20 },
+      { header: 'Date réception', key: 'date_reception', width: 15 },
+      { header: 'Origine / présentateur', key: 'origine_presentateur', width: 25 },
+      { header: 'Comptable présentateur', key: 'comptable_presentateur', width: 25 },
+      { header: 'Type d’acte', key: 'sous_type', width: 22 },
+      { header: 'Année de référence', key: 'annee_reference', width: 12 },
+      { header: 'Vérificateur', key: 'verificateur', width: 22 },
+      { header: 'Statut', key: 'statut', width: 22 },
+      { header: 'Date signature', key: 'date_signature', width: 18 },
+      { header: 'Signataire', key: 'signataire', width: 18 },
+      { header: 'Délai (jours)', key: 'delai_jours', width: 12 },
+    ],
+  },
+  visaParVerificateur: {
+    titre: 'Dossiers VISA par vérificateur',
+    getLignes: rapportVisaParVerificateur,
+    pdfColonnes: [
+      { header: 'Vérificateur', key: 'verificateur', width: 160 },
+      { header: 'Total', key: 'total', width: 70 },
+      { header: 'Signés', key: 'signes', width: 70 },
+      { header: 'Archivés', key: 'archives', width: 70 },
+      { header: 'En attente complément', key: 'en_attente_complement', width: 100 },
+      { header: 'Délai moyen (j)', key: 'delai_moyen_jours', width: 100 },
+    ],
+    excelColonnes: [
+      { header: 'Vérificateur', key: 'verificateur', width: 28 },
+      { header: 'Total', key: 'total', width: 12 },
+      { header: 'Signés', key: 'signes', width: 12 },
+      { header: 'Archivés', key: 'archives', width: 12 },
+      { header: 'En attente complément', key: 'en_attente_complement', width: 20 },
+      { header: 'Délai moyen (jours)', key: 'delai_moyen_jours', width: 18 },
+    ],
+  },
   statsTypePeriodeDivision: {
     titre: 'Statistiques par type, période et division',
     getLignes: statsParTypePeriodeDivision,
     special: true,
   },
+  /* ── Rapports par division (§ 12.4) ────────────────────────────── */
+  operationDivision: {
+    titre: 'Opérations par division',
+    getLignes: rapportOperation,
+    pdfColonnes: [
+      { header: 'N°', key: 'numero', width: 90 },
+      { header: 'Opération', key: 'operation', width: 120 },
+      { header: 'Objet', key: 'objet', width: 150 },
+      { header: 'Demandeur', key: 'demandeur', width: 120 },
+      { header: 'Référence', key: 'reference_externe', width: 100 },
+      { header: 'Période', key: 'periode', width: 80 },
+      { header: 'Montant', key: 'montant', width: 90 },
+      { header: 'Validé', key: 'montant_valide', width: 60 },
+      { header: 'Décision', key: 'decision_controle', width: 80 },
+      { header: 'Statut', key: 'statut', width: 90 },
+    ],
+    excelColonnes: [
+      { header: 'N°', key: 'numero', width: 20 },
+      { header: 'Opération', key: 'operation', width: 25 },
+      { header: 'Objet', key: 'objet', width: 40 },
+      { header: 'Demandeur', key: 'demandeur', width: 25 },
+      { header: 'Référence', key: 'reference_externe', width: 20 },
+      { header: 'Dossier mère', key: 'reference_dossier_mere', width: 20 },
+      { header: 'Période', key: 'periode', width: 15 },
+      { header: 'Montant', key: 'montant', width: 15 },
+      { header: 'Source du montant', key: 'source_montant', width: 30 },
+      { header: 'Montant validé', key: 'montant_valide', width: 15 },
+      { header: 'Date de validation', key: 'date_validation', width: 18 },
+      { header: 'Décision de contrôle', key: 'decision_controle', width: 20 },
+      { header: 'Date de contrôle', key: 'date_controle', width: 18 },
+      { header: 'Contrôleur', key: 'controleur', width: 22 },
+      { header: 'Responsable', key: 'responsable', width: 22 },
+      { header: 'Statut', key: 'statut', width: 20 },
+    ],
+  },
+  operationParType: {
+    titre: 'Opérations par division et par type',
+    getLignes: rapportOperationParType,
+    pdfColonnes: [
+      { header: 'Opération', key: 'operation', width: 160 },
+      { header: 'Dossiers', key: 'total', width: 70 },
+      { header: 'Montant saisi', key: 'montant_saisi', width: 100 },
+      { header: 'Montant validé', key: 'montant_valide', width: 100 },
+      { header: 'En attente de validation', key: 'en_attente_validation', width: 110 },
+      { header: 'Contrôles approuvés', key: 'controles_approuves', width: 100 },
+      { header: 'Retournés', key: 'controles_retournes', width: 80 },
+      { header: 'Non contrôlés', key: 'non_controls', width: 90 },
+    ],
+    excelColonnes: [
+      { header: 'Opération', key: 'operation', width: 30 },
+      { header: 'Dossiers', key: 'total', width: 12 },
+      { header: 'Montant saisi', key: 'montant_saisi', width: 18 },
+      { header: 'Montant validé', key: 'montant_valide', width: 18 },
+      { header: 'En attente de validation', key: 'en_attente_validation', width: 22 },
+      { header: 'Contrôles approuvés', key: 'controles_approuves', width: 20 },
+      { header: 'Contrôles retournés', key: 'controles_retournes', width: 20 },
+      { header: 'Non contrôlés', key: 'non_controls', width: 16 },
+    ],
+  },
+  secours: {
+    titre: 'Suivi des dossiers Secours de décès',
+    getLignes: rapportSecours,
+    pdfColonnes: [
+      { header: 'N°', key: 'numero', width: 90 },
+      { header: 'Objet', key: 'objet', width: 150 },
+      { header: 'Demandeur', key: 'demandeur', width: 120 },
+      { header: 'N° visa', key: 'numero_visa', width: 90 },
+      { header: 'Mandatement', key: 'etat_mandatement', width: 90 },
+      { header: 'Émargement', key: 'emargement', width: 70 },
+      { header: 'Signature', key: 'signature', width: 70 },
+      { header: 'Cachet', key: 'cachet', width: 60 },
+      { header: 'Statut', key: 'statut', width: 90 },
+    ],
+    excelColonnes: [
+      { header: 'N°', key: 'numero', width: 20 },
+      { header: 'Objet', key: 'objet', width: 40 },
+      { header: 'Demandeur', key: 'demandeur', width: 25 },
+      { header: 'Date de réception', key: 'date_reception', width: 18 },
+      { header: 'N° visa', key: 'numero_visa', width: 18 },
+      { header: 'Date du visa', key: 'date_visa', width: 15 },
+      { header: 'État du mandatement', key: 'etat_mandatement', width: 20 },
+      { header: 'Montant total', key: 'montant_total', width: 15 },
+      { header: 'Émargement', key: 'emargement', width: 12 },
+      { header: 'Signature', key: 'signature', width: 12 },
+      { header: 'Cachet', key: 'cachet', width: 10 },
+      { header: 'Date d\'archivage', key: 'date_archivage', width: 18 },
+      { header: 'Statut', key: 'statut', width: 20 },
+    ],
+  },
 };
 
 /* ── Générateurs PDF/Excel génériques ──────────────────────────────── */
 
-function makePdfGenerator(cfg, filtres = {}) {
-  return async function(res) {
+function makePdfGenerator(cfg, filtresParDefaut = {}) {
+  return async function(res, filtresAppel = {}) {
+    const filtres = { ...filtresParDefaut, ...filtresAppel };
     const { lignes } = await cfg.getLignes(filtres);
     const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape' });
     res.setHeader('Content-Type', 'application/pdf');
@@ -572,11 +1018,48 @@ function makePdfGenerator(cfg, filtres = {}) {
   };
 }
 
-function makeExcelGenerator(cfg, filtres = {}) {
-  return async function(res) {
+/**
+ * Le nom d'un onglet Excel ne peut pas dépasser 31 caractères.
+ *
+ * Excel tronque silencieusement un nom trop long, et le tronque au milieu
+ * d'un mot : « Rapport journalier des dossiers reçus » devient « Rapport
+ * journalier des dos… ». Ce n'est pas cassé, mais c'est illisible — et
+ * deux onglets tronqués au même endroit feraient échouer le fichier.
+ *
+ * On raccourcit donc proprement, sur une frontière de mot, et on garantit
+ * l'unicité du nom.
+ */
+const MAX_NOM_FEUILLE = 31;
+
+function nomFeuille(titre, pris = []) {
+  let nom = String(titre || 'Feuille').trim();
+
+  if (nom.length > MAX_NOM_FEUILLE) {
+    nom = nom.slice(0, MAX_NOM_FEUILLE);
+    /* On recule jusqu'à un espace : un nom coupé au milieu d'un mot se lit
+       mal dans l'onglet. */
+    const dernierEspace = nom.lastIndexOf(' ');
+    if (dernierEspace > 0) nom = nom.slice(0, dernierEspace);
+  }
+
+  let candidat = nom;
+  let suffixe = 2;
+  while (pris.includes(candidat.toLowerCase())) {
+    const marque = ` (${suffixe})`;
+    candidat = `${nom.slice(0, MAX_NOM_FEUILLE - marque.length)}${marque}`;
+    suffixe += 1;
+  }
+  return candidat;
+}
+
+function makeExcelGenerator(cfg, filtresParDefaut = {}) {
+  return async function(res, filtresAppel = {}) {
+    const filtres = { ...filtresParDefaut, ...filtresAppel };
     const { lignes } = await cfg.getLignes(filtres);
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(cfg.titre);
+    const worksheet = workbook.addWorksheet(
+      nomFeuille(cfg.titre, workbook.worksheets.map((w) => w.name))
+    );
     excelSheet(worksheet, cfg.excelColonnes, lignes);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${cfg.titre.toLowerCase().replace(/\s+/g,'-')}.xlsx"`);
@@ -623,9 +1106,28 @@ export const excelClotures = makeExcelGenerator(rapportsConfig.clotures);
 export const pdfArchives = makePdfGenerator(rapportsConfig.archives);
 export const excelArchives = makeExcelGenerator(rapportsConfig.archives);
 
+// 11. Dossiers VISA (mensuel / trimestriel / annuel)
+export const pdfVisa = makePdfGenerator(rapportsConfig.visa);
+export const excelVisa = makeExcelGenerator(rapportsConfig.visa);
+
+// 12. Dossiers VISA par vérificateur
+export const pdfVisaParVerificateur = makePdfGenerator(rapportsConfig.visaParVerificateur);
+export const excelVisaParVerificateur = makeExcelGenerator(rapportsConfig.visaParVerificateur);
+
+// 12. Opérations par division
+export const pdfOperationDivision = makePdfGenerator(rapportsConfig.operationDivision);
+export const excelOperationDivision = makeExcelGenerator(rapportsConfig.operationDivision);
+
+// 13. Opérations par division et par type
+export const pdfOperationParType = makePdfGenerator(rapportsConfig.operationParType);
+export const excelOperationParType = makeExcelGenerator(rapportsConfig.operationParType);
+
+// 14. Suivi des dossiers Secours de décès
+export const pdfSecours = makePdfGenerator(rapportsConfig.secours);
+export const excelSecours = makeExcelGenerator(rapportsConfig.secours);
+
 // 10. Stats par type/période/division (structure spéciale)
-export async function pdfStatsParTypePeriodeDivision(res, filtres = {}) {
-  const data = await statsParTypePeriodeDivision(filtres);
+export async function pdfStatsParTypePeriodeDivision(res, filtres = {}) {  const data = await statsParTypePeriodeDivision(filtres);
   const doc = new PDFDocument({ margin: 40, layout: 'landscape' });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="stats-type-periode-division.pdf"`);

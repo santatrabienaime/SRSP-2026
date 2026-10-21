@@ -52,6 +52,10 @@ export const immatriculationSchema = Joi.object({
   indice: Joi.number().integer().allow('', null),
   date_entree: Joi.date().iso().allow('', null),
   division_id: Joi.number().integer().allow('', null),
+  /* La référence est attribuée par la plateforme à la création. Elle peut
+     être corrigée ensuite — une attribution erronée se rectifie, elle ne se
+     refait pas. */
+  matricule: Joi.string().trim().allow('', null).max(50),
   statut: Joi.string().valid('EN_ATTENTE', 'ACTIVE', 'REJETEE').allow('', null),
   observations: Joi.string().allow('', null).max(2000),
 }).unknown(false);

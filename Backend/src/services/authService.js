@@ -41,7 +41,17 @@ export async function authenticateUser(identifiant, password) {
   }
 
   const token = jwt.sign(
-    { id: user.id, role_id: user.role_id },
+    {
+      id: user.id,
+      role_id: user.role_id,
+      /* Instant d'émission au millième. `iat`, posé par la bibliothèque, est
+         en secondes : or la révocation d'une session compare cet instant à
+         la date du dernier changement de mot de passe, qui est elle aussi
+         datée au millième. Sans cette précision, un jeton émis dans la même
+         seconde qu'un changement de mot de passe serait ambigu — et un agent
+         réinitialisé à l'instant se verrait refuser sa propre connexion. */
+      iatMs: Date.now(),
+    },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
   );
