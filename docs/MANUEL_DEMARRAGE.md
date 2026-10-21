@@ -165,9 +165,42 @@ L'identifiant peut être le **username** **ou** **l'email** (champ « identifian
 | `❌ Variables d'environnement manquantes…` | `.env` absent | `cp .env.example .env` puis renseigner `DB_*` et `JWT_SECRET` |
 | `ER_ACCESS_DENIED_ERROR` | Mauvais mot de passe MySQL | Corriger `DB_PASSWORD` dans `.env` |
 | `ECONNREFUSED` (port 3306) | MySQL n'écoute pas sur 3306 | Adapter `DB_PORT` (ex. MariaDB sur `3307`) |
-| `Port 5000 déjà utilisé` | Un backend tourne déjà | `ss -ltnp \| grep 5000` puis `kill <PID>` du processus, relancer |
+| `Port 5000 déjà utilisé` / `EADDRINUSE` | Un backend tourne déjà (fenêtre précédente, `nodemon` resté actif, tâche planifiée) | Identifier le PID puis l'arrêter — voir ci-dessous |
 | Erreurs CORS en dev | Frontend appelé par une autre origine | Vérifier `FRONTEND_URL` dans `.env` du backend |
 | Upload refusé | Taille dépassée | Augmenter `MAX_FILE_SIZE` dans `.env` |
+
+### Libérer le port 5000
+
+C'est la panne la plus fréquente en développement : une fenêtre de terminal
+fermée laisse parfois le processus Node vivant, et le backend suivant refuse
+de démarrer.
+
+**Windows (PowerShell)**
+
+```powershell
+# 1. Identifier le PID qui écoute sur le port 5000
+netstat -ano | Select-String ":5000\s+.*LISTENING"
+
+# 2. Arrêter ce processus (remplacer <PID> par le numéro affiché)
+Stop-Process -Id <PID> -Force
+
+# 3. Vérifier que le port est libre
+netstat -ano | Select-String ":5000\s+.*LISTENING"   # ne doit rien afficher
+```
+
+**Linux / macOS**
+
+```bash
+ss -ltnp | grep 5000     # identifier le vrai PID
+kill <PID>
+```
+
+> ⚠️ Ne pas utiliser `pkill -f "node src/server.js"` : il peut tuer le shell
+> courant, ou le frontend si les deux tourneurs portent la même commande.
+
+Si le port reste occupé après l'arrêt du processus, un autre programme
+l'utilise (un proxy, un service de développement) : changez alors le port de
+l'API dans `Backend/.env` (`PORT=5001`) et adaptez le proxy du frontend.
 
 ### Redémarrer le backend proprement
 
@@ -183,9 +216,10 @@ cd Backend && DB_PORT=3306 nohup node src/server.js > /tmp/srsp-backend.log 2>&1
 
 ## 7. Validation technique
 
-- **Smoke test SSR** : `node /tmp/opencode/srsp-smoke.mjs` (rendu de 30 routes avec
-  `react-dom/server`, aucun import/rendu en erreur). Pour l'exécuter, placer le script dans
-  `Frontend/node_modules/.cache/` afin que Node résolve `vite` et `react-dom`.
+- **Campagne fonctionnelle VISA** (bout en bout, API et base réelles) :
+  `node Backend/scripts/test-e2e-visa.mjs` → **78 / 78**.
+- **Données attendues par chaque écran** : `node Backend/scripts/test-ecrans.mjs` → **27 / 27**.
+- **Tests du frontend** : `npm test` dans `Frontend` → **61 / 61** (5 fichiers).
 - **Build** : `npm run build` dans `Frontend` → OK (dist généré).
-- **API** : workflow, RBAC, notifications, historique, upload, rapports PDF/Excel, référentiel,
-  téléchargement de documents, filtre par type — vérifiés par curl.
+- **Contrôle syntaxique du backend** : `node --check` sur tous les fichiers → OK.
+- Le détail figure dans [RESULTS_TESTS.md](RESULTS_TESTS.md).
