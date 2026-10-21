@@ -6,11 +6,15 @@
 export const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 export const STATUTS = {
+  /* Brouillon : dossier saisi mais pas encore publié. Il n'est visible que
+     de son auteur et n'entre pas dans le circuit. */
+  BROUILLON: 'BROUILLON',
   RECU: 'RECU',
   ENREGISTRE: 'ENREGISTRE',
   ORIENTE: 'ORIENTE',
   AFFECTE: 'AFFECTE',
   EN_TRAITEMENT: 'EN_TRAITEMENT',
+  EN_ATTENTE_COMPLEMENT: 'EN_ATTENTE_COMPLEMENT',
   SOUMIS_A_VERIFICATION: 'SOUMIS_A_VERIFICATION',
   CORRECTION_DEMANDEE: 'CORRECTION_DEMANDEE',
   VALIDE: 'VALIDE',
@@ -20,12 +24,14 @@ export const STATUTS = {
 };
 
 export const STATUT_LABELS = {
+  BROUILLON: 'Brouillon',
   RECU: 'Reçu',
   ENREGISTRE: 'Enregistré',
   ORIENTE: 'Orienté',
   AFFECTE: 'Affecté',
   EN_TRAITEMENT: 'En traitement',
-  SOUMIS_A_VERIFICATION: 'Soumis à vérification',
+  EN_ATTENTE_COMPLEMENT: 'En attente de complément',
+  SOUMIS_A_VERIFICATION: 'Soumis au Chef de Division',
   CORRECTION_DEMANDEE: 'Correction demandée',
   VALIDE: 'Validé',
   SIGNE: 'Signé',
@@ -34,11 +40,13 @@ export const STATUT_LABELS = {
 };
 
 export const STATUT_BADGE_CLASSES = {
+  BROUILLON: 'border-slate-300 bg-slate-100 text-slate-600',
   RECU: 'bg-slate-100 text-slate-700 border-slate-300',
   ENREGISTRE: 'bg-sky-100 text-sky-800 border-sky-300',
   ORIENTE: 'bg-cyan-100 text-cyan-800 border-cyan-300',
   AFFECTE: 'bg-indigo-100 text-indigo-800 border-indigo-300',
   EN_TRAITEMENT: 'bg-amber-100 text-amber-800 border-amber-300',
+  EN_ATTENTE_COMPLEMENT: 'bg-orange-100 text-orange-800 border-orange-300',
   SOUMIS_A_VERIFICATION: 'bg-purple-100 text-purple-800 border-purple-300',
   CORRECTION_DEMANDEE: 'bg-rose-100 text-rose-800 border-rose-300',
   VALIDE: 'bg-emerald-100 text-emerald-800 border-emerald-300',
@@ -109,6 +117,95 @@ export const ROLE_LABELS = {
   CHARGE_SECOURS: 'Chargé Secours',
 };
 export const WORKFLOW_ORDER = [
-  'RECU', 'ENREGISTRE', 'ORIENTE', 'AFFECTE', 'EN_TRAITEMENT',
-  'SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE', 'VALIDE', 'SIGNE', 'CLOTURE', 'ARCHIVE',
+  'BROUILLON', 'RECU', 'ENREGISTRE', 'ORIENTE', 'AFFECTE', 'EN_TRAITEMENT',
+  'EN_ATTENTE_COMPLEMENT', 'SOUMIS_A_VERIFICATION', 'CORRECTION_DEMANDEE',
+  'VALIDE', 'SIGNE', 'CLOTURE', 'ARCHIVE',
 ];
+
+/* États d'une pièce au dépouillement (CDC VISA).
+   « Présente » satisfait une pièce obligatoire ; « non applicable » la
+   satisfait aussi, car elle n'avait pas à être fournie. Les trois autres
+   états restent motivés et visibles. */
+export const ETATS_PIECE = {
+  PRESENTE: 'PRESENTE',
+  MANQUANTE: 'MANQUANTE',
+  ILLISIBLE: 'ILLISIBLE',
+  A_CORRIGER: 'A_CORRIGER',
+  NON_APPLICABLE: 'NON_APPLICABLE',
+};
+
+export const ETATS_PIECE_LABELS = {
+  PRESENTE: 'Présente',
+  MANQUANTE: 'Manquante',
+  ILLISIBLE: 'Illisible',
+  A_CORRIGER: 'À corriger',
+  NON_APPLICABLE: 'Non applicable',
+};
+
+export const ETATS_PIECE_BADGES = {
+  PRESENTE: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  MANQUANTE: 'border-red-200 bg-red-50 text-red-700',
+  ILLISIBLE: 'border-amber-200 bg-amber-50 text-amber-700',
+  A_CORRIGER: 'border-orange-200 bg-orange-50 text-orange-700',
+  NON_APPLICABLE: 'border-slate-200 bg-slate-50 text-slate-600',
+};
+
+/* Seuls ces états demandent un motif : ceux qui restent à traiter. */
+export const ETATS_PIECE_A_MOTIVER = ['MANQUANTE', 'ILLISIBLE', 'A_CORRIGER'];
+
+/* ── Données d'opération ───────────────────────────────────────────────
+   Les divisions Solde, Pensions et Secours portent, sur chacun de leurs
+   dossiers, des données propres à l'opération : la référence, la période, le
+   montant et sa source. Le type d'opération n'est pas choisi par l'agent : il
+   est repris du dossier, pour que la donnée et le dossier ne puissent pas
+   diverger. */
+
+export const TYPES_OPERATION = {
+  SOLDE: 'Solde',
+  PENSION: 'Pension',
+  SECOURS: 'Secours',
+  VISA: 'Visa',
+};
+
+/* Décisions du contrôle de l'opération. Le contrôle est l'acte du chef de
+   division : sa décision, et elle seule, fait foi sur la saisie de l'agent. */
+export const DECISIONS_CONTROLE_OPERATION = {
+  APPROUVE: 'Approuvé',
+  RETOURNE: 'Retourné pour correction',
+  A_COMPLETER: 'À compléter',
+};
+
+/* ── Correspondances ───────────────────────────────────────────────────
+   Une correspondance est une lettre ou une notification : le type dit de
+   quoi elle est faite, l'état dit si elle est partie ou encore en
+   préparation. Le code part au serveur, le libellé est lu par l'agent. */
+export const TYPES_CORRESPONDANCE = {
+  LETTRE_PRESCRIPTION: 'Lettre de prescription',
+  DEMANDE_DOSSIERE_MERE: 'Demande de dossier mère',
+  OPPOSITION_PENSION_ALIMENTAIRE: 'Opposition (pension alimentaire)',
+  OPPOSITION_CESSION_VOLONTAIRE: 'Opposition (cession volontaire)',
+  OPPOSITION_SAISIE_ARRET: 'Opposition (saisie arrêt)',
+};
+
+export const ETATS_CORRESPONDANCE = {
+  BROUILLON: 'Brouillon',
+  ENVOYEE: 'Envoyée',
+};
+
+/* États de la réponse attendue et de la réception au niveau central.
+   Le serveur conserve ces états en texte libre : les libellés ci-dessous
+   sont ceux que l'écran propose ; un état inconnu est affiché tel quel
+   plutôt que masqué, pour que rien ne disparaisse du dossier. */
+export const ETATS_REPONSE_CORRESPONDANCE = {
+  EN_ATTENTE: 'En attente de réponse',
+  ACCUSEE: 'Accusée de réception',
+  REPARTIE: 'Suite donnée',
+  SANS_REPONSE: 'Sans réponse',
+};
+
+export const ETATS_RECEPTION_CENTRALE = {
+  NON_TRANSMISE: 'Non transmise au central',
+  TRANSMISE: 'Transmise au central',
+  RECU: 'Reçue au central',
+  REJETEE: 'Rejetée par le central',
+};

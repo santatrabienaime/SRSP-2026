@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FolderKanban, Mail, History, Archive,
   BarChart3, FileBarChart2, Settings, Users, Shield, Bell,
   UserCog, Building2, ScrollText, PanelLeftClose, PanelLeftOpen,
-  Database, FileCheck,
+  Database, FileCheck, Inbox, KeyRound, IdCard, Gauge, MapPinned, ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
@@ -16,6 +16,7 @@ const ICONS = {
   historique: History,
   archives: Archive,
   statistiques: BarChart3,
+  performance: Gauge,
   rapports: FileBarChart2,
   users: Users,
   roles: Shield,
@@ -25,6 +26,11 @@ const ICONS = {
   database: Database,
   audit: ScrollText,
   filecheck: FileCheck,
+  boite: Inbox,
+  reinitialisation: KeyRound,
+  immatriculation: IdCard,
+  territoire: MapPinned,
+  conformite: ClipboardCheck,
 };
 
 /**
@@ -81,6 +87,7 @@ export function Sidebar() {
       label: 'Pilotage',
       items: [
         { to: '/', label: 'Tableau de bord', icon: 'dashboard', end: true },
+        { to: '/boite-travail', label: 'Boîte de travail', icon: 'boite' },
         myDivision
           ? {
               to: `/divisions/${myDivision}/dossiers`,
@@ -109,7 +116,19 @@ export function Sidebar() {
            La page « Statistiques » ci-dessous reste, elle, réservée à view_stats
            parce qu'elle porte sur le SERVICE entier. */
         { to: '/statistiques', label: 'Statistiques', icon: 'statistiques', perms: ['view_stats'] },
+        /* Performance : délais de traitement et dossiers en retard. Le
+           serveur restreint déjà les chiffres au périmètre de chacun. */
+        { to: '/performance', label: 'Performance', icon: 'performance', perms: ['view_stats'] },
         { to: '/rapports', label: 'Rapports', icon: 'rapports', perms: ['view_stats', 'consolidate_reports', 'export_data'] },
+        /* Territoire : antennes, districts et rattachement des dossiers.
+           Le périmètre géographique du service était calculé côté serveur,
+           mais invisible dans l'interface. */
+        { to: '/territoire', label: 'Territoire', icon: 'territoire', perms: ['view_stats'] },
+        /* Immatriculations : la mission propre de la Coordination. */
+        { to: '/coordination/immatriculations', label: 'Immatriculations', icon: 'immatriculation', perms: ['gerer_immatriculations'] },
+        /* Bilan de conformité : où en est la plateforme face au cahier.
+           Le registre des exigences était dans la base, sans écran. */
+        { to: '/conformite', label: 'Bilan de conformité', icon: 'conformite', perms: ['consolidate_reports'] },
       ],
     },
   ];
@@ -135,6 +154,9 @@ export function Sidebar() {
           : []),
         ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
           ? [{ to: '/administration/referentiel', label: 'Référentiel', icon: 'database' }]
+          : []),
+        ...(show({ roles: ['ADMIN'], perms: ['manage_users'] })
+          ? [{ to: '/administration/reinitialisations', label: 'Réinitialisation', icon: 'reinitialisation' }]
           : []),
       ],
     });

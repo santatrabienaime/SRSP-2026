@@ -1,28 +1,18 @@
 import { createContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { io } from 'socket.io-client';
 import { notificationService } from '../services/notificationService.js';
-import { API_BASE } from '../config/constants.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { useTempsReel } from '../hooks/useTempsReel.js';
+import { ETATS_TEMPS_REEL } from './TempsReelContext.jsx';
 
 export const NotificationContext = createContext(null);
 
-const POLL_INTERVAL = 30000; // 30 s
-
-/**
- * Origine du canal temps réel : celle de l'API.
- *
- * En développement, `API_BASE` est relatif (« /api ») : c'est le proxy Vite qui
- * relaie le WebSocket. Si une URL absolue est configurée (VITE_API_URL), le
- * socket doit viser la même origine que l'API, sinon il s'adresserait au
- * serveur des fichiers au lieu du serveur applicatif.
- */
-function origineTempsReel() {
-  try {
-    return new URL(API_BASE, window.location.origin).origin;
-  } catch {
-    return window.location.origin;
-  }
-}
+/* Intervalle de repli quand le canal temps réel est coupé.
+   Le canal.push est le mode normal ; le sondage ne sert qu'à rattraper ce
+   qui a pu être manqué pendant une coupure. */
+const POLL_REPLI = 30000; // 30 s
+/* Quand le canal est établi, le sondage n'a plus d'objet : il passe à une
+   cadence large, purement comme filet de sécurité. */
+const POLL_FILET = 300000; // 5 min
 
 /* ----------------------------- Toasts ----------------------------- */
 let toastId = 0;
@@ -38,6 +28,7 @@ const makeToast = (type, title, message) => ({
 /* --------------------------- Contexte ----------------------------- */
 export function NotificationProvider({ children }) {
   const { token, user } = useAuth();
+  const { statut, abonner } = useTempsReel();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [toasts, setToasts] = useState([]);
@@ -75,21 +66,27 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     if (!token) return undefined;
     Promise.resolve().then(refresh);
-    const timer = setInterval(refresh, POLL_INTERVAL);
+  }, [token, refresh]);
 
-    /* Temps réel : le serveur pousse un signal sur le canal privé de
-       l'utilisateur dès qu'une notification lui est destinée. Le canal ne
-       transporte que l'alerte — la liste et le compteur restent relus depuis
-       l'API, qui seule fait foi. Le sondage périodique est conservé en filet :
-       si le WebSocket tombe, l'affichage continue d'être rafraîchi. */
-    const socket = io(origineTempsReel(), { auth: { token } });
-    socket.on('notification', () => { refresh(); });
+  /* Temps réel : le serveur pousse un signal sur le canal privé de
+     l'utilisateur dès qu'une notification lui est destinée. Le canal ne
+     transporte que l'alerte — la liste et le compteur restent relus depuis
+     l'API, qui seule fait foi. */
+  useEffect(() => {
+    if (!token) return undefined;
+    return abonner('notification', () => { refresh(); });
+  }, [token, abonner, refresh]);
 
-    return () => {
-      clearInterval(timer);
-      socket.close();
-    };
-  }, [token, userId, refresh]);
+  /* Sondage de repli. Sa cadence dépend de l'état du canal : quand celui-ci
+     est établi, le sondage n'a plus d'objet et passe au large ; quand il est
+     coupé, il reprend son rythme normal, pour ne rien laisser passer
+     pendant la coupure. */
+  useEffect(() => {
+    if (!token) return undefined;
+    const interval = statut === ETATS_TEMPS_REEL.CONNECTE ? POLL_FILET : POLL_REPLI;
+    const timer = setInterval(refresh, interval);
+    return () => clearInterval(timer);
+  }, [token, statut, refresh]);
 
   const markRead = useCallback(
     async (id) => {

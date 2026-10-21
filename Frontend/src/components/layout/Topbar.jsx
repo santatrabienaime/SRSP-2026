@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
 import { NotificationBell } from '../notification/NotificationBell.jsx';
+import { TempsReelIndicateur } from './TempsReelIndicateur.jsx';
 
 /**
  * Barre supérieure : thème, notifications et menu utilisateur.
@@ -57,6 +58,10 @@ export function Topbar() {
         <span className="hidden lg:block" />
 
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+          {/* État du canal temps réel : visible, pour que l'agent sache si
+              l'écran qu'il regarde est à jour. */}
+          <TempsReelIndicateur />
+
           <button
             type="button"
             onClick={basculerTheme}

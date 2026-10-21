@@ -67,6 +67,40 @@ export const rapportService = {
     excel: (params) =>
       apiClient.get('/rapports/stats-type-periode-division/excel', { params, responseType: 'blob' }).then((r) => r.data),
   },
+  visa: {
+    pdf: (params) =>
+      apiClient.get('/rapports/visa/pdf', { params, responseType: 'blob' }).then((r) => r.data),
+    excel: (params) =>
+      apiClient.get('/rapports/visa/excel', { params, responseType: 'blob' }).then((r) => r.data),
+  },
+  visaParVerificateur: {
+    pdf: (params) =>
+      apiClient.get('/rapports/visa-par-verificateur/pdf', { params, responseType: 'blob' }).then((r) => r.data),
+    excel: (params) =>
+      apiClient.get('/rapports/visa-par-verificateur/excel', { params, responseType: 'blob' }).then((r) => r.data),
+  },
+  /* ── Rapports par division (§ 12.4) ──────────────────────────────
+     Les opérations sont portées par le type d'opération du dossier : un
+     rapport paramétré par division suffit, et il suit automatiquement les
+     opérations que le SRSP ajoutera au référentiel. */
+  operationDivision: {
+    pdf: (params) =>
+      apiClient.get('/rapports/operations/pdf', { params, responseType: 'blob' }).then((r) => r.data),
+    excel: (params) =>
+      apiClient.get('/rapports/operations/excel', { params, responseType: 'blob' }).then((r) => r.data),
+  },
+  operationParType: {
+    pdf: (params) =>
+      apiClient.get('/rapports/operations-par-type/pdf', { params, responseType: 'blob' }).then((r) => r.data),
+    excel: (params) =>
+      apiClient.get('/rapports/operations-par-type/excel', { params, responseType: 'blob' }).then((r) => r.data),
+  },
+  secours: {
+    pdf: (params) =>
+      apiClient.get('/rapports/secours/pdf', { params, responseType: 'blob' }).then((r) => r.data),
+    excel: (params) =>
+      apiClient.get('/rapports/secours/excel', { params, responseType: 'blob' }).then((r) => r.data),
+  },
 };
 
 export default rapportService;

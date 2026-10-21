@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { KeyRound, UserCircle2, ShieldCheck, Check, X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { authService } from '../../services/authService.js';
@@ -16,8 +17,9 @@ import {
 import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { toastSuccess, toastError } = useNotification();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ ancien: '', nouveau: '', confirmation: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -44,8 +46,14 @@ export function ProfilePage() {
     setSaving(true);
     try {
       await authService.changePassword(form.ancien, form.nouveau);
-      toastSuccess('Mot de passe modifié.');
+      toastSuccess('Mot de passe modifié. Reconnectez-vous.');
       setForm({ ancien: '', nouveau: '', confirmation: '' });
+      /* Changer son mot de passe ferme les sessions ouvertes — y compris
+         celle-ci. Sans cette déconnexion, la requête suivante échouerait
+         avec un 401 et l'utilisateur serait renvoyé à l'écran de
+         connexion sans comprendre pourquoi. */
+      await logout();
+      navigate('/login', { replace: true });
     } catch (err) {
       setError(err);
       toastError(err.message);

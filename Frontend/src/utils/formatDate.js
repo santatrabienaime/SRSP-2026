@@ -71,6 +71,34 @@ export function todayISO() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/**
+ * Valeur d'un champ <input type="datetime-local"> (YYYY-MM-DDTHH:mm).
+ * On lit l'heure LOCALE : la réception d'un dossier est un fait de service,
+ * pas un instant UTC.
+ */
+export function pourChampDateTime(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Date et heure courantes, prêtes pour <input type="datetime-local">. */
+export function maintenantPourChampDateTime() {
+  return pourChampDateTime(new Date());
+}
+
+/**
+ * Convertit une valeur de <input type="datetime-local"> en DATETIME MySQL.
+ * `new Date()` ne doit pas être utilisé ici : on conserve l'heure saisie,
+ * sans conversion de fuseau.
+ */
+export function pourSqlDateTime(value) {
+  if (!value) return null;
+  const texte = String(value).replace('T', ' ');
+  return texte.length === 16 ? `${texte}:00` : texte.slice(0, 19);
+}
+
 /** Durée relative, ex. « il y a 5 min ». */
 export function timeAgo(value) {
   if (!value) return '—';

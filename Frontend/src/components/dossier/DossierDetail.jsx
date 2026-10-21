@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FolderKanban, Info, History, MessageSquare, FileText, Download, Printer } from 'lucide-react';
+import { ArrowLeft, FolderKanban, Info, History, MessageSquare, FileText, Download, Printer, Paperclip, Stamp, ArrowRightLeft, Calculator, Mail } from 'lucide-react';
 import { useDossier } from '../../hooks/useDossier.js';
+import { useTempsReel } from '../../hooks/useTempsReel.js';
 import { Badge } from '../ui/Badge.jsx';
 import { Card } from '../ui/Card.jsx';
 import { Spinner } from '../ui/Spinner.jsx';
@@ -14,6 +15,13 @@ import { DepouillementChecklist } from './DepouillementChecklist.jsx';
 import { Mandatement } from './Mandatement.jsx';
 import { HistoriqueDossier } from './HistoriqueDossier.jsx';
 import { CommentairesDossier } from './CommentairesDossier.jsx';
+import { DocumentsPanel } from './DocumentsPanel.jsx';
+import { VisaPanel } from './VisaPanel.jsx';
+import { ProchaineAction } from './ProchaineAction.jsx';
+import { TransmissionsPanel } from './TransmissionsPanel.jsx';
+import { SecoursPanel } from './SecoursPanel.jsx';
+import { OperationPanel } from './OperationPanel.jsx';
+import { CorrespondancesPanel } from './CorrespondancesPanel.jsx';
 import { dossierService } from '../../services/dossierService.js';
 import { formatDateString, formatDateTime } from '../../utils/formatDate.js';
 import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
@@ -44,11 +52,37 @@ function InfoRow({ label, value }) {
  * accessible en un clic.
  */
 export function DossierDetail({ id }) {
-  const { dossier, loading, error, refresh } = useDossier(id);
+  const { dossier, loading, error, refresh, recharger } = useDossier(id);
+  const { abonner } = useTempsReel();
   const location = useLocation();
   const navigate = useNavigate();
-  const [refreshKey] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [onglet, setOnglet] = useState('infos');
+  /* Action ouverte dans la barre d'actions. Elle est pilotée depuis
+     l'extérieur : le bloc « À faire ensuite » ouvre l'action qu'il annonce,
+     et l'agent n'a plus qu'un clic à faire. */
+  const [actionOuverte, setActionOuverte] = useState(null);
+
+  /* Correspondance entre le code d'action du serveur et la clé du
+     formulaire de la barre d'actions. */
+  const CORRESPONDANCE_ACTION = {
+    ORIENTER: 'orienter',
+    AFFECTER: 'affecter',
+    TRAITER: 'traiter',
+    SOUMETTRE: 'verifier',
+    CORRIGER: 'traiter',
+    RELANCER: 'complement',
+    VERIFIER: 'valider',
+    SIGNER: 'signer',
+    CLOTURER: 'cloturer',
+    ARCHIVER: 'archiver',
+    PUBLIER: 'publier',
+  };
+
+  const ouvrirActionDemandee = (code) => {
+    const cle = CORRESPONDANCE_ACTION[code];
+    if (cle) setActionOuverte(cle);
+  };
 
   const historique = useApi(
     () => (id ? historiqueService.list({ dossier_id: id }) : Promise.resolve({ actions: [] })),
@@ -60,6 +94,29 @@ export function DossierDetail({ id }) {
     () => (id ? dossierService.getTracabilite(id) : Promise.resolve([])),
     [id, refreshKey]
   );
+
+  /* Pièces requises du dossier : elles servent à rattacher un fichier déposé
+     à la pièce qu'il satisfait. */
+  const depouillement = useApi(
+    () => (id ? dossierService.getDepouillement(id) : Promise.resolve(null)),
+    [id, refreshKey]
+  );
+  const piecesDossier = [
+    ...(depouillement.data?.depouillement || []),
+    ...(depouillement.data?.archivage || []),
+  ];
+
+  /* Temps réel : si le dossier change d'état pendant qu'on le lit — un
+     autre agent le soumet, le chef de division le valide — la fiche doit
+     le refléter sans rechargement. Le journal et la traçabilité suivent,
+     sinon la fiche montrerait un statut neuf et un journal périmé. */
+  useEffect(() => {
+    return abonner('dossier', (evenement) => {
+      if (evenement?.dossier_id && Number(evenement.dossier_id) !== Number(id)) return;
+      setRefreshKey((k) => k + 1);
+      recharger();
+    });
+  }, [abonner, id, recharger]);
 
   const ONGLETS_PAR_ANCRE = {
     commentaires: 'commentaires',
@@ -109,13 +166,36 @@ export function DossierDetail({ id }) {
   const statusClass = statusBadgeClass(dossier.statut_code);
   const nombreActions = historique.data?.actions?.length || 0;
 
-  /* Onglets de la fiche dossier : les quatre onglets du document, plus les
-     panneaux métier réservés au type de dossier (ex. Secours : dépouillement
-     et mandatement). Un onglet vide serait un clic qui ne mène nulle part. */
+  /* Onglets de la fiche dossier : les quatre onglets du document (Informations,
+     Documents, Historique, Commentaires), plus les panneaux métier réservés au
+     type de dossier. Un onglet vide serait un clic qui ne mène nulle part :
+     le panneau VISA n'apparaît que pour un dossier VISA, le panneau Secours
+     que pour un dossier Secours.
+
+     Les données d'opération et les correspondances appartiennent aux
+     divisions qui portent une opération : Solde et Pensions pour les
+     premières, Pensions et Secours pour les secondes. Le dossier Visa n'en a
+     pas, et son onglet ne s'y ouvre pas. Le Secours garde son panneau
+     propre : ses cinq étapes du mandat y sont décrites, et une donnée
+     d'opération s'y ajouterait sans rien lui apprendre. */
+  const divisionsAvecOperation = ['SOLDE', 'PENSION'];
+  const divisionsAvecCorrespondances = ['PENSION', 'SECOURS'];
+
   const onglets = [
     { cle: 'infos', label: 'Informations', icon: Info },
+    { cle: 'documents', label: 'Documents', icon: Paperclip },
+    { cle: 'transmissions', label: 'Transmissions', icon: ArrowRightLeft },
+    ...(divisionsAvecOperation.includes(dossier.type_code)
+      ? [{ cle: 'operation', label: 'Opération', icon: Calculator }]
+      : []),
+    ...(divisionsAvecCorrespondances.includes(dossier.type_code)
+      ? [{ cle: 'correspondances', label: 'Correspondances', icon: Mail }]
+      : []),
     { cle: 'historique', label: 'Historique', icon: History },
     { cle: 'commentaires', label: 'Commentaires', icon: MessageSquare },
+    ...(dossier.type_code === 'VISA'
+      ? [{ cle: 'visa', label: 'VISA', icon: Stamp }]
+      : []),
     ...(dossier.type_code === 'SECOURS'
       ? [{ cle: 'secours', label: 'Secours', icon: FileText }]
       : []),
@@ -161,8 +241,19 @@ export function DossierDetail({ id }) {
 
       {/* Actions workflow */}
       <Card className="bg-slate-50/60">
-        <DossierActions dossier={dossier} onDone={refresh} onDeleted={() => navigate('/dossiers')} />
+        <DossierActions
+          dossier={dossier}
+          onDone={refresh}
+          onDeleted={() => navigate('/dossiers')}
+          actionDemandee={actionOuverte}
+          onActionDemandee={setActionOuverte}
+        />
       </Card>
+
+      {/* « À faire ensuite » : la prochaine action et l'acteur qui doit
+          l'accomplir. Placé au-dessus de la barre d'actions : c'est
+          l'information que l'agent cherche en premier. */}
+      <ProchaineAction dossierId={dossier.id} onAction={ouvrirActionDemandee} />
 
       {/* Barre d'onglets. Rendue seulement s'il y a quelque chose à montrer :
           sans panneau métier, l'onglet « Calculs » n'existe pas. */}
@@ -210,12 +301,69 @@ export function DossierDetail({ id }) {
               <InfoRow label="Agent responsable" value={dossier.agent_nom ? `${dossier.agent_nom} ${dossier.agent_prenom || ''}` : null} />
               <InfoRow label="Date de clôture" value={dossier.date_cloture ? formatDateTime(dossier.date_cloture) : null} />
               <InfoRow label="Date d'archivage" value={dossier.date_archivage ? formatDateTime(dossier.date_archivage) : null} />
+              {/* L'ancienneté est affichée telle quelle, sans jugement : le
+                  dossier n'est jamais qualifié « en retard » ici. */}
+              <InfoRow
+                label="Ancienneté"
+                value={dossier.age_jours === undefined || dossier.age_jours === null
+                  ? null
+                  : dossier.age_jours === 0
+                    ? 'Reçu aujourd’hui'
+                    : `Reçu il y a ${dossier.age_jours} jour(s)`}
+              />
             </dl>
             {dossier.observation && (
               <p className="mt-3 rounded-md bg-slate-50 p-3 text-sm text-slate-600">
                 <span className="font-semibold">Observation : </span>
                 {dossier.observation}
               </p>
+            )}
+
+            {/* Archivage : la référence d'archive et l'emplacement de
+                conservation. Le cahier des functionalities demande de
+                conserver ces trois informations avec le dossier. */}
+            {dossier.reference_archivage && (
+              <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Archivage
+                </p>
+                <dl className="mt-1.5 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-slate-500">Référence d’archive</dt>
+                    <dd className="font-medium text-slate-800">
+                      {dossier.reference_archivage}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-slate-500">Archivé le</dt>
+                    <dd className="text-slate-700">
+                      {dossier.date_archivage_registre
+                        ? formatDateTime(dossier.date_archivage_registre)
+                        : formatDateString(dossier.date_archivage)}
+                    </dd>
+                  </div>
+                  {dossier.emplacement_physique && (
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-500">Emplacement physique</dt>
+                      <dd className="text-slate-700">{dossier.emplacement_physique}</dd>
+                    </div>
+                  )}
+                  {dossier.localisation_numerique && (
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-500">Localisation numérique</dt>
+                      <dd className="truncate text-slate-700">
+                        {dossier.localisation_numerique}
+                      </dd>
+                    </div>
+                  )}
+                  {dossier.archive_par_username && (
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-slate-500">Archivé par</dt>
+                      <dd className="text-slate-700">{dossier.archive_par_username}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
             )}
           </Card>
 
@@ -228,6 +376,43 @@ export function DossierDetail({ id }) {
           </Card>
         </div>
       )}
+
+      {/* Onglet Documents : les pièces jointes du dossier. */}
+      {onglet === 'documents' && (
+        <DocumentsPanel
+          dossierId={dossier.id}
+          dossierStatut={dossier.statut_code}
+          pieces={piecesDossier}
+        />
+      )}
+
+      {/* Onglet Transmissions : l'historique des passages d'un service à
+          l'autre, avec le bordereau qui les porte. */}
+      {onglet === 'transmissions' && (
+        <Card
+          title="Transmissions"
+          subtitle="Bordereaux par lesquels ce dossier a circulé"
+        >
+          <TransmissionsPanel dossierId={dossier.id} />
+        </Card>
+      )}
+
+      {/* Onglet Opération : les données propres à l'opération du dossier —
+          référence, période, montant et sa source — et le contrôle qui les
+          atteste. */}
+      {onglet === 'operation' && (
+        <OperationPanel dossier={dossier} />
+      )}
+
+      {/* Onglet Correspondances : les lettres et notifications envoyées pour
+          ce dossier, et le suivi de leur transmission jusqu'au central. */}
+      {onglet === 'correspondances' && (
+        <CorrespondancesPanel dossierId={dossier.id} />
+      )}
+
+      {/* Onglet VISA : métadonnées, signature, exception, complément et
+          contrôle des pièces. Présent seulement pour un dossier VISA. */}
+      {onglet === 'visa' && <VisaPanel dossier={dossier} />}
 
       {/* Onglet Historique : le journal des actions, puis les actes métier.
           Les deux répondent à la même question — qui a fait quoi, quand — et
@@ -276,7 +461,9 @@ export function DossierDetail({ id }) {
         </div>
       )}
 
-      {/* Onglet Secours : dépouillement et mandatement (division Secours) */}
+      {/* Onglet Secours : dépouillement, mandatement et les cinq étapes du
+          mandat (visa du contrôle financier, références, émargement,
+          signature, cachet). */}
       {onglet === 'secours' && (
         <div className="space-y-5">
           <Card title="Dépouillement">
@@ -285,6 +472,7 @@ export function DossierDetail({ id }) {
           <Card title="Mandatement">
             <Mandatement dossierId={dossier.id} />
           </Card>
+          <SecoursPanel dossierId={dossier.id} onRefresh={recharger} />
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, Clock, Archive, User, FolderKanban } from 'lucide-react';
+import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, Clock, Archive, User, FolderKanban, FileEdit } from 'lucide-react';
 import { DossierList } from '../../components/dossier/DossierList.jsx';
 import { dashboardService } from '../../services/dashboardService.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -39,6 +39,7 @@ const GROUPES = [
     filters: { statut: 'EN_COURS' },
     compte: (c) =>
       (c.ORIENTE || 0) + (c.AFFECTE || 0) + (c.EN_TRAITEMENT || 0) +
+      (c.EN_ATTENTE_COMPLEMENT || 0) +
       (c.SOUMIS_A_VERIFICATION || 0) + (c.CORRECTION_DEMANDEE || 0),
   },
   {
@@ -69,6 +70,15 @@ const GROUPES = [
     hint: 'Pièces obligatoires manquantes',
     filters: { incomplets: 1 },
     compte: (c) => c.incomplets || 0,
+  },
+  {
+    /* Brouillons : les dossiers saisis mais pas encore publiés. Ils ne sont
+       visibles que de leur auteur, et le filtre est posé par le serveur. */
+    code: 'BROUILLONS', label: 'Mes brouillons', icon: FileEdit,
+    actif: 'border-slate-600 bg-slate-600 shadow-[0_0_16px_rgba(71,85,105,0.3)]',
+    hint: 'Saisies en cours, non publiées',
+    filters: { brouillon: 1 },
+    compte: () => null,
   },
 ];
 

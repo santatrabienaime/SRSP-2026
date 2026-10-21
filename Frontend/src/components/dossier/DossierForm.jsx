@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { dossierService } from '../../services/dossierService.js';
 import { referentielService } from '../../services/referentielService.js';
 import { divisionService } from '../../services/divisionService.js';
+import { agentService } from '../../services/agentService.js';
 import { Button } from '../ui/Button.jsx';
 import { Select } from '../ui/Select.jsx';
+import { Input } from '../ui/Input.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import {
   MatriculeInput,
@@ -15,12 +17,17 @@ import {
   ObservationInput,
   TextAreaInput,
   DateInput,
+  TextInput,
+  NumberInput,
 } from '../fields/index.jsx';
-import { todayISO, pourChampDate } from '../../utils/formatDate.js';
+import {
+  todayISO, pourChampDate, pourChampDateTime, maintenantPourChampDateTime, pourSqlDateTime,
+  formatDate,
+} from '../../utils/formatDate.js';
 import { validerDossier, validerTout, matriculePlausible, compacterMatricule } from '../../utils/validationDossier.js';
 import { useNotification } from '../../hooks/useNotification.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
-import { CheckCircle2, Info, Search, ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { CheckCircle2, Info, Search, ArrowLeft, ArrowRight, Check, Save } from 'lucide-react';
 
 /* Les règles de saisie — dont le format du matricule — vivent dans
    utils/validationDossier.js, où elles sont testables. Voir ce fichier pour
@@ -41,6 +48,18 @@ const vide = (initial) => ({
   priorite_id: initial?.priorite_id ?? '',
   observation: initial?.observation ?? '',
   date_limite: initial?.date_limite ? pourChampDate(initial.date_limite) : '',
+  // Données VISA (CDC §VISA). Elles ne sont exigées que pour ce type.
+  sous_type_id: initial?.sous_type_id ?? '',
+  reference_visa: initial?.reference_visa ?? '',
+  date_heure_reception: initial?.date_heure_reception
+    ? pourChampDateTime(initial.date_heure_reception)
+    : maintenantPourChampDateTime(),
+  origine_presentateur: initial?.origine_presentateur ?? '',
+  comptable_presentateur: initial?.comptable_presentateur ?? '',
+  annee_reference: initial?.annee_reference ?? new Date().getFullYear(),
+  verificateur_id: initial?.verificateur_id ?? '',
+  beneficiaire: initial?.beneficiaire ?? '',
+  organisme: initial?.organisme ?? '',
 });
 
 /**
@@ -61,8 +80,11 @@ const vide = (initial) => ({
 export function DossierForm({ initial = null, onSaved }) {
   const { toastSuccess, toastError } = useNotification();
 
-  const [referentiel, setReferentiel] = useState({ types_dossiers: [], priorites: [], statuts: [] });
+  const [referentiel, setReferentiel] = useState({
+    types_dossiers: [], sous_types: [], priorites: [], statuts: [],
+  });
   const [divisions, setDivisions] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [pieces, setPieces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -84,11 +106,42 @@ export function DossierForm({ initial = null, onSaved }) {
     return divisions.find((d) => d.type_dossier_id === Number(form.type_id)) || null;
   }, [form.type_id, divisions]);
 
+  /* Le type d'acte et les champs VISA n'ont de sens que pour le type VISA.
+     Le code du type — et non son identifiant — porte cette règle : elle reste
+     vraie si le référentiel est réinstallé. */
+  const typeSelectionne = useMemo(
+    () => (referentiel.types_dossiers || []).find(
+      (t) => String(t.id) === String(form.type_id)
+    ) || null,
+    [referentiel.types_dossiers, form.type_id]
+  );
+  const estVisa = typeSelectionne?.code === 'VISA';
+
+  const sousTypesDisponibles = useMemo(
+    () => (referentiel.sous_types || []).filter(
+      (st) => String(st.type_dossier_id) === String(form.type_id)
+    ),
+    [referentiel.sous_types, form.type_id]
+  );
+
+  const agentsDeLaDivision = useMemo(
+    () => agents.filter(
+      (a) => !divisionDuType || !a.division_id
+        || Number(a.division_id) === Number(divisionDuType.id)
+    ),
+    [agents, divisionDuType]
+  );
+
   useEffect(() => {
-    Promise.all([referentielService.get(), divisionService.list()])
-      .then(([ref, divs]) => {
+    Promise.all([
+      referentielService.get(),
+      divisionService.list(),
+      agentService.list().catch(() => []),
+    ])
+      .then(([ref, divs, ags]) => {
         setReferentiel(ref);
         setDivisions(Array.isArray(divs) ? divs : []);
+        setAgents(Array.isArray(ags) ? ags : []);
         setLoading(false);
       })
       .catch((e) => {
@@ -144,6 +197,26 @@ export function DossierForm({ initial = null, onSaved }) {
       ils reçoivent la valeur formatée, pas l'événement. */
   const setVal = (field) => (v) => setForm((f) => ({ ...f, [field]: v }));
 
+  /** Changer de type réinitialise le sous-type : il appartient à l'ancien. */
+  const choisirType = (typeId) => {
+    setForm((f) => ({ ...f, type_id: typeId, sous_type_id: '' }));
+  };
+
+  /* Ce qui manque à la fiche VISA. Le serveur reste seul juge (il contrôle
+     aussi la référence et les pièces), mais l'écran ne doit pas laisser
+     envoyer une fiche manifestement incomplète. */
+  const visaManquants = useMemo(() => {
+    if (!estVisa) return [];
+    const manquants = [];
+    if (!form.sous_type_id) manquants.push("le type d'acte");
+    if (!String(form.date_heure_reception || '').trim()) manquants.push('la date et l’heure de réception');
+    if (!String(form.origine_presentateur || '').trim()) manquants.push('l’origine / le présentateur');
+    if (!String(form.comptable_presentateur || '').trim()) manquants.push('le comptable présentateur');
+    if (!String(form.annee_reference || '').trim()) manquants.push('l’année de référence');
+    if (!form.verificateur_id) manquants.push('le vérificateur');
+    return manquants;
+  }, [estVisa, form]);
+
   /**
    * Reprend les coordonnées déjà connues.
    *
@@ -194,8 +267,14 @@ export function DossierForm({ initial = null, onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    if (validation.length) {
-      setError({ message: 'Veuillez corriger les points suivants :', details: validation });
+    if (validation.length || visaManquants.length) {
+      setError({
+        message: 'Veuillez corriger les points suivants :',
+        details: [
+          ...validation.map((v) => v.message),
+          ...visaManquants.map((m) => `Dossier VISA : renseignez ${m}.`),
+        ],
+      });
       return;
     }
     setSaving(true);
@@ -214,6 +293,19 @@ export function DossierForm({ initial = null, onSaved }) {
         priorite_id: Number(form.priorite_id),
         observation: form.observation || null,
         date_limite: form.date_limite || null,
+        /* Le type d'opération vaut pour toutes les divisions : c'est lui qui
+           porte le libellé de l'opération et les pièces requises. */
+        sous_type_id: form.sous_type_id ? Number(form.sous_type_id) : null,
+        ...(estVisa ? {
+          reference_visa: form.reference_visa || null,
+          date_heure_reception: pourSqlDateTime(form.date_heure_reception),
+          origine_presentateur: form.origine_presentateur || null,
+          comptable_presentateur: form.comptable_presentateur || null,
+          annee_reference: Number(form.annee_reference) || null,
+          verificateur_id: Number(form.verificateur_id) || null,
+          beneficiaire: form.beneficiaire || null,
+          organisme: form.organisme || null,
+        } : {}),
       };
       if (initial) {
         await dossierService.update(initial.id, payload);
@@ -232,6 +324,167 @@ export function DossierForm({ initial = null, onSaved }) {
     }
   };
 
+  /**
+   * Enregistrement en brouillon.
+   *
+   * Le cahier des fonctionnalités demande de permettre « l'enregistrement en
+   * brouillon lorsque le processus le permet » : un dossier dont la saisie est
+   * incomplète doit pouvoir être mis de côté sans être refusé.
+   *
+   * Le brouillon n'entre pas dans le circuit : il ne déclenche aucune
+   * notification, n'est orienté vers personne, et reste visible de son seul
+   * auteur. Le formulaire est multi-étapes : le brouillon s'enregistre à
+   * partir de n'importe quelle étape, et la saisie est conservée.
+   */
+  const enregistrerBrouillon = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = {
+        type_id: Number(form.type_id),
+        objet: form.objet || 'Brouillon sans objet',
+        demandeur: form.demandeur || 'Brouillon',
+        demandeur_nom: form.demandeur_nom || null,
+        demandeur_prenom: form.demandeur_prenom || null,
+        demandeur_tel: form.demandeur_tel || null,
+        demandeur_email: form.demandeur_email || null,
+        demandeur_adresse: form.demandeur_adresse || null,
+        matricule: form.matricule || null,
+        date_reception: form.date_reception,
+        priorite_id: Number(form.priorite_id),
+        observation: form.observation || null,
+        date_limite: form.date_limite || null,
+        sous_type_id: form.sous_type_id ? Number(form.sous_type_id) : null,
+        brouillon: true,
+      };
+      if (initial) {
+        await dossierService.update(initial.id, payload);
+        toastSuccess('Brouillon enregistré. Vous le retrouverez dans « Mes brouillons ».');
+        onSaved?.(initial.id);
+      } else {
+        const created = await dossierService.create(payload);
+        toastSuccess(`Brouillon ${created.numero} enregistré.`);
+        onSaved?.(created.id);
+      }
+    } catch (err) {
+      setError(err);
+      toastError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* ── Champs propres au VISA ───────────────────────────────────────────
+     Ils sont rendus à l'identique en création et en modification : la fiche
+     de réception doit rester complète et corrigeable après enregistrement. */
+  const renderVisaFields = () => {
+    if (!estVisa) return null;
+    return (
+      <fieldset className="space-y-4 rounded-lg border border-sky-200 bg-sky-50/60 p-4">
+        <legend className="px-1 text-sm font-semibold text-sky-900">
+          Fiche de réception VISA
+        </legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select
+            label="Type d'acte"
+            required
+            value={form.sous_type_id}
+            onChange={set('sous_type_id')}
+            hint={
+              sousTypesDisponibles.length === 0
+                ? 'Aucun sous-type actif pour le VISA : complétez le référentiel.'
+                : undefined
+            }
+          >
+            <option value="">Sélectionner…</option>
+            {sousTypesDisponibles.map((st) => (
+              <option key={st.id} value={st.id}>{st.libelle}</option>
+            ))}
+          </Select>
+
+          <Input
+            label="Date et heure de réception"
+            type="datetime-local"
+            required
+            value={form.date_heure_reception}
+            onChange={set('date_heure_reception')}
+          />
+
+          <TextInput
+            label="Origine / présentateur"
+            required
+            value={form.origine_presentateur}
+            onChange={setVal('origine_presentateur')}
+            placeholder="Ex. Direction régionale, administration, particulier…"
+            maxLength={255}
+          />
+
+          <TextInput
+            label="Comptable présentateur"
+            required
+            value={form.comptable_presentateur}
+            onChange={setVal('comptable_presentateur')}
+            placeholder="Nom du comptable qui présente le dossier"
+            maxLength={255}
+          />
+
+          <NumberInput
+            label="Année de référence"
+            required
+            min={2000}
+            max={2100}
+            value={form.annee_reference}
+            onChange={setVal('annee_reference')}
+          />
+
+          <Select
+            label="Vérificateur"
+            required
+            value={form.verificateur_id}
+            onChange={set('verificateur_id')}
+          >
+            <option value="">Sélectionner…</option>
+            {agentsDeLaDivision.map((a) => (
+              <option key={a.id} value={a.id}>
+                {`${a.nom || ''} ${a.prenom || ''}`.trim() || `Agent #${a.id}`}
+              </option>
+            ))}
+          </Select>
+
+          <TextInput
+            label="Bénéficiaire"
+            value={form.beneficiaire}
+            onChange={setVal('beneficiaire')}
+            placeholder="Nom du bénéficiaire du visa"
+            maxLength={200}
+          />
+
+          <TextInput
+            label="Organisme"
+            value={form.organisme}
+            onChange={setVal('organisme')}
+            placeholder="Organisme demandeur, le cas échéant"
+            maxLength={200}
+          />
+
+          <TextInput
+            label="Référence VISA"
+            value={form.reference_visa}
+            onChange={setVal('reference_visa')}
+            hint="Laissez vide : le numéro de dossier devient la référence VISA unique."
+            maxLength={50}
+          />
+        </div>
+
+        {visaManquants.length > 0 && (
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            À compléter avant enregistrement : {visaManquants.join(', ')}.
+          </p>
+        )}
+      </fieldset>
+    );
+  };
+
   if (loading) return <p className="py-10 text-center text-sm text-slate-400">Chargement du formulaire…</p>;
 
   /* Mode modification : un seul bloc. Les étapes servent l'accueil d'un dossier
@@ -244,7 +497,9 @@ export function DossierForm({ initial = null, onSaved }) {
             {error.message}
             {error.details && (
               <ul className="mt-1 list-inside list-disc text-xs">
-                {error.details.map((d) => <li key={d}>{d}</li>)}
+                {error.details.map((d, i) => (
+                  <li key={i}>{typeof d === 'string' ? d : d.message}</li>
+                ))}
               </ul>
             )}
           </Alert>
@@ -282,6 +537,8 @@ export function DossierForm({ initial = null, onSaved }) {
             ))}
           </div>
         </fieldset>
+
+        {renderVisaFields()}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Select label="Priorité" required value={form.priorite_id} onChange={set('priorite_id')}>
@@ -330,7 +587,9 @@ export function DossierForm({ initial = null, onSaved }) {
 
 
         <div className="flex justify-end gap-2">
-          <Button type="submit" loading={saving}>Enregistrer les modifications</Button>
+          <Button type="submit" loading={saving} disabled={visaManquants.length > 0}>
+            Enregistrer les modifications
+          </Button>
         </div>
       </form>
     );
@@ -349,7 +608,9 @@ export function DossierForm({ initial = null, onSaved }) {
           {error.message}
           {error.details && (
             <ul className="mt-1 list-inside list-disc text-xs">
-              {error.details.map((d) => <li key={d}>{d}</li>)}
+              {error.details.map((d, i) => (
+                <li key={i}>{typeof d === 'string' ? d : d.message}</li>
+              ))}
             </ul>
           )}
         </Alert>
@@ -423,7 +684,7 @@ export function DossierForm({ initial = null, onSaved }) {
                   name="type_id"
                   value={t.id}
                   checked={String(form.type_id) === String(t.id)}
-                  onChange={set('type_id')}
+                  onChange={() => choisirType(t.id)}
                   className="mt-0.5 h-4 w-4 accent-emerald-600"
                 />
                 <span className="min-w-0">
@@ -437,6 +698,24 @@ export function DossierForm({ initial = null, onSaved }) {
               </label>
             ))}
           </div>
+          {/* Type d'opération.
+              Le VISA parle de « type d'acte » et le propose dans sa propre
+              fiche de réception ; les autres divisions parlent d'« opération »
+              et la proposent ici. Le mécanisme est le même : un sous-type qui
+              porte un libellé et détermine les pièces requises. */}
+          {!estVisa && sousTypesDisponibles.length > 0 && (
+            <Select
+              label="Type d'opération"
+              value={form.sous_type_id}
+              onChange={set('sous_type_id')}
+              hint="Il détermine les pièces requises et le circuit de l’opération."
+            >
+              <option value="">Sélectionner…</option>
+              {sousTypesDisponibles.map((st) => (
+                <option key={st.id} value={st.id}>{st.libelle}</option>
+              ))}
+            </Select>
+          )}
           <p className="flex items-center gap-1 text-[11px] text-slate-500">
             <Info className="h-3 w-3 shrink-0" />
             La division sera déterminée automatiquement à partir du type choisi.
@@ -460,7 +739,11 @@ export function DossierForm({ initial = null, onSaved }) {
         </div>
 
           <div className="flex items-end justify-end">
-            <Button type="button" onClick={() => allerA(2)} disabled={problemesEtape1.length > 0}>
+            <Button
+              type="button"
+              onClick={() => allerA(2)}
+              disabled={problemesEtape1.length > 0 || (estVisa && !form.sous_type_id)}
+            >
               Continuer <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -556,6 +839,9 @@ export function DossierForm({ initial = null, onSaved }) {
             </Select>
             <DateInput label="Date limite (optionnel)" value={form.date_limite} onChange={setVal('date_limite')} />
           </div>
+
+          {renderVisaFields()}
+
           <ObservationInput
             value={form.observation}
             onChange={setVal('observation')}
@@ -607,6 +893,26 @@ export function DossierForm({ initial = null, onSaved }) {
                   {form.demandeur || '—'}{form.matricule ? ` (matricule : ${form.matricule})` : ''}
                 </dd>
               </div>
+              {estVisa && (
+                <>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-slate-500">Type d'acte</dt>
+                    <dd className="font-medium text-slate-800">
+                      {sousTypesDisponibles.find(
+                        (st) => String(st.id) === String(form.sous_type_id)
+                      )?.libelle || '—'}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-slate-500">Réception VISA</dt>
+                    <dd className="font-medium text-slate-800">
+                      {form.date_heure_reception
+                        ? formatDate(form.date_heure_reception, { time: true })
+                        : '—'}
+                    </dd>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between gap-2">
                 <dt className="text-slate-500">Priorité</dt>
                 <dd className="font-medium text-slate-800">
@@ -616,13 +922,32 @@ export function DossierForm({ initial = null, onSaved }) {
             </dl>
           </div>
 
-          <div className="flex justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <Button type="button" variant="ghost" onClick={() => allerA(2)}>
               <ArrowLeft className="h-4 w-4" /> Retour
             </Button>
-            <Button type="submit" loading={saving} disabled={validation.length > 0}>
-              <Check className="h-4 w-4" /> Créer le dossier
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Enregistrement en brouillon : la saisie est mise de côté sans
+                  entrer dans le circuit. Le dossier reste visible de son seul
+                  auteur, et se retrouve dans « Mes brouillons ». */}
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={enregistrerBrouillon}
+                loading={saving}
+                disabled={!form.type_id}
+                title="Enregistrer la saisie en brouillon, sans l'envoyer dans le circuit"
+              >
+                <Save className="h-4 w-4" /> Enregistrer en brouillon
+              </Button>
+              <Button
+                type="submit"
+                loading={saving}
+                disabled={validation.length > 0 || visaManquants.length > 0}
+              >
+                <Check className="h-4 w-4" /> Créer le dossier
+              </Button>
+            </div>
           </div>
         </div>
       )}

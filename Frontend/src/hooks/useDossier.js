@@ -8,17 +8,20 @@ export function useDossier(id) {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options = {}) => {
     if (!id) return;
+    /* Un rechargement à chaud ne doit pas faire clignoter la fiche : le
+       dossier reste affiché pendant la recharge. */
+    const silencieux = Boolean(options.silencieux);
+    if (!silencieux) setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
       const data = await dossierService.get(id);
       setDossier(data);
     } catch (e) {
-      setError(e);
+      if (!silencieux) setError(e);
     } finally {
-      setLoading(false);
+      if (!silencieux) setLoading(false);
     }
   }, [id]);
 
@@ -30,6 +33,11 @@ export function useDossier(id) {
 
   const refresh = useCallback(async () => {
     await load();
+  }, [load]);
+
+  /** Rechargement discret : la fiche reste à l'écran pendant la recharge. */
+  const recharger = useCallback(async () => {
+    await load({ silencieux: true });
   }, [load]);
 
   /** Exécute une action workflow puis recharge le dossier. */
@@ -53,7 +61,7 @@ export function useDossier(id) {
     [dossier, load]
   );
 
-  return { dossier, loading, error, submitting, refresh, runAction };
+  return { dossier, loading, error, submitting, refresh, recharger, runAction };
 }
 
 export default useDossier;

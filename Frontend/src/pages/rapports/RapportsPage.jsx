@@ -1,158 +1,166 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
-  FileDown, FileSpreadsheet, Loader2, Calendar, FileText, TrendingUp,
-  Mail, RotateCcw, AlertTriangle, Archive, Send, BarChart3,
+  FileDown, FileSpreadsheet, Loader2, Calendar, TrendingUp, Mail,
+  RotateCcw, AlertTriangle, Archive, Send, BarChart3, Filter, Stamp,
+  UserCheck, ClipboardList, ShieldCheck,
 } from 'lucide-react';
 import { rapportService } from '../../services/rapportService.js';
 import { downloadBlob } from '../../utils/fileHandler.js';
-import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
-import { Alert } from '../../components/ui/Alert.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { useNotification } from '../../hooks/useNotification.js';
 import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
-import { formatDateString } from '../../utils/formatDate.js';
 
 /**
- * Configuration des 10 rapports Secrétaire selon le cahier des charges §9.
+ * Rapports du service.
+ *
+ * Les dix rapports du cahier des charges §9, complétés par les rapports VISA
+ * (période mensuelle, trimestrielle ou annuelle, et comptage par vérificateur).
+ * Chaque bouton appelle réellement son endpoint : un bouton qui ne produit rien
+ * est pire qu'une fonction absente, parce qu'il laisse croire que le rapport
+ * existe.
  */
 const RAPPORTS_CONFIG = [
   {
     id: 'journalierRecus',
     titre: 'Rapport journalier des dossiers reçus',
-    description: 'Liste des dossiers reçus à la date du jour (statut REÇU).',
+    description: 'Liste des dossiers reçus à la date choisie.',
     icone: Calendar,
+    categorie: 'Secrétariat',
     filtres: ['date'],
-    pdfKey: 'journalierRecus',
-    excelKey: 'journalierRecus',
   },
   {
     id: 'dossiersPeriode',
-    titre: 'Liste des dossiers enregistrés par période',
-    description: 'Filtrer les dossiers par plage de dates de réception.',
+    titre: 'Dossiers enregistrés par période',
+    description: 'Dossiers filtrés par plage de dates de réception.',
     icone: Calendar,
+    categorie: 'Secrétariat',
     filtres: ['date_debut', 'date_fin'],
-    pdfKey: 'dossiersPeriode',
-    excelKey: 'dossiersPeriode',
   },
   {
     id: 'attenteTransmission',
-    titre: 'Liste des dossiers en attente de transmission',
-    description: 'Dossiers orientés (statut ORIENTÉ) en attente de bordereau de transmission.',
+    titre: 'Dossiers en attente de transmission',
+    description: 'Dossiers orientés en attente de bordereau de transmission.',
     icone: Send,
+    categorie: 'Secrétariat',
     filtres: [],
-    pdfKey: 'attenteTransmission',
-    excelKey: 'attenteTransmission',
   },
   {
     id: 'incomplets',
-    titre: 'Liste des dossiers incomplets',
-    description: 'Dossiers ayant des pièces obligatoires manquantes au dépouillement.',
+    titre: 'Dossiers incomplets',
+    description: 'Dossiers ayant des pièces obligatoires non satisfaites.',
     icone: AlertTriangle,
+    categorie: 'Suivi',
     filtres: [],
-    pdfKey: 'incomplets',
-    excelKey: 'incomplets',
   },
   {
     id: 'retournes',
-    titre: 'Liste des dossiers retournés',
-    description: 'Dossiers en statut CORRECTION_DEMANDEE (retournés par les divisions).',
+    titre: 'Dossiers retournés',
+    description: 'Dossiers en correction demandée par une division.',
     icone: RotateCcw,
+    categorie: 'Suivi',
     filtres: [],
-    pdfKey: 'retournes',
-    excelKey: 'retournes',
   },
   {
     id: 'transmissionsDivision',
-    titre: 'Rapport des transmissions par division',
+    titre: 'Transmissions par division',
     description: 'Bordereaux émis, groupés par division destinataire.',
     icone: TrendingUp,
+    categorie: 'Suivi',
     filtres: ['date_debut', 'date_fin'],
-    pdfKey: 'transmissionsDivision',
-    excelKey: 'transmissionsDivision',
   },
   {
     id: 'registreCourriers',
-    titre: 'Registre des courriers entrants et sortants',
-    description: 'Tous les courriers avec filtres par période et sens.',
+    titre: 'Registre des courriers',
+    description: 'Courriers entrants et sortants, avec période et sens.',
     icone: Mail,
+    categorie: 'Courriers',
     filtres: ['date_debut', 'date_fin', 'sens'],
-    pdfKey: 'registreCourriers',
-    excelKey: 'registreCourriers',
   },
   {
     id: 'clotures',
-    titre: 'Liste des dossiers clôturés',
-    description: 'Dossiers en statut CLÔTURÉ, avec filtre optionnel par période.',
+    titre: 'Dossiers clôturés',
+    description: 'Dossiers clôturés, avec période optionnelle.',
     icone: Archive,
+    categorie: 'Suivi',
     filtres: ['date_debut', 'date_fin'],
-    pdfKey: 'clotures',
-    excelKey: 'clotures',
   },
   {
     id: 'archives',
-    titre: 'Liste des dossiers archivés',
-    description: 'Dossiers archivés avec référence, emplacement et localisation numérique.',
+    titre: 'Dossiers archivés',
+    description: 'Référence, emplacement et localisation numérique.',
     icone: Archive,
+    categorie: 'Suivi',
     filtres: ['date_debut', 'date_fin'],
-    pdfKey: 'archives',
-    excelKey: 'archives',
   },
   {
     id: 'statsTypePeriodeDivision',
     titre: 'Statistiques par type, période et division',
     description: 'Répartition des dossiers par type, par mois et par division.',
     icone: BarChart3,
+    categorie: 'Statistiques',
     filtres: ['date_debut', 'date_fin'],
-    pdfKey: 'statsTypePeriodeDivision',
-    excelKey: 'statsTypePeriodeDivision',
+  },
+  {
+    id: 'visa',
+    titre: 'Dossiers VISA — mensuel, trimestriel, annuel',
+    description: 'Liste des dossiers VISA avec vérificateur, type d’acte, statut et signature.',
+    icone: Stamp,
+    categorie: 'VISA',
+    filtres: ['periode_visa'],
+  },
+  {
+    id: 'visaParVerificateur',
+    titre: 'Dossiers VISA par vérificateur',
+    description: 'Nombre de dossiers, signatures, archivages et délai moyen par vérificateur.',
+    icone: UserCheck,
+    categorie: 'VISA',
+    filtres: ['periode_visa'],
+  },
+  {
+    id: 'operationDivision',
+    titre: 'Opérations d’une division',
+    description: 'Dossier par dossier : opération, référence, montant saisi, validation et contrôle.',
+    icone: ClipboardList,
+    categorie: 'Divisions',
+    filtres: ['periode_visa', 'division'],
+  },
+  {
+    id: 'operationParType',
+    titre: 'Opérations par type',
+    description: 'Par opération : nombre de dossiers, montants saisis et validés, contrôles en attente.',
+    icone: BarChart3,
+    categorie: 'Divisions',
+    filtres: ['periode_visa', 'division'],
+  },
+  {
+    id: 'secours',
+    titre: 'Suivi des dossiers Secours de décès',
+    description: 'Visa du contrôle financier, mandatement, émargement, signature, cachet, archivage.',
+    icone: ShieldCheck,
+    categorie: 'Divisions',
+    filtres: ['periode_visa'],
   },
 ];
 
-/**
- * Carte de rapport individuelle.
- */
-function RapportCard({ rapport, onGenerate, loading }) {
-  const isLoading = loading === rapport.id;
+const CATEGORIES = ['Secrétariat', 'Suivi', 'Courriers', 'Statistiques', 'VISA', 'Divisions'];
 
+function BoutonExport({ format, onClick, loading }) {
+  const Icône = format === 'pdf' ? FileDown : FileSpreadsheet;
+  const label = format === 'pdf' ? 'PDF' : 'Excel';
   return (
-    <div className="p-5 space-y-4 border border-slate-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
-          <rapport.icone className="h-5 w-5" />
-        </span>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base font-semibold text-slate-800">{rapport.titre}</h3>
-          <p className="text-sm text-slate-500 mt-0.5">{rapport.description}</p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2 pt-2">
-        <button
-          onClick={() => {/* PDF */}}
-          disabled={false}
-          className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-        >
-          <span className="flex items-center justify-center gap-2">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-            <span>PDF</span>
-          </span>
-        </button>
-        <button
-          className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-        >
-          <span className="flex items-center justify-center gap-2">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            <span>Excel</span>
-          </span>
-        </button>
-      </div>
-    </div>
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      onClick={onClick}
+      disabled={Boolean(loading)}
+      className="flex-1"
+    >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icône className="h-4 w-4" />}
+      {label}
+    </Button>
   );
 }
 
@@ -165,29 +173,30 @@ export function RapportsPage() {
     date_debut: '',
     date_fin: '',
     sens: '',
+    periode: 'annuel',
+    annee: new Date().getFullYear(),
+    mois: new Date().getMonth() + 1,
+    trimestre: Math.ceil((new Date().getMonth() + 1) / 3),
+    /* La division des rapports par division : vide = les trois divisions. */
+    division: '',
   });
 
-  const handleGenerate = async (type, rapportId) => {
-    const rapport = RAPPORTS_CONFIG.find((r) => r.id === rapportId);
-    if (!rapport) return;
+  const changer = (cle, valeur) => setFiltres((prev) => ({ ...prev, [cle]: valeur }));
 
-    const isPdf = type === 'pdf';
-    setLoading(rapport.id);
+  const handleGenerate = async (rapport, format) => {
+    setLoading(`${rapport.id}-${format}`);
     setError(null);
-
     try {
-      const method = type === 'pdf' ? 'pdf' : 'excel';
-      const serviceMethod = rapportService[rapport.id][method];
-      if (!serviceMethod) throw new Error('Méthode non trouvée');
-
-      const filtres = { ...filtres };
-      const blob = await serviceMethod(filtres);
-
+      const service = rapportService[rapport.id];
+      if (!service?.[format]) throw new Error('Type de rapport indisponible.');
+      const blob = await service[format](filtres);
       downloadBlob(
         blob,
-        `${rapport.titre.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.${type === 'pdf' ? 'pdf' : 'xlsx'}`
+        `${rapport.titre.toLowerCase().replace(/\s+/g, '-')}-${new Date()
+          .toISOString()
+          .slice(0, 10)}.${format === 'pdf' ? 'pdf' : 'xlsx'}`
       );
-      toastSuccess(`Rapport ${type.toUpperCase()} généré.`);
+      toastSuccess(`Rapport ${format.toUpperCase()} généré.`);
     } catch (e) {
       setError(e);
       toastError(e.message);
@@ -196,67 +205,153 @@ export function RapportsPage() {
     }
   };
 
-  const handleFiltreChange = (key, value) => {
-    setFiltres((prev) => ({ ...prev, [key]: value }));
-  };
-
   return (
-    <AnimatedCard title="Rapports Secrétaire" subtitle="Les 10 rapports du cahier des charges §9 — PDF et Excel." delay={0}>
+    <AnimatedCard
+      title="Rapports"
+      subtitle="Exports PDF et Excel — le périmètre de l’utilisateur s’applique automatiquement."
+      delay={0}
+    >
       <div className="space-y-5">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-          {RAPPORTS_CONFIG.map((rapport) => (
-            <div
-              key={rapport.id}
-              className="p-5 space-y-4 border border-slate-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <Filter className="h-4 w-4" /> Filtres
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Input
+              label="Date (journalier)"
+              type="date"
+              value={filtres.date}
+              onChange={(e) => changer('date', e.target.value)}
+            />
+            <Input
+              label="Du"
+              type="date"
+              value={filtres.date_debut}
+              onChange={(e) => changer('date_debut', e.target.value)}
+            />
+            <Input
+              label="Au"
+              type="date"
+              value={filtres.date_fin}
+              onChange={(e) => changer('date_fin', e.target.value)}
+            />
+            <Select
+              label="Sens des courriers"
+              value={filtres.sens}
+              onChange={(e) => changer('sens', e.target.value)}
+              placeholder="Entrants et sortants"
             >
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
-                  <rapport.icone className="h-5 w-5" />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-semibold text-slate-800">{rapport.titre}</h3>
-                  <p className="text-sm text-slate-500 mt-0.5">{rapport.description}</p>
-                </div>
-              </div>
+              <option value="ENTRANT">Entrants</option>
+              <option value="SORTANT">Sortants</option>
+            </Select>
+          </div>
 
-              <div className="flex flex-wrap gap-2 pt-2">
-                <button
-                  onClick={() => generer('pdf', rapport.id)}
-                  disabled={false}
-                  className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    <span>PDF</span>
-                  </span>
-                </button>
-                <button
-                  className="flex-1 min-w-[140px] inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <span>Excel</span>
-                  </span>
-                </button>
-              </div>
-            </div>
-          ))}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Select
+              label="Division"
+              value={filtres.division}
+              onChange={(e) => changer('division', e.target.value)}
+            >
+              <option value="">Solde, Pensions et Secours</option>
+              <option value="SOLDE">Solde</option>
+              <option value="PENSION">Pensions</option>
+              <option value="SECOURS">Secours de décès</option>
+            </Select>
+            <Select
+              label="Période"
+              value={filtres.periode}
+              onChange={(e) => changer('periode', e.target.value)}
+            >
+              <option value="mensuel">Mensuelle</option>
+              <option value="trimestriel">Trimestrielle</option>
+              <option value="annuel">Annuelle</option>
+            </Select>
+            <Input
+              label="Année"
+              type="number"
+              min="2000"
+              max="2100"
+              value={filtres.annee}
+              onChange={(e) => changer('annee', e.target.value)}
+            />
+            <Select
+              label="Mois"
+              value={filtres.mois}
+              onChange={(e) => changer('mois', e.target.value)}
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={m}>
+                  {new Date(2000, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long' })}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label="Trimestre"
+              value={filtres.trimestre}
+              onChange={(e) => changer('trimestre', e.target.value)}
+            >
+              {[1, 2, 3, 4].map((t) => (
+                <option key={t} value={t}>
+                  T{t}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
 
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
             <p className="flex items-center gap-2 text-sm text-red-700">
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              {error.message}
+              <AlertTriangle className="h-4 w-4" /> {error.message}
             </p>
           </div>
         )}
+
+        {CATEGORIES.map((categorie) => {
+          const rapports = RAPPORTS_CONFIG.filter((r) => r.categorie === categorie);
+          if (!rapports.length) return null;
+          return (
+            <section key={categorie} className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                {categorie}
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {rapports.map((rapport) => {
+                  const Icône = rapport.icone;
+                  return (
+                    <div
+                      key={rapport.id}
+                      className="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                          <Icône className="h-5 w-5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-base font-semibold text-slate-800">{rapport.titre}</h3>
+                          <p className="mt-0.5 text-sm text-slate-500">{rapport.description}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <BoutonExport
+                          format="pdf"
+                          loading={loading === `${rapport.id}-pdf`}
+                          onClick={() => handleGenerate(rapport, 'pdf')}
+                        />
+                        <BoutonExport
+                          format="xlsx"
+                          loading={loading === `${rapport.id}-xlsx`}
+                          onClick={() => handleGenerate(rapport, 'xlsx')}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </AnimatedCard>
   );

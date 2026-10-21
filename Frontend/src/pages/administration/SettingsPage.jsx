@@ -3,6 +3,7 @@ import { Card } from '../../components/ui/Card.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { DivisionList } from '../../components/division/DivisionList.jsx';
 import { BackupPage } from './BackupPage.jsx';
+import { SystemInfoCard } from './SystemInfoCard.jsx';
 import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
 
 /**
@@ -13,7 +14,7 @@ import { AnimatedCard } from '../../components/ui/AnimatedCard.jsx';
  * à deux endroits, et l'on ne savait plus lequel faisait foi.
  */
 export function SettingsPage() {
-  const { user } = useAuth();
+  const { user, hasAnyPermission } = useAuth();
   return (
     <AnimatedCard title="Paramètres" subtitle="Référentiel du SRSP : divisions et sauvegardes." delay={0}>
       <Card title="Compte connecté" subtitle="Contexte de session">
@@ -30,6 +31,10 @@ export function SettingsPage() {
       <Card title="Sauvegarde et restauration">
         <BackupPage />
       </Card>
+
+      {/* Les informations système ne concernent que l'administrateur : elles
+          décrivent la machine, pas le service. */}
+      {hasAnyPermission(['system_config']) && <SystemInfoCard />}
     </AnimatedCard>
   );
 }

@@ -9,6 +9,7 @@ import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage.jsx';
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage.jsx';
 
 import { DashboardPage } from '../pages/dashboard/DashboardPage.jsx';
+import { BoiteTravailPage } from '../pages/dashboard/BoiteTravailPage.jsx';
 import { DossierListPage } from '../pages/dossiers/DossierListPage.jsx';
 import { DossierCreatePage } from '../pages/dossiers/DossierCreatePage.jsx';
 import { DossierDetailPage } from '../pages/dossiers/DossierDetailPage.jsx';
@@ -23,6 +24,7 @@ import { NotificationsPage } from '../pages/notifications/NotificationsPage.jsx'
 import { HistoriquePage } from '../pages/historique/HistoriquePage.jsx';
 import { ArchivesPage } from '../pages/archives/ArchivesPage.jsx';
 import { StatistiquesPage } from '../pages/statistiques/StatistiquesPage.jsx';
+import { PerformancePage } from '../pages/performance/PerformancePage.jsx';
 import { RapportsPage } from '../pages/rapports/RapportsPage.jsx';
 import { ProfilePage } from '../pages/profile/ProfilePage.jsx';
 
@@ -31,12 +33,17 @@ import { BordereauPage } from '../pages/bordereau/BordereauPage.jsx';
 import { RolesAdminPage } from '../pages/administration/RolesAdminPage.jsx';
 import { SettingsPage } from '../pages/administration/SettingsPage.jsx';
 import { BackupPage } from '../pages/administration/BackupPage.jsx';
+import { ReinitialisationsPage } from '../pages/administration/ReinitialisationsPage.jsx';
+import { ImmatriculationsPage } from '../pages/coordination/ImmatriculationsPage.jsx';
 import { ReferentielPage } from '../pages/referentiel/ReferentielPage.jsx';
 
 import { DivisionListPage } from '../pages/divisions/DivisionListPage.jsx';
 import { DivisionDossiersRoute } from './divisionGuard.jsx';
 import { DivisionDetailPage } from '../pages/divisions/DivisionDetailPage.jsx';
 import { DivisionDashboardPage } from '../pages/divisions/DivisionDashboardPage.jsx';
+
+import { TerritoirePage } from '../pages/territoire/TerritoirePage.jsx';
+import { BilanPage } from '../pages/referentiel/BilanPage.jsx';
 
 import { NotFoundPage } from '../pages/errors/NotFoundPage.jsx';
 import { ForbiddenPage } from '../pages/errors/ForbiddenPage.jsx';
@@ -62,6 +69,10 @@ export function AppRouter() {
       <Route element={<PrivateRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
+          {/* Boîte de travail : ce qui attend une action de l'utilisateur.
+              Ouverte à tout profil — le serveur la restreint déjà au
+              périmètre de chacun. */}
+          <Route path="/boite-travail" element={<BoiteTravailPage />} />
 
           {/* Dossiers */}
           <Route path="/dossiers" element={<DossierListPage />} />
@@ -162,11 +173,45 @@ export function AppRouter() {
               </RoleRoute>
             }
           />
+          {/* Performance : délais de traitement et dossiers en retard.
+              Le serveur applique le périmètre de l'utilisateur — un chef de
+              division n'y voit que sa division, un agent que ses dossiers. */}
+          <Route
+            path="/performance"
+            element={
+              <RoleRoute permissions={['view_stats']}>
+                <PerformancePage />
+              </RoleRoute>
+            }
+          />
           <Route
             path="/rapports"
             element={
               <RoleRoute permissions={['view_stats', 'consolidate_reports', 'export_data']}>
                 <RapportsPage />
+              </RoleRoute>
+            }
+          />
+          {/* Territoire : antennes, districts et rattachement des dossiers.
+              Le périmètre géographique du service était calculé côté serveur
+              mais invisible dans l'interface. */}
+          <Route
+            path="/territoire"
+            element={
+              <RoleRoute permissions={['view_stats']}>
+                <TerritoirePage />
+              </RoleRoute>
+            }
+          />
+          {/* Bilan de conformité : l'état des exigences du cahier. Ce
+              registre existait dans la base sans être visible nulle part ;
+              ni l'administrateur ni le chef BAAF ne pouvaient répondre à
+              « où en est la plateforme ? ». */}
+          <Route
+            path="/conformite"
+            element={
+              <RoleRoute permissions={['consolidate_reports']}>
+                <BilanPage />
               </RoleRoute>
             }
           />
@@ -222,6 +267,27 @@ export function AppRouter() {
             element={
               <RoleRoute roles={[ROLES.ADMIN]}>
                 <BackupPage />
+              </RoleRoute>
+            }
+          />
+          {/* Immatriculations : la mission de la Coordination (§ 11.2).
+              Elle n'a aucun pouvoir sur les dossiers : elle enregistre des
+              actes administratifs, elle ne décide de rien. */}
+          <Route
+            path="/coordination/immatriculations"
+            element={
+              <RoleRoute permissions={['gerer_immatriculations']}>
+                <ImmatriculationsPage />
+              </RoleRoute>
+            }
+          />
+          {/* Demandes de réinitialisation de mot de passe : l'administrateur
+              vérifie l'identité et délivre un code à usage unique. */}
+          <Route
+            path="/administration/reinitialisations"
+            element={
+              <RoleRoute roles={[ROLES.ADMIN]}>
+                <ReinitialisationsPage />
               </RoleRoute>
             }
           />

@@ -4,9 +4,11 @@ import {
   History, Search, RotateCcw, FileText, FileSpreadsheet, FileDown, AlertTriangle,
 } from 'lucide-react';
 import { historiqueService } from '../../services/historiqueService.js';
+import { dossierService } from '../../services/dossierService.js';
 import { agentService } from '../../services/agentService.js';
 import { usePagination } from '../../hooks/usePagination.js';
 import { useNotification } from '../../hooks/useNotification.js';
+import { useAuth } from '../../hooks/useAuth.js';
 import { Table } from '../../components/ui/Table.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { Input } from '../../components/ui/Input.jsx';
@@ -54,6 +56,7 @@ const CRITERES_VIDES = {
 
 export function HistoriquePage() {
   const { toastSuccess, toastError } = useNotification();
+  const { hasAnyPermission } = useAuth();
   const [criteres, setCriteres] = useState(CRITERES_VIDES);
   const [appliques, setAppliques] = useState({});
   const [donnees, setDonnees] = useState({ actions: [], total: 0, tronque: false, sans_auteur: 0 });
@@ -61,6 +64,11 @@ export function HistoriquePage() {
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [enCours, setEnCours] = useState(null);
+  /* Trace des suppressions : le dossier n'existe plus, la trace doit
+     pourtant rester lisible. Réservée à ceux qui peuvent auditer. */
+  const [suppressions, setSuppressions] = useState([]);
+  const [suppressionsLoading, setSuppressionsLoading] = useState(false);
+  const peutAuditer = hasAnyPermission(['view_audit', 'manage_roles']);
 
   const set = (champ) => (e) => setCriteres((c) => ({ ...c, [champ]: e.target.value }));
 
@@ -80,6 +88,21 @@ export function HistoriquePage() {
   }, [appliques, toastError]);
 
   useEffect(() => { Promise.resolve().then(charger); }, [charger]);
+
+  /* Suppressions : chargées à part, car elles vivent hors du journal. */
+  const chargerSuppressions = useCallback(async () => {
+    if (!peutAuditer) return;
+    setSuppressionsLoading(true);
+    try {
+      setSuppressions(await dossierService.listSuppressions());
+    } catch {
+      setSuppressions([]);
+    } finally {
+      setSuppressionsLoading(false);
+    }
+  }, [peutAuditer]);
+
+  useEffect(() => { Promise.resolve().then(chargerSuppressions); }, [chargerSuppressions]);
 
   // Les listes de filtre ne proposes que ce qui existe réellement au journal.
   useEffect(() => {
@@ -200,6 +223,65 @@ export function HistoriquePage() {
      alors que le journal en comptait 14 : ils étaient au-delà de la page. */
   const sansAuteur = donnees.sans_auteur ?? 0;
 
+  const colonnesSuppressions = [
+    {
+      key: 'date_suppression',
+      label: 'Date',
+      render: (r) => (
+        <span className="whitespace-nowrap text-slate-600">
+          {horodatageFr(r.date_suppression).date}
+        </span>
+      ),
+    },
+    {
+      key: 'numero',
+      label: 'Dossier supprimé',
+      render: (r) => (
+        <div>
+          <p className="font-medium text-slate-700">{r.numero}</p>
+          <p className="text-xs text-slate-400">{r.objet || '—'}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'demandeur',
+      label: 'Demandeur',
+      render: (r) => <span className="text-slate-600">{r.demandeur || '—'}</span>,
+    },
+    {
+      key: 'statut_code',
+      label: 'Statut',
+      render: (r) => (
+        <Badge className="border-slate-200 bg-slate-50 text-slate-600">
+          {r.statut_code || '—'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'motif',
+      label: 'Motif',
+      render: (r) => <p className="max-w-xs text-slate-600">{r.motif}</p>,
+    },
+    {
+      key: 'auteur',
+      label: 'Supprimé par',
+      render: (r) => (
+        <span className="text-slate-600">
+          {r.supprime_par_nom || r.auteur || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'nb_actions_historique',
+      label: 'Journal conservé',
+      render: (r) => (
+        <span className="text-xs text-slate-500">
+          {r.nb_actions_historique} action(s)
+        </span>
+      ),
+    },
+  ];
+
   return (
     <AnimatedCard title="Journal des actions" subtitle="Qui a fait quoi, quand, et sur quel dossier." delay={0}>
       <div className="space-y-5">
@@ -282,8 +364,9 @@ export function HistoriquePage() {
             <AlertTriangle className="h-3.5 w-3.5" />
             {sansAuteur} événement{sansAuteur > 1 ? 's' : ''} sans auteur&nbsp;:{' '}
             {sansAuteur > 1 ? 'ils' : 'il'} s’agit
-            {sansAuteur > 1 ? 's' : ''} d’une tentative de connexion refusée, où aucun
-            compte ne s’est identifié.
+            {sansAuteur > 1 ? 's' : ''} d’une tentative de connexion refusée,
+            ou d’une demande de réinitialisation faite pour un identifiant
+            inconnu — dans les deux cas, aucun compte ne s’est identifié.
           </p>
         )}
         <Table
@@ -296,6 +379,30 @@ export function HistoriquePage() {
           <Pagination pagination={pagination} />
         </div>
       </Card>
+
+      {/* Suppressions de dossiers. Le dossier n'existe plus : c'est cette
+          trace, avec son motif et le journal figé, qui atteste de ce qui a
+          été fait. */}
+      {peutAuditer && (
+        <Card
+          title={`Suppressions de dossiers (${suppressions.length})`}
+          subtitle="Dossiers retirés du service — motif, auteur et journal conservé"
+        >
+          {suppressionsLoading ? (
+            <p className="py-4 text-sm text-slate-500">Chargement des suppressions…</p>
+          ) : suppressions.length === 0 ? (
+            <p className="rounded-md bg-slate-50 px-3 py-4 text-sm text-slate-500">
+              Aucun dossier n’a été supprimé.
+            </p>
+          ) : (
+            <Table
+              columns={colonnesSuppressions}
+              data={suppressions}
+              emptyLabel="Aucune suppression enregistrée."
+            />
+          )}
+        </Card>
+      )}
     </div>
     </AnimatedCard>
   );

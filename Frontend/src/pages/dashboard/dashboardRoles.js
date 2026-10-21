@@ -1,7 +1,7 @@
 import {
   FolderKanban, Stamp, ShieldCheck, FileBarChart2, BarChart3,
   FilePlus2, MailPlus, Compass, Clock, AlertTriangle, Inbox,
-  Send, ArrowRight,
+  Send, ArrowRight, Archive, Bell, CheckCircle2, PencilRuler,
 } from 'lucide-react';
 import { extractValue } from '../../utils/extractValue.js';
 
@@ -33,8 +33,9 @@ const CONFIG = {
       { icon: FolderKanban, label: 'Total dossiers', value: extractValue(s?.total), tone: 'primary', sub: 'Toutes divisions' },
       { icon: ShieldCheck, label: 'À valider', value: extractValue(files?.aValider), tone: 'violet', sub: 'Soumis à vérification' },
       { icon: Stamp, label: 'À signer', value: extractValue(files?.aSigner), tone: 'amber', sub: 'Validés' },
-      { icon: Inbox, label: 'Nouveaux reçus', value: extractValue(files?.aOrienter), tone: 'blue', sub: 'Nouveaux dossiers reçus' },
-      { icon: AlertTriangle, label: 'En retard', value: extractValue(s?.enRetard), tone: 'red', sub: '> 30 jours' },
+      { icon: AlertTriangle, label: 'Incomplets', value: extractValue(s?.incomplets), tone: 'red', sub: 'Pièces obligatoires manquantes' },
+      { icon: CheckCircle2, label: 'Clôturés récemment', value: extractValue(s?.cloturesRecents), tone: 'emerald', sub: '30 derniers jours' },
+      { icon: Clock, label: 'Ancienneté > 30 j', value: extractValue((s?.anciennete?.de_31_a_90_jours || 0) + (s?.anciennete?.plus_90_jours || 0)), tone: 'sky', sub: 'Dossiers ouverts' },
     ],
     actions: [
       { to: '/dossiers', label: 'Valider un dossier', icon: ShieldCheck, perms: ['valider_dossier'] },
@@ -100,8 +101,9 @@ const CONFIG = {
       { icon: FolderKanban, label: 'Total dossiers', value: extractValue(s?.total), tone: 'primary', sub: 'Toutes divisions' },
       { icon: Inbox, label: 'Nouveaux reçus', value: extractValue(s?.RECU), tone: 'blue', sub: "Dossiers reçus récents" },
       { icon: Clock, label: 'En traitement', value: extractValue(files?.enCours), tone: 'sky', sub: 'Dossiers en cours' },
-      { icon: AlertTriangle, label: 'À corriger', value: extractValue(files?.aCorriger), tone: 'red', sub: 'Retours en attente' },
-      { icon: AlertTriangle, label: 'En retard', value: extractValue(s?.enRetard), tone: 'amber', sub: '> 30 jours' },
+      { icon: AlertTriangle, label: 'Incomplets', value: extractValue(s?.incomplets), tone: 'red', sub: 'Pièces obligatoires manquantes' },
+      { icon: CheckCircle2, label: 'Clôturés récemment', value: extractValue(s?.cloturesRecents), tone: 'emerald', sub: '30 derniers jours' },
+      { icon: Clock, label: 'Ancienneté > 30 j', value: extractValue((s?.anciennete?.de_31_a_90_jours || 0) + (s?.anciennete?.plus_90_jours || 0)), tone: 'amber', sub: 'Dossiers ouverts' },
     ],
     actions: [
       { to: '/statistiques', label: 'Statistiques', icon: BarChart3, perms: ['view_stats'] },

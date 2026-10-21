@@ -19,6 +19,12 @@ vi.mock('../notification/NotificationBell.jsx', () => ({
   NotificationBell: () => null,
 }));
 
+/* L'indicateur de temps réel lit le contexte du canal, qui n'existe pas
+   dans ce test isolé — comme la cloche, il est neutralisé. */
+vi.mock('./TempsReelIndicateur.jsx', () => ({
+  TempsReelIndicateur: () => null,
+}));
+
 import { Topbar } from './Topbar.jsx';
 
 /**

@@ -21,6 +21,7 @@ export const dashboardService = {
       ORIENTE: extractValue(d.ORIENTE),
       AFFECTE: extractValue(d.AFFECTE),
       EN_TRAITEMENT: extractValue(d.EN_TRAITEMENT),
+      EN_ATTENTE_COMPLEMENT: extractValue(d.EN_ATTENTE_COMPLEMENT),
       SOUMIS_A_VERIFICATION: extractValue(d.SOUMIS_A_VERIFICATION),
       CORRECTION_DEMANDEE: extractValue(d.CORRECTION_DEMANDEE),
       VALIDE: extractValue(d.VALIDE),
@@ -46,6 +47,15 @@ export const dashboardService = {
       perimetre: d.perimetre || null,
     };
   }),
+  /**
+   * Boîte de travail : ce qui incombe à l'utilisateur, ce qui attend une
+   * validation, ce qui est incomplet et ce qui a été clôturé récemment.
+   *
+   * Le serveur renvoie quatre files et deux répartitions. On garde la forme
+   * brute : chaque file porte son `total` et ses `dossiers`, et l'écran se
+   * charge de la présenter — aucune donnée n'est recalculée côté client.
+   */
+  boiteTravail: () => apiClient.get('/dashboard/boite-travail').then((r) => r.data || {}),
   byDivision: () => apiClient.get('/dashboard/by-division').then((r) => r.data || []),
   byStatus: () => apiClient.get('/dashboard/by-status').then((r) => r.data || []),
   evolution: () => apiClient.get('/dashboard/evolution').then((r) => r.data || []),
