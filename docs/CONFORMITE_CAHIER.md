@@ -7,6 +7,30 @@ Ce document répond à une seule question : **sur ce que le cahier demande,
 qu'est-ce qui est en place, et qu'est-ce qui reste à valider ou à
 développer ?**
 
+## L'état, mesuré
+
+Le cahier compte **460 exigences**. Le registre en tient une par une, avec
+son état et son motif. Le relevé se fait par
+`node Backend/scripts/etat-fonctionnalites.mjs`.
+
+| État | Nombre | Part |
+|---|---|---|
+| **Livrée** | **357** | **78 %** |
+| Hors plateforme — un autre système, une autre direction, ou une procédure RH | 61 | 13 % |
+| Non construite | 24 | 5 % |
+| Partielle | 18 | 4 % |
+
+| Document | Livrées |
+|---|---|
+| **Cahier v2.0 — fonctionnalités obligatoires** | **172 / 180 — 96 %** |
+| Cahier v2.0 — fonctionnalités historiques | 185 / 280 — 66 % |
+
+> Les états du registre ne sont pas des déclarations : la campagne
+> `test-e2e-droits.mjs` vérifie que chaque fonction déclarée livrée repose
+> sur un droit qui existe, qui est porté par un rôle, et qui mène à une
+> route. Une fonction dont le droit ne mène nulle part est « inerte » — et
+> le registre la compte comme telle.
+
 Trois mentions sont employées :
 
 | Mention | Sens |
@@ -407,6 +431,7 @@ Ces points ne sont pas des défauts : ce sont des règles que le cahier ne tranc
 | 16 | **Champs exacts de chaque type d'opération** | **En place, à valider** — les 17 types du cahier portent leurs champs, et l'écran *Référentiel → Schémas d'opérations* permet de les faire évoluer sans développement. C'est là que le SRSP doit dire ce qui est juste. |
 | 17 | **Les droits du registre de conformité** | **En place, à valider** — le registre porte, pour chaque exigence, le poste qui l'exerce et le droit qui l'exerce. L'audit `test-e2e-droits.mjs` vérifie que les attributions attendues sont satisfaites, et qu'aucune route n'est fermée à tout le monde. **Un écart est assumé** : les chefs de division ne portent pas `traiter_dossier` — l'affectation automatique ne propose un dossier qu'aux agents qui le portent, et l'accorder aux chefs les chargerait du traitement qu'ils n'ont pas à faire. Le registre attribue « traiter les dossiers » au chef de division : c'est le vocabulaire du cahier, pas le fonctionnement de la plateforme. *À confirmer.* |
 | 18 | **Le certificat de cessation imprimable** | **À faire** — la donnée de cessation est gérée (opération `PENSION_CERTIFICAT_CESSATION`, et `SOLDE_CERTIFICAT_CESSATION`), la production du certificat imprimable n'existe pas. |
+| 19 | **La remontée des dossiers bloqués** | **À faire — livrable** — le cahier confie à la hiérarchie le traitement des dossiers qui bloquent, et l'interlocution entre divisions et chef de service. La plateforme sait aujourd'hui qu'un dossier est bloqué (statuts `EN_ATTENTE_COMPLEMENT`, `CORRECTION_DEMANDEE`, échéance dépassée) mais **rien ne le remonte** : ni le chef de division à la hiérarchie, ni la coordination. C'est la plus grosse famille manquante, et elle est dans le thème : c'est du suivi de dossier. |
 
 ---
 
