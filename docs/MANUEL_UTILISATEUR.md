@@ -458,6 +458,34 @@ En tête de l'écran, les **volumes** : combien de demandes de chaque type ont
 
 ---
 
+## 5 quater. Les signalements (dossier bloqué)
+
+Onglet **Signalements** de la fiche, et menu **Signalements** pour la hiérarchie.
+
+Un dossier peut être bloqué sans que son statut change : une pièce qu'un
+service extérieur ne renvoie pas, un désaccord entre deux divisions, une
+décision qui remonte au chef de service. Le signalement sert à **nommer cette
+difficulté et à lui donner un responsable**, sans sortir le dossier de son
+circuit.
+
+**Chef de division** — dans la fiche d'un dossier de votre division, bouton
+*Signaler un blocage* : choisissez la nature (blocage, interlocution,
+arbitrage), la priorité, et écrivez le motif (10 caractères minimum). Le
+signalement part dans la file du chef de service.
+
+**Chef de service** — menu **Signalements** : la file montre les signalements
+ouverts de toutes les divisions. Vous pouvez *prendre en charge* (le
+signalement passe « en cours »), puis *résoudre* ou *rejeter* — dans les deux
+cas avec un texte obligatoire. L'auteur est notifié à chaque étape.
+
+**Coordination et Chef BAAF** — consultation de la file et de l'état.
+
+Un signalement **ne change jamais le statut du dossier** : il est une trace de
+suivi, pas une transition de workflow. Le dossier continue d'avancer pendant
+que la difficulté est instruite.
+
+---
+
 ## 6. Les pièces jointes
 
 Onglet **Documents**.

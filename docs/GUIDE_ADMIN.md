@@ -155,6 +155,18 @@ qui doit produire les prescriptions, les demandes de dossier mère et les
 oppositions que le cahier lui confie. Elle n'était détenue que par le chef de
 division : le liquidateur ne pouvait pas produire ce que le dossier demandait.
 
+### 2.9 Les permissions de signalement
+
+| Permission | Détenue par | Ce qu'elle permet |
+|---|---|---|
+| `signaler_dossier` | Chefs des quatre divisions, Chef BAAF, Coordinatrice | Ouvrir un signalement sur un dossier accessible, avec nature, priorité et motif |
+| `traiter_signalement` | Chef de Service | Prendre en charge, résoudre ou rejeter un signalement |
+| `consulter_signalements` | Chef de Service, Chef BAAF, Coordinatrice, Admin, Chefs des quatre divisions | Lire la file et le détail ; la portée est cloisonnée par division côté serveur |
+
+> **Un signalement ne modifie pas le dossier.** Il n'accorde aucun droit sur
+> le circuit : il ne change ni le statut, ni l'agent, ni la division. C'est
+> une trace de suivi, séparée du workflow.
+
 ---
 
 ## 2 bis. Demandes de réinitialisation de mot de passe
@@ -420,6 +432,9 @@ node scripts/migration-schemas-operations.mjs --apply
 
 # Module d'immatriculation de la Coordination
 node scripts/migration-immatriculations.mjs --apply
+
+# Signalements de dossiers bloqués (table, permissions, registre)
+node scripts/migration-signalements.mjs --apply
 ```
 
 > Toutes ces migrations sont **idempotentes** : les relancer ne casse rien

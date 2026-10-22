@@ -158,7 +158,9 @@ async function main() {
   );
   const priorite = ref.data.priorites?.[0];
   const agents = await api(verif.token, 'GET', '/agents');
-  const agentVerif = (agents.data || []).find((a) => a.division_id && a.actif !== 0);
+  const agentVerif = (agents.data || []).find(
+    (a) => a.role_nom === 'VERIFICATEUR_VISA' && a.actif !== 0 && a.peut_traiter
+  );
 
   const creation = await api(secretaire.token, 'POST', '/dossiers', {
     type_id: typeVisa.id,

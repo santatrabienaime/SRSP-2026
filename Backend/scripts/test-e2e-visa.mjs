@@ -118,7 +118,7 @@ async function main() {
 
   const agents = await api(verif.token, 'GET', '/agents');
   const agentVerif = (agents.data || []).find(
-    (a) => a.division_id === divisionVisa?.id && a.actif !== 0
+    (a) => a.division_id === divisionVisa?.id && a.actif !== 0 && a.peut_traiter
   );
   ok('Agent vérificateur VISA identifié', Boolean(agentVerif),
     agentVerif ? `${agentVerif.nom} ${agentVerif.prenom || ''}` : '');

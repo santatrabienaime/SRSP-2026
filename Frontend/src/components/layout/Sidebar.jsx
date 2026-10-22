@@ -4,6 +4,7 @@ import {
   BarChart3, FileBarChart2, Users, Shield, Bell,
   UserCog, Building2, PanelLeftClose, PanelLeftOpen,
   Database, FileCheck, Inbox, KeyRound, IdCard, Gauge, MapPinned,
+  TriangleAlert,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
@@ -28,6 +29,7 @@ const ICONS = {
   reinitialisation: KeyRound,
   immatriculation: IdCard,
   territoire: MapPinned,
+  signalements: TriangleAlert,
 };
 
 /**
@@ -103,6 +105,10 @@ export function Sidebar() {
       label: 'Suivi',
       items: [
         { to: '/notifications', label: 'Notifications', icon: 'notifications' },
+        /* Signalements : les dossiers bloqués remontés. Les chefs de division
+           y ouvrent et suivent ceux de leur division, le chef de service les
+           arbitre, la coordination et le BAAF les consultent. */
+        { to: '/signalements', label: 'Signalements', icon: 'signalements', perms: ['consulter_signalements'] },
         { to: '/historique', label: 'Historique', icon: 'historique', perms: ['view_journal', 'view_audit'] },
         { to: '/archives', label: 'Archives', icon: 'archives', perms: ['view_archives'] },
         /* « Mes statistiques » est ouvert à tout le monde, sans permission.

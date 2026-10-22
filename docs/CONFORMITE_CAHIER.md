@@ -15,15 +15,15 @@ son état et son motif. Le relevé se fait par
 
 | État | Nombre | Part |
 |---|---|---|
-| **Livrée** | **357** | **78 %** |
+| **Livrée** | **364** | **79 %** |
 | Hors plateforme — un autre système, une autre direction, ou une procédure RH | 61 | 13 % |
-| Non construite | 24 | 5 % |
-| Partielle | 18 | 4 % |
+| Non construite | 22 | 5 % |
+| Partielle | 13 | 3 % |
 
 | Document | Livrées |
 |---|---|
 | **Cahier v2.0 — fonctionnalités obligatoires** | **172 / 180 — 96 %** |
-| Cahier v2.0 — fonctionnalités historiques | 185 / 280 — 66 % |
+| Cahier v2.0 — fonctionnalités historiques | 192 / 280 — 69 % |
 
 > Les états du registre ne sont pas des déclarations : la campagne
 > `test-e2e-droits.mjs` vérifie que chaque fonction déclarée livrée repose
@@ -164,6 +164,15 @@ Trois mentions sont employées :
 | Motif obligatoire au retour, refus, annulation, réouverture | **En place** |
 | Ne pas effacer une ancienne observation | **En place** — les commentaires ne sont pas modifiés, seulement complétés. |
 
+### 5.5 Remontée des dossiers bloqués
+
+| Exigence | État | Commentaire |
+|---|---|---|
+| Signaler un dossier qui bloque | **En place** | Le chef de division ouvre un signalement depuis la fiche : nature (`BLOCAGE`, `INTERLOCUTION`, `ARBITRAGE`), priorité, motif écrit. |
+| Interlocution entre divisions et chef de service | **En place** | La file du chef de service reçoit les signalements de toutes les divisions ; chaque chef de division ne voit que la sienne. |
+| Prise en charge et décision | **En place** | Le chef de service prend en charge, puis résout ou rejette avec un texte obligatoire. Chaque geste est tracé et notifié. |
+| Ne pas confondre difficulté et circuit | **En place** | Un signalement **ne change jamais le statut du dossier** : il porte la difficulté, il ne remplace pas le workflow. |
+
 ---
 
 ## 6. Données et formulaires communs
@@ -274,7 +283,7 @@ Le module VISA est le plus abouti : il est conforme au cahier dans son intégral
 | **Coordination** — immatriculation, nouveaux arrivants, changements de mode de paiement | **En place** | Demande d'immatriculation avec **référence attribuée**, doublons de CIN et de matricule refusés **avant** l'attribution, insertion en paie (éléments requis pour les systèmes de paie et de pension), changements de mode de paiement avec **motif obligatoire** et pièces vérifiées, volumes par type de demande, période et division. |
 | **Coordination** — attestation en ligne, insertion Augure, ordres de déplacement | **Hors périmètre** | La plateforme ne dialogue avec aucun logiciel externe : le cahier ne mentionne aucune interface autorisée et documentée. L'insertion est **enregistrée** dans la plateforme, à charge de la coordination de la transmettre. |
 | **Chef BAAF** — gestion administrative et comptable interne | **En place** | Documents, courriers, rapports consolidés. *Les « situations FCC / BCSE » ne sont pas gérées.* |
-| **Chef de Service** — pilotage, signature, retour motivé, rapports consolidés | **En place** | Tableau de bord consolidé, signature, dérogation motivée, archives, écran **Performance** (délais de traitement, dossiers en retard, répartition par division et par agent). |
+| **Chef de Service** — pilotage, signature, retour motivé, rapports consolidés | **En place** | Tableau de bord consolidé, signature, dérogation motivée, archives, écran **Performance** (délais de traitement, dossiers en retard, répartition par division et par agent), **file des signalements** (prise en charge, résolution ou rejet motivé). |
 | **Administrateur technique** | **En place** | Comptes, rôles, référentiel, schémas d'opérations. **Aucun pouvoir de décision métier** — vérifié par le test. |
 | **Territoire** — périmètre géographique du service | **En place** | Antennes et districts, synthèse par antenne, rattachement d'un dossier à un district avec historique. *Les dossiers sans district sont comptés à part.* |
 
@@ -287,6 +296,8 @@ Le module VISA est le plus abouti : il est conforme au cahier dans son intégral
 **Recherche** — référence exacte, nom, matricule, objet, référence externe ; filtres division, catégorie, statut, date, responsable ; bouton « Effacer les filtres » ; **nombre de résultats affiché** ; message clair quand aucun résultat ne correspond. **En place.**
 
 **Rapports communs** — reçus par jour/mois/trimestre/année, par division/type/statut/responsable, incomplets ou retournés avec motifs, en attente de vérification/signature/transmission/archivage, registre des courriers, volume traité par période. **En place** (12 rapports transverses).
+
+**Remontée des dossiers bloqués** — le chef de division signale un dossier de sa division (blocage, interlocution, arbitrage ; priorité ; motif écrit) ; le chef de service le voit dans sa file, le prend en charge et le referme par une résolution ou un rejet motivé ; la coordination et le BAAF consultent. Un signalement **ne change pas le statut du dossier** : il porte la difficulté, il ne remplace pas le circuit. Chaque ouverture, prise en charge et décision est journalisée et notifiée. **En place.**
 
 **Rapports par division**
 
@@ -431,7 +442,7 @@ Ces points ne sont pas des défauts : ce sont des règles que le cahier ne tranc
 | 16 | **Champs exacts de chaque type d'opération** | **En place, à valider** — les 17 types du cahier portent leurs champs, et l'écran *Référentiel → Schémas d'opérations* permet de les faire évoluer sans développement. C'est là que le SRSP doit dire ce qui est juste. |
 | 17 | **Les droits du registre de conformité** | **En place, à valider** — le registre porte, pour chaque exigence, le poste qui l'exerce et le droit qui l'exerce. L'audit `test-e2e-droits.mjs` vérifie que les attributions attendues sont satisfaites, et qu'aucune route n'est fermée à tout le monde. **Un écart est assumé** : les chefs de division ne portent pas `traiter_dossier` — l'affectation automatique ne propose un dossier qu'aux agents qui le portent, et l'accorder aux chefs les chargerait du traitement qu'ils n'ont pas à faire. Le registre attribue « traiter les dossiers » au chef de division : c'est le vocabulaire du cahier, pas le fonctionnement de la plateforme. *À confirmer.* |
 | 18 | **Le certificat de cessation imprimable** | **À faire** — la donnée de cessation est gérée (opération `PENSION_CERTIFICAT_CESSATION`, et `SOLDE_CERTIFICAT_CESSATION`), la production du certificat imprimable n'existe pas. |
-| 19 | **La remontée des dossiers bloqués** | **À faire — livrable** — le cahier confie à la hiérarchie le traitement des dossiers qui bloquent, et l'interlocution entre divisions et chef de service. La plateforme sait aujourd'hui qu'un dossier est bloqué (statuts `EN_ATTENTE_COMPLEMENT`, `CORRECTION_DEMANDEE`, échéance dépassée) mais **rien ne le remonte** : ni le chef de division à la hiérarchie, ni la coordination. C'est la plus grosse famille manquante, et elle est dans le thème : c'est du suivi de dossier. |
+| 19 | **La remontée des dossiers bloqués** | **En place** — le chef de division signale un dossier de sa division (blocage, interlocution, arbitrage), avec motif et priorité ; le chef de service le prend en charge et le referme par une résolution ou un rejet motivé ; la coordination et le BAAF consultent. Le signalement **ne change pas le statut du dossier** : il porte la difficulté, il ne remplace pas le circuit. Chaque geste est tracé et notifié. |
 
 ---
 

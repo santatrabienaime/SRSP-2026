@@ -1,6 +1,6 @@
 # Résultats des tests — SRSP Fitovinany
 
-Date de la campagne : **20 octobre 2026**
+Date de la campagne : **22 octobre 2026**
 Environnement : Windows, Node.js 24, MariaDB/MySQL local (`srsp_db`),
 API sur `http://localhost:5000`.
 
@@ -11,27 +11,29 @@ API sur `http://localhost:5000`.
 | Campagne | Commande | Résultat |
 |---|---|---|
 | Tests fonctionnels du circuit VISA (bout en bout, API réelle) | `node Backend/scripts/test-e2e-visa.mjs` | **78 / 78** — 0 échec |
+| **Régression : création d'un dossier VISA** | `node Backend/scripts/test-e2e-visa-creation.mjs` | **12 / 12** — 0 échec |
 | Réinitialisation de mot de passe (bout en bout) | `node Backend/scripts/test-e2e-reinitialisation.mjs` | **23 / 23** — 0 échec |
 | Canal temps réel (bout en bout, Socket.IO) | `node Backend/scripts/test-e2e-temps-reel.mjs` | **17 / 17** — 0 échec |
 | Fonctions d'ergonomie | `node Backend/scripts/test-e2e-ergonomie.mjs` | **34 / 34** — 0 échec |
 | Données d'opération, versionnage, état « non applicable » | `node Backend/scripts/test-e2e-operations.mjs` | **50 / 50** — 0 échec |
 | Module d'immatriculation de la Coordination | `node Backend/scripts/test-e2e-immatriculation.mjs` | **22 / 22** — 0 échec |
 | **Circuit Secours de bout en bout** | `node Backend/scripts/test-e2e-secours.mjs` | **20 / 20** — 0 échec |
+| **Signalements de dossiers bloqués (bout en bout)** | `node Backend/scripts/test-e2e-signalements.mjs` | **36 / 36** — 0 échec |
 | **Droits et routes : cohérence** | `node Backend/scripts/test-e2e-droits.mjs` | **2 / 2** — 0 échec |
 | Contrôle des données attendues par chaque écran | `node Backend/scripts/test-ecrans.mjs` | **53 / 53** — 0 échec |
 | Points d'entrée du tableau de bord, avec tous les profils | `node Backend/scripts/test-e2e-tableaux-bord.mjs` | **91 / 91** — 0 échec |
 | Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **12 / 12** — 0 échec |
 | Noms d'onglets des exports Excel | `node Backend/scripts/test-e2e-exports-excel.mjs` | **15 / 15** — 0 échec |
 | **Balayage de toute l'API, avec tous les profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur serveur** |
-| **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **215 routes — 0 orpheline, 0 appel cassé** |
-| Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **103 / 103** — 12 fichiers, 0 échec |
+| **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **222 routes — 0 orpheline, 0 appel cassé** |
+| Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **104 / 104** — 12 fichiers, 0 échec |
 | Construction de production du frontend | `npm run build` (Frontend) | **OK** — `dist/` généré |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** — 0 erreur |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 356 fichiers, 0 défaut |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 363 fichiers, 0 défaut |
 | Idempotence des migrations | relance de chaque migration avec `--apply` | **OK** — aucune erreur, aucun doublon |
 
-**Total backend : 417 contrôles, 417 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
-**Total frontend : 103 tests, 103 réussis, 0 échec.**
+**Total backend : 465 contrôles, 465 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
+**Total frontend : 104 tests, 104 réussis, 0 échec.**
 
 ---
 
@@ -111,6 +113,27 @@ eux qui prouvent qu'une règle est appliquée.
 | Journal d'un dossier supprimé disparaissant | `historique_actions.dossier_id` est en `ON DELETE CASCADE` | Table `suppressions_dossiers` sans clé étrangère, qui fige le journal avant la suppression |
 | Suppression impossible en pratique | Le routage automatique porte le dossier à `AFFECTE` dès la création, statut hors du seuil autorisé | Seuil étendu à `AFFECTE` : un dossier affecté mais jamais repris ne protège aucun travail |
 | Pièce désactivée référençant un sous-type supprimé | La suppression du sous-type laissait `types_pieces.sous_type_id` pointant sur une ligne disparue | Les pièces désactivées sont **détachées** avant la suppression ; seules les pièces **actives** bloquent |
+
+### 2.4 Régression : création d'un dossier VISA
+
+La création d'un dossier VISA a été reprise après trois défauts qui se
+masquaient l'un l'autre : le type d'acte était obligatoire à l'étape 1 mais son
+choix n'apparaissait qu'à l'étape 3 ; la liste des vérificateurs proposait des
+agents qui ne traitaient pas les dossiers ; le brouillon perdait les champs
+VISA et envoyait `priorite_id: 0`.
+
+```bash
+cd Backend
+node scripts/test-e2e-visa-creation.mjs
+```
+
+| Section | Points de contrôle | Résultat |
+|---|---|---|
+| 1. Référentiel des agents | `peut_traiter` exposé, vérificateur Visa apte, chef de division et administrateur inaptes | 4 / 4 |
+| 2. Fiche incomplète | sans vérificateur (**422**), avec le chef de division (**422**), avec l'administrateur (**422**), messages explicites | 5 / 5 |
+| 3. Fiche complète | création (**201**), vérificateur enregistré, type d'acte conservé | 3 / 3 |
+
+**Total : 12 contrôles, 12 réussis, 0 échec.**
 
 ---
 
@@ -323,6 +346,44 @@ insertions en paie, les changements de mode de paiement et les volumes.
 
 ---
 
+## 3 sexies. Campagne signalements de dossiers bloqués
+
+```bash
+cd Backend
+node scripts/test-e2e-signalements.mjs
+```
+
+Le cahier confie à la hiérarchie le traitement des dossiers qui bloquent. Le
+signalement est **attaché au dossier** mais **ne change pas son statut** : il
+nomme la difficulté, il ne remplace pas le circuit.
+
+| Section | Points de contrôle | Résultat |
+|---|---|---|
+| 1. Connexions | profils nécessaires | 1 / 1 |
+| 2. Ouverture | dossier créé, signalement **201**, statut `OUVERT`, dossier rattaché, division déduite | 5 / 5 |
+| 3. Refus | second signalement ouvert par le même auteur (**409**), agent sans droit (**403**), motif trop court (**400**), résolution par un chef de division (**403**) | 4 / 4 |
+| 4. Hiérarchie | file du chef de service, cloisonnement par division, prise en charge (**200**), statut `EN_COURS`, traiteur enregistré, double prise en charge (**409**) | 6 / 6 |
+| 5. Résolution | texte trop court (**400**), résolution (**200**), statut `RESOLU`, texte et date conservés, double résolution (**409**) | 6 / 6 |
+| 6. Traçabilité | lecture avec le dossier, 3 traces au journal, 2 notifications au chef de division, **statut du dossier inchangé** | 7 / 7 |
+| 7. Rejet | signalement Solde créé, rejet (**200**), statut `REJETE`, motif conservé | 4 / 4 |
+| 8. Compteur | compteur accessible, lisible par un agent, file complète fermée à un agent (**403**) | 3 / 3 |
+
+**Total : 36 contrôles, 36 réussis, 0 échec.**
+
+### Les garanties vérifiées
+
+- **Un signalement ne bloque pas le dossier une seconde fois** : le dossier
+  garde son statut, et peut continuer à avancer pendant que la hiérarchie
+  instruit la difficulté.
+- **Un chef de division ne voit que sa division** : la file est cloisonnée par
+  le serveur, pas seulement filtrée à l'écran.
+- **Une décision sans texte ne s'explique pas** : la résolution comme le rejet
+  exigent un texte, et chaque geste est journalisé.
+- **L'auteur est prévenu** : la prise en charge et la résolution produisent une
+  notification nominative.
+
+---
+
 ## 4. Tests du frontend
 
 ```bash
@@ -359,6 +420,7 @@ npm test
 | `migration-types-operations.mjs` | 17 types d'opérations Solde et Pensions | ✅ |
 | `migration-donnees-operations.mjs` | `donnees_operation`, `correspondances` enrichies, `documents` versionnés, état `NON_APPLICABLE` | ✅ |
 | `migration-permissions-pieces.mjs` | `depouiller_pieces` et `gerer_correspondances` aux agents concernés | ✅ |
+| `migration-signalements.mjs` | `signalements_dossier`, 3 permissions, 12 attributions, 7 entrées du registre | ✅ Relancée sans erreur, sans doublon |
 
 ---
 
@@ -407,7 +469,7 @@ Quatre campagnes ont été ajoutées pour combler ce manque.
 | `test-e2e-coherence-tableau-bord.mjs` | Que les chiffres affichés correspondent au SQL : les brouillons sont exclus, les statuts sans dossier restent listés, la somme des compteurs retrouve le total. |
 | `test-e2e-exports-excel.mjs` | Que les quinze exports Excel portent des noms d'onglets valides (Excel refuse au-delà de 31 caractères). |
 | `test-e2e-balayage-api.mjs` | **Tous** les points d'entrée en lecture, avec **tous** les profils : 120 × 13 = 1 560 appels. |
-| `audit-api-frontend.mjs` | Que **chaque route** a son écran et **chaque écran** sa route : 215 routes, 0 orpheline, 0 appel cassé. |
+| `audit-api-frontend.mjs` | Que **chaque route** a son écran et **chaque écran** sa route : 222 routes, 0 orpheline, 0 appel cassé. |
 | `test-e2e-secours.mjs` | Le circuit Secours **de bout en bout** : mandatement, visa du contrôle financier, références, état d'émargement, signature de l'ordonnateur, archivage de la copie signée, cachet — et le refus à un profil d'une autre division. |
 | `test-e2e-droits.mjs` | Qu'aucune route n'est fermée à tout le monde, que le registre ne cite aucun droit inexistant, et que les attributions attendues sont satisfaites. |
 
@@ -530,7 +592,7 @@ moyens d'exploitation du service au quotidien. Sans eux, un agent qui perd
 son mot de passe serait bloqué définitivement — la voie d'auto-service
 envoie un courriel, et le courriel est hors périmètre du MVP.
 
-Après le retrait : **215 routes** et **210 appels** de l'interface, sans
+Après le retrait : **222 routes** et **217 appels** de l'interface, sans
 aucune route orpheline et aucun appel cassé. Le contrôle croisé
 `audit-api-frontend.mjs` le vérifie à chaque campagne.
 

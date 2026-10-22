@@ -224,6 +224,32 @@ précédente) et `motif_remplacement`. Une version antérieure ne peut plus
 
 ---
 
+## 3 sexies. Signalements — `/signalements` et `/dossiers/:id/signalements`
+
+Un signalement nomme une difficulté sur un dossier : blocage, interlocution
+entre services, ou arbitrage demandé. **Il ne change pas le statut du
+dossier** — le circuit continue, la difficulté est instruite à côté.
+
+| Endpoint | Permission | Description |
+|---|---|---|
+| `GET /dossiers/:id/signalements` | — (accès au dossier) | Les signalements du dossier, du plus récent au plus ancien |
+| `POST /dossiers/:id/signalements` | `signaler_dossier` | `{ "type": "BLOCAGE", "priorite": "HAUTE", "motif": "…" }`. Le motif exige **10 caractères**. Un second signalement ouvert par le même auteur sur le même dossier est refusé (**409**). |
+| `GET /signalements?statut=&type=&priorite=` | `consulter_signalements` | La file, cloisonnée : un chef de division ne voit que sa division, la coordination et le BAAF voient tout |
+| `GET /signalements/compte` | — (authentifié) | Le nombre de signalements ouverts, pour la pastille de menu |
+| `GET /signalements/:id` | `consulter_signalements` | Le détail d'un signalement |
+| `PUT /signalements/:id/prendre` | `traiter_signalement` | Prise en charge : `OUVERT → EN_COURS`. Une seconde prise en charge est refusée (**409**). |
+| `PUT /signalements/:id/resoudre` | `traiter_signalement` | `{ "statut": "RESOLU" \| "REJETE", "resolution": "…" }` — texte obligatoire (10 caractères). Un signalement déjà refermé est refusé (**409**). |
+
+Types : `BLOCAGE`, `INTERLOCUTION`, `ARBITRAGE`. Priorités : `NORMALE`,
+`HAUTE`, `CRITIQUE`. Statuts : `OUVERT`, `EN_COURS`, `RESOLU`, `REJETE`.
+
+> **Le dossier n'est pas modifié.** Ni son statut, ni son agent, ni son
+> circuit. Le signalement est une trace de suivi, pas une transition de
+> workflow. Chaque ouverture, prise en charge et décision est journalisée, et
+> notifiée à l'auteur et au chef de division.
+
+---
+
 ## 4. Pièces — états
 
 | État | Satisfait l'obligation | Motif exigé |

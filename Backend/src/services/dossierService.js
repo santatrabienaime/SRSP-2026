@@ -148,6 +148,7 @@ export async function createDossier(data, userId) {
     if (manquants.length) {
       throw httpError(422, `Dossier VISA : renseignez ${manquants.join(', ')}.`);
     }
+    await verifierVerificateurVisa(data.verificateur_id, division.id);
   }
 
   if (data.sous_type_id) {
@@ -388,7 +389,41 @@ function champsVisaReceptionManquants(data) {
   if (!String(data.origine_presentateur || '').trim()) manquants.push('origine / présentateur');
   if (!String(data.comptable_presentateur || '').trim()) manquants.push('comptable présentateur');
   if (!String(data.type_acte || '').trim() && !data.sous_type_id) manquants.push("type d'acte");
+  /* Le vérificateur est l'agent qui instruira le dossier : sans lui, la fiche
+     de réception ne dit pas à qui le dossier est confié. Le formulaire le
+     demande déjà ; le serveur doit le demander aussi, sinon un appel direct à
+     l'API peut créer une fiche incomplète. */
+  if (!data.verificateur_id) manquants.push('vérificateur');
   return manquants;
+}
+
+/**
+ * Le vérificateur d'un dossier VISA doit être un agent de traitement actif de
+ * la division Visa.
+ *
+ * Le contrôle n'est pas cosmétique : l'écran proposait tous les agents, y
+ * compris ceux qui n'ont aucune division ou qui ne peuvent pas traiter un
+ * dossier. Un dossier VISA confié à l'administrateur n'aurait jamais été
+ * instruit. La règle est celle de l'affectation automatique — le rôle porte
+ * `traiter_dossier` — et elle est lue en base.
+ */
+async function verifierVerificateurVisa(agentId, divisionId) {
+  const [agent] = await db.query(
+    `SELECT a.id, a.nom, a.prenom
+     FROM agents a
+     JOIN users u ON u.id = a.user_id AND u.actif = 1
+     JOIN role_permissions rp ON rp.role_id = u.role_id
+     JOIN permissions p ON p.id = rp.permission_id AND p.nom = 'traiter_dossier'
+     WHERE a.id = ? AND a.actif = 1 AND a.division_id = ?
+     LIMIT 1`,
+    [agentId, divisionId]
+  );
+  if (!agent) {
+    throw httpError(
+      422,
+      "Le vérificateur choisi n'est pas un agent de traitement actif de la division Visa."
+    );
+  }
 }
 
 /**
@@ -454,12 +489,13 @@ export async function updateDossier(id, data, userId) {
     throw httpError(409, 'Ce dossier est clôturé ou archivé : modification interdite.');
   }
 
+  const courant = await dossierModel.findDossierById(id);
+
   await verifierMatricule(data.matricule);
 
   // Sous-type (type d'acte) : même règle qu'à la création, y compris la
   // dérivation du libellé quand seul l'identifiant est transmis.
   if (data.sous_type_id) {
-    const courant = await dossierModel.findDossierById(id);
     const typeId = data.type_id ?? courant?.type_id;
     const [sousType] = await db.query(
       'SELECT id, libelle FROM sous_types_dossiers WHERE id = ? AND type_dossier_id = ? AND actif = 1',
@@ -469,11 +505,19 @@ export async function updateDossier(id, data, userId) {
     if (!String(data.type_acte || '').trim()) data.type_acte = sousType.libelle;
   }
 
+  /* Le vérificateur d'un dossier VISA est un agent de traitement de sa
+     division : la modification suit la même règle que la création. */
+  if (courant?.type_code === 'VISA' && data.verificateur_id) {
+    await verifierVerificateurVisa(
+      data.verificateur_id,
+      data.division_id !== undefined ? data.division_id : courant.division_id
+    );
+  }
+
   // Règle 2 du routage automatique : la division découle du type et n'est pas
   // modifiable. Seul un Chef de Service ou un Administrateur peut le faire à
   // titre exceptionnel, et seulement avec un motif obligatoire (règle 3).
   if (data.division_id !== undefined) {
-    const courant = await dossierModel.findDossierById(id);
     const nouvelleDivision = Number(data.division_id);
 
     if (courant && nouvelleDivision !== courant.division_id) {

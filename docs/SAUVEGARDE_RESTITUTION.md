@@ -171,10 +171,67 @@ ouvrir réellement un document**.
 | Situation | Conduite à tenir |
 |---|---|
 | Serveur HS | Réinstaller le système, restaurer la dernière sauvegarde, rejouer les journaux de la base si disponibles |
-| Base corrompue | Restaurer la dernière sauvegarde, puis **rejouer les saisies** postérieures à partir des pièces jointes et des notifications |
+| Base corrompue | Restaurer la dernière sauvegarde, puis **rejouer les saisies** postérieures à partir des pièces jointes et des notifications. Si MariaDB ne démarre plus, voir § 7 bis. |
 | Disque plein | Libérer de l'espace, **ne jamais supprimer une pièce jointe manuellement** : le lien entre le fichier et sa ligne en base serait perdu |
 | Compte compromis | Désactiver le compte (action immédiate), changer le mot de passe, consulter le journal (`CONNEXION_ECHOUEE`, `CONNEXION`) |
 | Pièce jointe manquante | La pièce est stockée sous un nom UUID : restaurer l'archive `tar.gz`, qui contient les noms d'origine et les UUID |
+
+---
+
+## 7 bis. Reprise d'une base InnoDB qui ne démarre plus
+
+Symptômes dans `C:\xampp\mysql\data\mysql_error.log` :
+
+```
+[ERROR] InnoDB: Page ... log sequence number ... is in the future!
+[ERROR] mysqld.exe: Index for table '.\mysql\proxies_priv' is corrupt
+[ERROR] Fatal error: Can't open and lock privilege tables
+```
+
+Un arrêt brutal — coupure, redémarrage de la machine, déplacement du projet —
+peut laisser les pages InnoDB en avance sur le journal de redo. La base
+applicative reste souvent lisible : on l'extrait **avant** de reconstruire.
+
+1. **Sauvegarder le répertoire de données**, même corrompu : c'est la seule
+   copie.
+   ```powershell
+   robocopy C:\xampp\mysql\data C:\xampp\mysql\data_sauvegarde_<date> /E
+   ```
+2. **Démarrer en lecture forcée**, sans contrôle des grants.
+   ```powershell
+   C:\xampp\mysql\bin\mysqld.exe --defaults-file=C:\xampp\mysql\bin\my.ini `
+     --innodb-force-recovery=4 --skip-grant-tables
+   ```
+3. **Extraire la base applicative** — avec `cmd`, jamais avec `>` de
+   PowerShell, qui écrit en UTF-16.
+   ```powershell
+   cmd /c "C:\xampp\mysql\bin\mysqldump.exe -u root --skip-lock-tables --single-transaction --routines --triggers --events --default-character-set=utf8mb4 srsp_db > D:\SRSP-2026\Backend\backups\srsp_db_recovery.sql"
+   ```
+   Vérifier que le fichier se termine par `-- Dump completed` et que sa
+   taille est plausible.
+4. **Arrêter le serveur de récupération**, déplacer le répertoire corrompu,
+   en créer un neuf et l'initialiser.
+   ```powershell
+   Stop-Process -Id (Get-NetTCPConnection -LocalPort 3306).OwningProcess -Force
+   Move-Item C:\xampp\mysql\data C:\xampp\mysql\data_corrompu_<date>
+   New-Item -ItemType Directory C:\xampp\mysql\data
+   C:\xampp\mysql\bin\mysql_install_db.exe --datadir=C:\xampp\mysql\data
+   ```
+5. **Redémarrer MariaDB**, recréer la base et importer le dump.
+   ```powershell
+   C:\xampp\mysql\bin\mysqld.exe --defaults-file=C:\xampp\mysql\bin\my.ini
+   C:\xampp\mysql\bin\mysql.exe -u root -e "CREATE DATABASE srsp_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+   cmd /c "C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 srsp_db < D:\SRSP-2026\Backend\backups\srsp_db_recovery.sql"
+   ```
+6. **Contrôler** : nombre de tables, comptes, dossiers, et un accent —
+   `HEX(LEFT(motif, 10))` doit commencer par `5069C3A8` pour « Pièce ».
+7. Redémarrer l'API, puis rejouer `test-e2e-droits.mjs` et la campagne de
+   référence.
+
+> Le dump doit être **relu avant d'être importé**. Une redirection
+> PowerShell produit un fichier UTF-16 avec des NUL : MySQL s'arrête sur
+> `ASCII '\0' appeared in the statement`. Utiliser `cmd /c "... > fichier"`,
+> ou convertir explicitement en UTF-8 sans BOM.
 
 ---
 

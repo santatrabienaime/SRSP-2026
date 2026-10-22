@@ -77,7 +77,9 @@ async function main() {
   );
   const priorite = ref.data.priorites?.[0];
   const agents = await api('GET', '/agents', { token: verif.token });
-  const agentVerif = (agents.data || []).find((a) => a.division_id && a.actif !== 0);
+  const agentVerif = (agents.data || []).find(
+    (a) => a.role_nom === 'VERIFICATEUR_VISA' && a.actif !== 0 && a.peut_traiter
+  );
 
   /* ------------------------------------------------------------------ */
   section('1. Enregistrement en brouillon');

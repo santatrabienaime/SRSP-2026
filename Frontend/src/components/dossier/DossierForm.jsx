@@ -124,10 +124,23 @@ export function DossierForm({ initial = null, onSaved }) {
     [referentiel.sous_types, form.type_id]
   );
 
-  const agentsDeLaDivision = useMemo(
+  /* Le vérificateur est l'agent qui instruira le dossier : il doit appartenir
+     à la division et porter le droit de traitement. `peut_traiter` est calculé
+     par le serveur à partir des permissions du rôle — même règle que
+     l'affectation automatique, donc un rôle ajouté plus tard est pris en
+     compte sans toucher à l'écran.
+
+     Proposer tous les agents, y compris ceux qui n'ont pas de division,
+     laissait confier un dossier VISA à l'administrateur ou à la secrétaire,
+     qui ne l'auraient jamais instruit. */
+  const verificateursDisponibles = useMemo(
     () => agents.filter(
-      (a) => !divisionDuType || !a.division_id
-        || Number(a.division_id) === Number(divisionDuType.id)
+      (a) => a.actif !== 0
+        && Boolean(a.compte_id)
+        && a.compte_actif !== 0
+        && Boolean(a.peut_traiter)
+        && divisionDuType
+        && Number(a.division_id) === Number(divisionDuType.id)
     ),
     [agents, divisionDuType]
   );
@@ -340,6 +353,15 @@ export function DossierForm({ initial = null, onSaved }) {
     setSaving(true);
     setError(null);
     try {
+      /* Le brouillon est enregistré depuis n'importe quelle étape : la
+         priorité peut ne pas encore être choisie. Envoyer `Number('')` — donc
+         0 — violait la clé étrangère des priorités et renvoyait une erreur
+         MySQL au lieu d'enregistrer la saisie. On retient la priorité normale
+         du référentiel à défaut de choix. */
+      const prioriteParDefaut = (referentiel.priorites || []).find(
+        (p) => /normale/i.test(p.libelle || '')
+      ) || (referentiel.priorites || [])[0];
+
       const payload = {
         type_id: Number(form.type_id),
         objet: form.objet || 'Brouillon sans objet',
@@ -351,11 +373,25 @@ export function DossierForm({ initial = null, onSaved }) {
         demandeur_adresse: form.demandeur_adresse || null,
         matricule: form.matricule || null,
         date_reception: form.date_reception,
-        priorite_id: Number(form.priorite_id),
+        priorite_id: Number(form.priorite_id) || prioriteParDefaut?.id,
         observation: form.observation || null,
         date_limite: form.date_limite || null,
         sous_type_id: form.sous_type_id ? Number(form.sous_type_id) : null,
         brouillon: true,
+        /* La fiche VISA est conservée telle qu'elle est saisie : sans cela, un
+           brouillon VISA perdait l'origine, le comptable et le vérificateur, et
+           sa publication échouait sur des champs que l'agent avait pourtant
+           renseignés. */
+        ...(estVisa ? {
+          reference_visa: form.reference_visa || null,
+          date_heure_reception: pourSqlDateTime(form.date_heure_reception),
+          origine_presentateur: form.origine_presentateur || null,
+          comptable_presentateur: form.comptable_presentateur || null,
+          annee_reference: Number(form.annee_reference) || null,
+          verificateur_id: Number(form.verificateur_id) || null,
+          beneficiaire: form.beneficiaire || null,
+          organisme: form.organisme || null,
+        } : {}),
       };
       if (initial) {
         await dossierService.update(initial.id, payload);
@@ -377,7 +413,7 @@ export function DossierForm({ initial = null, onSaved }) {
   /* ── Champs propres au VISA ───────────────────────────────────────────
      Ils sont rendus à l'identique en création et en modification : la fiche
      de réception doit rester complète et corrigeable après enregistrement. */
-  const renderVisaFields = () => {
+  const renderVisaFields = ({ avecTypeActe = true } = {}) => {
     if (!estVisa) return null;
     return (
       <fieldset className="space-y-4 rounded-lg border border-sky-200 bg-sky-50/60 p-4">
@@ -385,22 +421,24 @@ export function DossierForm({ initial = null, onSaved }) {
           Fiche de réception VISA
         </legend>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label="Type d'acte"
-            required
-            value={form.sous_type_id}
-            onChange={set('sous_type_id')}
-            hint={
-              sousTypesDisponibles.length === 0
-                ? 'Aucun sous-type actif pour le VISA : complétez le référentiel.'
-                : undefined
-            }
-          >
-            <option value="">Sélectionner…</option>
-            {sousTypesDisponibles.map((st) => (
-              <option key={st.id} value={st.id}>{st.libelle}</option>
-            ))}
-          </Select>
+          {avecTypeActe && (
+            <Select
+              label="Type d'acte"
+              required
+              value={form.sous_type_id}
+              onChange={set('sous_type_id')}
+              hint={
+                sousTypesDisponibles.length === 0
+                  ? 'Aucun sous-type actif pour le VISA : complétez le référentiel.'
+                  : undefined
+              }
+            >
+              <option value="">Sélectionner…</option>
+              {sousTypesDisponibles.map((st) => (
+                <option key={st.id} value={st.id}>{st.libelle}</option>
+              ))}
+            </Select>
+          )}
 
           <Input
             label="Date et heure de réception"
@@ -442,9 +480,14 @@ export function DossierForm({ initial = null, onSaved }) {
             required
             value={form.verificateur_id}
             onChange={set('verificateur_id')}
+            hint={
+              verificateursDisponibles.length === 0
+                ? 'Aucun agent de traitement actif dans la division Visa : complétez le personnel.'
+                : undefined
+            }
           >
             <option value="">Sélectionner…</option>
-            {agentsDeLaDivision.map((a) => (
+            {verificateursDisponibles.map((a) => (
               <option key={a.id} value={a.id}>
                 {`${a.nom || ''} ${a.prenom || ''}`.trim() || `Agent #${a.id}`}
               </option>
@@ -716,6 +759,32 @@ export function DossierForm({ initial = null, onSaved }) {
               ))}
             </Select>
           )}
+
+          {/* Le type d'acte appartient au choix du type de dossier : c'est lui
+              qui dit s'il s'agit d'un visa de mariage, de naissance… Il était
+              proposé uniquement à l'étape 3, alors que le bouton « Continuer »
+              de l'étape 1 exigeait déjà sa valeur : le parcours VISA était
+              bloqué, et l'agent ne pouvait avancer qu'en cliquant sur l'en-tête
+              « Étape 3 », sans indication. Le champ est désormais là où la
+              règle le demande. */}
+          {estVisa && (
+            <Select
+              label="Type d'acte"
+              required
+              value={form.sous_type_id}
+              onChange={set('sous_type_id')}
+              hint={
+                sousTypesDisponibles.length === 0
+                  ? 'Aucun sous-type actif pour le VISA : complétez le référentiel.'
+                  : undefined
+              }
+            >
+              <option value="">Sélectionner…</option>
+              {sousTypesDisponibles.map((st) => (
+                <option key={st.id} value={st.id}>{st.libelle}</option>
+              ))}
+            </Select>
+          )}
           <p className="flex items-center gap-1 text-[11px] text-slate-500">
             <Info className="h-3 w-3 shrink-0" />
             La division sera déterminée automatiquement à partir du type choisi.
@@ -840,7 +909,7 @@ export function DossierForm({ initial = null, onSaved }) {
             <DateInput label="Date limite (optionnel)" value={form.date_limite} onChange={setVal('date_limite')} />
           </div>
 
-          {renderVisaFields()}
+          {renderVisaFields({ avecTypeActe: false })}
 
           <ObservationInput
             value={form.observation}

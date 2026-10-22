@@ -33,6 +33,8 @@ import documentRoutes from './routes/documentRoutes.js';
 import reinitialisationRoutes from './routes/reinitialisationRoutes.js';
 import operationRoutes from './routes/operationRoutes.js';
 import immatriculationRoutes from './routes/immatriculationRoutes.js';
+import signalementRoutes from './routes/signalementRoutes.js';
+import dossierSignalementRoutes from './routes/dossierSignalementRoutes.js';
 
 const app = express();
 
@@ -84,6 +86,10 @@ app.use('/api/reinitialisations', reinitialisationRoutes);
 app.use('/api/dossiers', operationRoutes);
 // Module d'immatriculation de la Coordination.
 app.use('/api/immatriculations', immatriculationRoutes);
+// Remontée des dossiers bloqués : la file de la hiérarchie et l'ouverture
+// depuis la fiche du dossier.
+app.use('/api/signalements', signalementRoutes);
+app.use('/api/dossiers', dossierSignalementRoutes);
 
 app.use(errorMiddleware);
 

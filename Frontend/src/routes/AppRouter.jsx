@@ -33,6 +33,7 @@ import { BordereauPage } from '../pages/bordereau/BordereauPage.jsx';
 import { RolesAdminPage } from '../pages/administration/RolesAdminPage.jsx';
 import { ReinitialisationsPage } from '../pages/administration/ReinitialisationsPage.jsx';
 import { ImmatriculationsPage } from '../pages/coordination/ImmatriculationsPage.jsx';
+import { SignalementsPage } from '../pages/signalements/SignalementsPage.jsx';
 import { ReferentielPage } from '../pages/referentiel/ReferentielPage.jsx';
 
 import { DivisionListPage } from '../pages/divisions/DivisionListPage.jsx';
@@ -145,6 +146,17 @@ export function AppRouter() {
 
           {/* Suivi */}
           <Route path="/notifications" element={<NotificationsPage />} />
+          {/* Signalements : les dossiers bloqués remontés à la hiérarchie.
+              Un chef de division n'y voit que sa division ; le chef de
+              service y prend en charge et referme. */}
+          <Route
+            path="/signalements"
+            element={
+              <RoleRoute permissions={['consulter_signalements']}>
+                <SignalementsPage />
+              </RoleRoute>
+            }
+          />
           <Route
             path="/historique"
             element={

@@ -67,7 +67,7 @@ Rôles métier (13 postes).
 
 Permissions unitaires, accordées aux rôles par `role_permissions`.
 
-*47 ligne(s) en base.*
+*50 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -82,7 +82,7 @@ Permissions unitaires, accordées aux rôles par `role_permissions`.
 
 Table d'association rôle ↔ permission.
 
-*119 ligne(s) en base.*
+*150 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -268,7 +268,7 @@ Types de documents.
 
 Dossiers. Porte les données communes et les champs VISA (`reference_visa`, `type_acte`, `verificateur_id`…).
 
-*169 ligne(s) en base.*
+*338 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -330,7 +330,7 @@ Dossiers. Porte les données communes et les champs VISA (`reference_visa`, `typ
 
 Journal des actions. `dossier_id` est supprimé en cascade avec le dossier : la trace de suppression est conservée ailleurs, dans `suppressions_dossiers`.
 
-*2947 ligne(s) en base.*
+*6053 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -357,7 +357,7 @@ Journal des actions. `dossier_id` est supprimé en cascade avec le dossier : la 
 
 Trace durable des suppressions : motif, auteur, date et instantané du journal. Aucune clé étrangère vers `dossiers` — la trace survit à la suppression.
 
-*19 ligne(s) en base.*
+*34 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -392,7 +392,7 @@ Trace durable des suppressions : motif, auteur, date et instantané du journal. 
 
 Contrôle des pièces : un enregistrement par (dossier, pièce), avec l'un des quatre états et son motif.
 
-*227 ligne(s) en base.*
+*430 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -419,7 +419,7 @@ Contrôle des pièces : un enregistrement par (dossier, pièce), avec l'un des q
 
 Pièces requises, par phase, par type de dossier et par sous-type. `actif = 0` désactive sans effacer.
 
-*46 ligne(s) en base.*
+*61 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -440,7 +440,7 @@ Pièces requises, par phase, par type de dossier et par sous-type. `actif = 0` d
 
 Pièces jointes déposées sur un dossier. Le fichier est sur disque sous un nom UUID.
 
-*50 ligne(s) en base.*
+*92 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -475,7 +475,7 @@ Pièces jointes déposées sur un dossier. Le fichier est sur disque sous un nom
 
 Archives. `reference_archivage` est la référence d'archivage.
 
-*21 ligne(s) en base.*
+*37 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -502,7 +502,7 @@ Archives. `reference_archivage` est la référence d'archivage.
 
 Notifications internes, avec accusé de lecture.
 
-*885 ligne(s) en base.*
+*1730 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -581,7 +581,7 @@ Commentaires internes sur un dossier.
 
 Affectations. `ancien_agent_id` conserve l'agent précédent lors d'un transfert.
 
-*166 ligne(s) en base.*
+*332 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -633,7 +633,7 @@ Transferts de dossier entre agents, avec motif.
 
 Ouverture et clôture d'un traitement.
 
-*105 ligne(s) en base.*
+*194 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -691,7 +691,7 @@ Courriers entrants et sortants.
 
 Bordereaux de transmission d'un dossier à une division.
 
-*0 ligne(s) en base.*
+*3 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -740,7 +740,7 @@ Dossiers contenus dans un bordereau.
 
 ### `mandatements`
 
-*0 ligne(s) en base.*
+*8 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -783,7 +783,7 @@ Dossiers contenus dans un bordereau.
 
 ### `cachets_mandatement`
 
-*0 ligne(s) en base.*
+*7 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -845,7 +845,7 @@ Dossiers contenus dans un bordereau.
 
 ### `correspondances`
 
-*9 ligne(s) en base.*
+*23 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -957,7 +957,7 @@ Dossiers contenus dans un bordereau.
 
 ### `donnees_operation`
 
-*18 ligne(s) en base.*
+*33 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1000,7 +1000,7 @@ Dossiers contenus dans un bordereau.
 
 ### `dossiers_districts`
 
-*0 ligne(s) en base.*
+*2 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1023,7 +1023,7 @@ Dossiers contenus dans un bordereau.
 
 ### `emargements`
 
-*0 ligne(s) en base.*
+*16 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1046,7 +1046,7 @@ Dossiers contenus dans un bordereau.
 
 ### `etats_emargement`
 
-*0 ligne(s) en base.*
+*8 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1068,7 +1068,7 @@ Dossiers contenus dans un bordereau.
 
 ### `immatriculations`
 
-*10 ligne(s) en base.*
+*37 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1100,7 +1100,7 @@ Dossiers contenus dans un bordereau.
 
 ### `insertions_paiement`
 
-*7 ligne(s) en base.*
+*20 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1156,7 +1156,7 @@ Dossiers contenus dans un bordereau.
 
 ### `mandatement_beneficiaires`
 
-*0 ligne(s) en base.*
+*16 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1210,7 +1210,7 @@ Dossiers contenus dans un bordereau.
 
 ### `modes_paiement`
 
-*7 ligne(s) en base.*
+*21 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1238,7 +1238,7 @@ Dossiers contenus dans un bordereau.
 
 ### `references_logiciel_secours`
 
-*0 ligne(s) en base.*
+*7 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1314,7 +1314,7 @@ Dossiers contenus dans un bordereau.
 
 ### `reinitialisations_mot_de_passe`
 
-*14 ligne(s) en base.*
+*27 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1382,9 +1382,41 @@ Dossiers contenus dans un bordereau.
 
 **Index** : `PRIMARY`, `uk_schema_champ`.
 
+### `signalements_dossier`
+
+*8 ligne(s) en base.*
+
+| Colonne | Type | Null | Défaut | Commentaire |
+|---|---|---|---|---|
+| `id` | entier | non | — | — |
+| `dossier_id` | entier | non | — | — |
+| `division_id` | entier | oui | — | — |
+| `signale_par` | entier | non | — | — |
+| `type` | enum('blocage','interlocution','arbitrage') | non | `BLOCAGE` | — |
+| `priorite` | enum('normale','haute','critique') | non | `NORMALE` | — |
+| `motif` | texte | non | — | — |
+| `statut` | enum('ouvert','en_cours','resolu','rejete') | non | `OUVERT` | — |
+| `traite_par` | entier | oui | — | — |
+| `resolution` | texte | oui | — | — |
+| `date_prise_en_charge` | date | oui | — | — |
+| `date_resolution` | date | oui | — | — |
+| `created_at` | date | non | `current_timestamp()` | — |
+| `updated_at` | date | non | `current_timestamp()` | — |
+
+**Clés étrangères**
+
+| Contrainte | Colonne | Référence | Suppression |
+|---|---|---|---|
+| `fk_signalement_auteur` | `signale_par` | `users` | CASCADE |
+| `fk_signalement_division` | `division_id` | `divisions` | SET NULL |
+| `fk_signalement_dossier` | `dossier_id` | `dossiers` | CASCADE |
+| `fk_signalement_traiteur` | `traite_par` | `users` | SET NULL |
+
+**Index** : `PRIMARY`.
+
 ### `signatures_ordonnateur`
 
-*0 ligne(s) en base.*
+*8 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1409,7 +1441,7 @@ Dossiers contenus dans un bordereau.
 
 ### `validations`
 
-*87 ligne(s) en base.*
+*160 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1431,7 +1463,7 @@ Dossiers contenus dans un bordereau.
 
 ### `verifications`
 
-*54 ligne(s) en base.*
+*99 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -1453,7 +1485,7 @@ Dossiers contenus dans un bordereau.
 
 ### `visas_controle_financier`
 
-*0 ligne(s) en base.*
+*8 ligne(s) en base.*
 
 | Colonne | Type | Null | Défaut | Commentaire |
 |---|---|---|---|---|

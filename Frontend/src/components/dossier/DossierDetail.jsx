@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FolderKanban, Info, History, MessageSquare, FileText, Download, Printer, Paperclip, Stamp, ArrowRightLeft, Calculator, Mail } from 'lucide-react';
+import { ArrowLeft, FolderKanban, Info, History, MessageSquare, FileText, Download, Printer, Paperclip, Stamp, ArrowRightLeft, Calculator, Mail, TriangleAlert } from 'lucide-react';
 import { useDossier } from '../../hooks/useDossier.js';
 import { useTempsReel } from '../../hooks/useTempsReel.js';
+import { useAuth } from '../../hooks/useAuth.js';
 import { Badge } from '../ui/Badge.jsx';
 import { Card } from '../ui/Card.jsx';
 import { Spinner } from '../ui/Spinner.jsx';
@@ -22,6 +23,7 @@ import { TransmissionsPanel } from './TransmissionsPanel.jsx';
 import { SecoursPanel } from './SecoursPanel.jsx';
 import { OperationPanel } from './OperationPanel.jsx';
 import { CorrespondancesPanel } from './CorrespondancesPanel.jsx';
+import { SignalementsPanel } from './SignalementsPanel.jsx';
 import { dossierService } from '../../services/dossierService.js';
 import { formatDateString, formatDateTime } from '../../utils/formatDate.js';
 import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
@@ -53,6 +55,7 @@ function InfoRow({ label, value }) {
  */
 export function DossierDetail({ id }) {
   const { dossier, loading, error, refresh, recharger } = useDossier(id);
+  const { hasAnyPermission } = useAuth();
   const { abonner } = useTempsReel();
   const location = useLocation();
   const navigate = useNavigate();
@@ -198,6 +201,14 @@ export function DossierDetail({ id }) {
       : []),
     ...(dossier.type_code === 'SECOURS'
       ? [{ cle: 'secours', label: 'Secours', icon: FileText }]
+      : []),
+    /* La remontée des dossiers bloqués est un onglet de la fiche : la
+       difficulté, son auteur et sa résolution se lisent là où se lit le
+       dossier. L'onglet est réservé à ceux qui peuvent le tenir — le chef de
+       division qui signale, le chef de service qui tranche, la coordination
+       qui suit. Un agent n'a pas à voir un onglet qu'il ne peut pas ouvrir. */
+    ...(hasAnyPermission(['signaler_dossier', 'traiter_signalement', 'consulter_signalements'])
+      ? [{ cle: 'signalements', label: 'Signalements', icon: TriangleAlert }]
       : []),
   ];
 
@@ -413,6 +424,11 @@ export function DossierDetail({ id }) {
       {/* Onglet VISA : métadonnées, signature, exception, complément et
           contrôle des pièces. Présent seulement pour un dossier VISA. */}
       {onglet === 'visa' && <VisaPanel dossier={dossier} />}
+
+      {/* Onglet Signalements : la difficulté remontée et sa résolution. */}
+      {onglet === 'signalements' && (
+        <SignalementsPanel dossierId={dossier.id} onChanged={refresh} />
+      )}
 
       {/* Onglet Historique : le journal des actions, puis les actes métier.
           Les deux répondent à la même question — qui a fait quoi, quand — et

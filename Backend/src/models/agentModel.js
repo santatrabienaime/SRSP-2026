@@ -16,7 +16,16 @@ export async function findAll(filters = {}) {
   let query = `
     SELECT a.*, f.libelle AS fonction_libelle, d.nom AS division_nom, d.code AS division_code,
            u.id AS compte_id, u.username, u.email AS compte_email, u.role_id,
-           r.nom AS role_nom, u.actif AS compte_actif, u.derniere_connexion
+           r.nom AS role_nom, u.actif AS compte_actif, u.derniere_connexion,
+           /* Un agent « de traitement » est celui dont le rôle porte
+              « traiter_dossier ». C'est la même règle que l'affectation
+              automatique : elle est lue en base, pas écrite dans l'écran, pour
+              qu'un rôle ajouté plus tard soit pris en compte sans développement. */
+           EXISTS(
+             SELECT 1 FROM role_permissions rp
+             JOIN permissions p ON p.id = rp.permission_id
+             WHERE rp.role_id = u.role_id AND p.nom = 'traiter_dossier'
+           ) AS peut_traiter
     FROM agents a
     LEFT JOIN fonctions f ON a.fonction_id = f.id
     LEFT JOIN divisions d ON a.division_id = d.id
