@@ -46,11 +46,15 @@ async function comptesEnDoublon() {
 /** Colonnes de la base qui référencent une fiche. */
 async function colonnesReferencees() {
   return db.query(
-    `SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name
-     FROM information_schema.KEY_COLUMN_USAGE
-     WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
-       AND REFERENCED_TABLE_NAME = 'agents'
-     ORDER BY TABLE_NAME, COLUMN_NAME`
+    `SELECT rel.relname AS table_name, att.attname AS column_name
+       FROM pg_constraint con
+       JOIN pg_class rel ON rel.oid = con.conrelid
+       JOIN pg_namespace n ON n.oid = rel.relnamespace
+       JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = ANY(con.conkey)
+      WHERE con.contype = 'f'
+        AND con.confrelid = 'agents'::regclass
+        AND n.nspname = 'public'
+      ORDER BY rel.relname, att.attname`
   );
 }
 

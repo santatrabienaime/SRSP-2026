@@ -67,7 +67,7 @@ const permissions = await db.query('SELECT id, nom FROM permissions');
 const parPermission = new Map(permissions.map((p) => [p.nom, p.id]));
 
 const portees = await db.query(
-  `SELECT p.nom AS permission, GROUP_CONCAT(r.nom ORDER BY r.nom) AS roles
+  `SELECT p.nom AS permission, STRING_AGG(r.nom, ',' ORDER BY r.nom) AS roles
    FROM permissions p
    LEFT JOIN role_permissions rp ON p.id = rp.permission_id
    LEFT JOIN roles r ON r.id = rp.role_id

@@ -33,8 +33,8 @@ const PROJECTION = `
 `;
 
 const ORDRE = `
-  ORDER BY FIELD(s.statut, 'OUVERT', 'EN_COURS', 'RESOLU', 'REJETE'),
-           FIELD(s.priorite, 'CRITIQUE', 'HAUTE', 'NORMALE'),
+  ORDER BY array_position(ARRAY['OUVERT', 'EN_COURS', 'RESOLU', 'REJETE'], s.statut),
+           array_position(ARRAY['CRITIQUE', 'HAUTE', 'NORMALE'], s.priorite),
            s.created_at DESC
 `;
 

@@ -24,7 +24,7 @@ export async function findByUser(userId, { limit = 50 } = {}) {
 
 export async function countUnread(userId) {
   const rows = await db.query(
-    'SELECT COUNT(*) AS total FROM notifications WHERE user_id = ? AND lu = FALSE',
+    'SELECT COUNT(*) AS total FROM notifications WHERE user_id = ? AND lu = 0',
     [userId]
   );
   return rows[0]?.total || 0;
@@ -36,9 +36,10 @@ export async function countUnread(userId) {
  * La clé d'unicité (user_id, dossier_id, action) garantit qu'un même acte
  * n'empile pas les lignes. Mais un acte peut se répéter légitimement : un
  * dossier re-soumis à vérification après correction, une réaffectation. Un
- * `INSERT IGNORE` perdait alors le second signalement en silence — le chef de
- * division n'était jamais prévenu de la nouvelle soumission. On rafraîchit donc
- * la ligne existante, qui repasse en non lue et remonte en tête de liste.
+ * `INSERT ... ON CONFLICT DO NOTHING` perdrait alors le second signalement
+ * en silence — le chef de division ne serait jamais prévenu de la nouvelle
+ * soumission. On rafraîchit donc la ligne existante, qui repasse en non lue
+ * et remonte en tête de liste.
  *
  * `affectedRows` vaut 1 (création), 2 (réactivation) ou 0 (ligne déjà non lue
  * et identique : il n'y a rien de neuf à signaler).
@@ -48,11 +49,11 @@ export async function create({ user_id, type, action, message, lien, dossier_id 
   const [res] = await db.pool.execute(
     `INSERT INTO notifications (user_id, dossier_id, type, action, message, lien)
      VALUES (?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       type = VALUES(type),
-       message = VALUES(message),
-       lien = VALUES(lien),
-       lu = FALSE,
+     ON CONFLICT (user_id, dossier_id, action) DO UPDATE SET
+       type = EXCLUDED.type,
+       message = EXCLUDED.message,
+       lien = EXCLUDED.lien,
+       lu = 0,
        created_at = CURRENT_TIMESTAMP`,
     [user_id, dossier_id || null, type || null, action || null, message, lien || null]
   );
@@ -81,14 +82,14 @@ export async function create({ user_id, type, action, message, lien, dossier_id 
  */
 export async function markAsRead(id, userId) {
   const [res] = await db.pool.execute(
-    'UPDATE notifications SET lu = TRUE WHERE id = ? AND user_id = ?',
+    'UPDATE notifications SET lu = 1 WHERE id = ? AND user_id = ?',
     [id, userId]
   );
   return res.affectedRows > 0;
 }
 
 export async function markAllAsRead(userId) {
-  await db.query('UPDATE notifications SET lu = TRUE WHERE user_id = ? AND lu = FALSE', [userId]);
+  await db.query('UPDATE notifications SET lu = 1 WHERE user_id = ? AND lu = 0', [userId]);
 }
 
 /**
@@ -110,7 +111,7 @@ export async function getChefDivisionUserId(divisionId) {
     `SELECT u.id
      FROM divisions dv
      JOIN agents a ON a.id = dv.responsable_id
-     JOIN users u ON u.id = a.user_id AND u.actif = TRUE
+     JOIN users u ON u.id = a.user_id AND u.actif = 1
      WHERE dv.id = ?
      LIMIT 1`,
     [divisionId]
@@ -129,7 +130,7 @@ export async function getUserIdByAgent(agentId) {
   const rows = await db.query(
     `SELECT a.user_id
      FROM agents a
-     JOIN users u ON u.id = a.user_id AND u.actif = TRUE
+     JOIN users u ON u.id = a.user_id AND u.actif = 1
      WHERE a.id = ?
      LIMIT 1`,
     [agentId]
@@ -142,7 +143,7 @@ export async function getUserIdsByRole(roleNom) {
   const rows = await db.query(
     `SELECT u.id
      FROM users u JOIN roles r ON u.role_id = r.id
-     WHERE r.nom = ? AND u.actif = TRUE`,
+     WHERE r.nom = ? AND u.actif = 1`,
     [roleNom]
   );
   return rows.map((r) => r.id);

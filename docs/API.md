@@ -1,6 +1,6 @@
 # Documentation API — SRSP Fitovinany
 
-API REST du backend Express + MySQL. Base URL : **`http://localhost:5000/api`**.
+API REST du backend Express + PostgreSQL. Base URL : **`http://localhost:5000/api`**.
 
 Toutes les réponses sont en JSON. Les erreurs suivent le format :
 

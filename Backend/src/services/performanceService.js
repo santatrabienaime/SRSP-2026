@@ -194,13 +194,13 @@ export async function getEvolution(scope) {
   const f = await filterFor(scope);
 
   const rows = await db.query(
-    `SELECT DATE_FORMAT(d.date_reception, '%Y-%m') AS mois,
+    `SELECT TO_CHAR(d.date_reception, 'YYYY-MM') AS mois,
             COUNT(*) AS total,
             SUM(CASE WHEN s.code IN ('${STATUTS.cloture}', '${STATUTS.archive}')
                      THEN 1 ELSE 0 END) AS clotures
      FROM dossiers d
      JOIN statuts_dossiers s ON d.statut_id = s.id
-     WHERE d.date_reception >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+     WHERE d.date_reception >= CURRENT_DATE - INTERVAL '12 months'
        ${f.where}
      GROUP BY mois
      ORDER BY mois ASC`,

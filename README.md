@@ -10,14 +10,14 @@ numérotation automatique, historique complet, notifications et rapports.
 ## 🧱 Architecture
 
 ```
-── Backend  : API REST Express + MySQL (MariaDB) — port 5000
+── Backend  : API REST Express + PostgreSQL 18 — port 5000
 ── Frontend : SPA React 19 + Vite + Tailwind CSS v4 — port 5173 (proxy /api → 5000)
 ```
 
 | Brique      | Technologie                                              |
 |-------------|----------------------------------------------------------|
 | API         | Node.js (ESM), Express 4, JWT, bcryptjs, CORS                    |
-| Base        | MariaDB/MySQL 8, `mysql2` (pool), schéma idempotent      |
+| Base        | PostgreSQL 18, `pg` (pool), schéma et données dans `database/srsp_db.sql` |
 | Upload      | multer (documents, courriers) — stockage local           |
 | Rapports    | PDFKit (PDF), ExcelJS (XLSX)                             |
 | Frontend    | React 19, React Router 7, Tailwind v4, Recharts, axios   |
@@ -110,10 +110,14 @@ numérotation automatique, historique complet, notifications et rapports.
 ### ⚡ En une commande (recommandé)
 
 ```bash
-./start.sh        # démarre backend + frontend (détecte automatiquement le port MariaDB)
+./start.sh        # Linux / macOS : PostgreSQL + backend + frontend
 ./start.sh status   # état des services
 ./start.sh restart  # redémarre les deux
 ./start.sh stop     # arrête les deux
+```
+
+```powershell
+.\start-all.ps1   # Windows PowerShell : PostgreSQL + backend + frontend
 ```
 
 - Backend → `http://localhost:5000` · Frontend → `http://localhost:5173`
@@ -121,11 +125,11 @@ numérotation automatique, historique complet, notifications et rapports.
 
 ### Manuel (première installation)
 
-Prérequis : **Node.js ≥ 20** et **MariaDB/MySQL** en local.
+Prérequis : **Node.js ≥ 20** et **PostgreSQL 18** en local.
 
-> ⚠️ Aucune commande de création du schéma n'est fournie par ce dépôt : la base
-> `srsp_db` (schéma, données de référence et comptes de démonstration) doit être
-> créée et initialisée par l'administrateur avant le premier lancement.
+> ℹ️ Le dépôt fournit `database/srsp_db.sql` : schéma PostgreSQL, données de
+> référence et comptes de démonstration. Il s'importe dans une base `srsp_db`
+> vide (voir `docs/MANUEL_DEMARRAGE.md`).
 
 ```bash
 # 1. Lancement de l'API
@@ -134,13 +138,13 @@ cp .env.example .env        # puis renseigner les identifiants DB et JWT_SECRET
 npm install
 npm start                   # → http://localhost:5000  (vérifier /api/health)
 
-# 3. Frontend (nouveau terminal)
+# 2. Frontend (nouveau terminal)
 cd ../Frontend
 npm install
 npm run dev                 # → http://localhost:5173
 ```
 
-> Détails pas à pas (Prérequis, MariaDB, variables d'environnement, dépannage) :
+> Détails pas à pas (Prérequis, PostgreSQL, variables d'environnement, dépannage) :
 > **voir [docs/MANUEL_DEMARRAGE.md](docs/MANUEL_DEMARRAGE.md)**.
 
 ## 🔑 Comptes de démonstration
@@ -173,7 +177,7 @@ L'identifiant peut être le **username** ou **l'email**.
 | [docs/PROTOCOLE_RECETTE_T18.md](docs/PROTOCOLE_RECETTE_T18.md) | **Protocole de la recette avec les agents** (test T18) : déroulé, tâches par profil, grille de synthèse. |
 | [docs/MANUEL_DEMARRAGE.md](docs/MANUEL_DEMARRAGE.md) | Installation, configuration, lancement backend + frontend, réinitialisation de la base, dépannage. |
 | [docs/MANUEL_UTILISATEUR.md](docs/MANUEL_UTILISATEUR.md) | Guide d'usage par profil : connexion, boîte de travail, création de dossier, circuit VISA, dépouillement, pièces jointes, recherche, rapports. |
-| [docs/GUIDE_ADMIN.md](docs/GUIDE_ADMIN.md) | Administration technique : comptes, rôles et permissions, référentiel (types d'actes, pièces requises), journal d'audit, migrations. |
+| [docs/GUIDE_ADMIN.md](docs/GUIDE_ADMIN.md) | Administration technique : comptes, rôles et permissions, référentiel (types d'actes, pièces requises), journal d'audit, sauvegarde PostgreSQL. |
 | [docs/SAUVEGARDE_RESTITUTION.md](docs/SAUVEGARDE_RESTITUTION.md) | Procédure de sauvegarde et de restauration, politique de conservation, test de restauration mensuel. |
 | [docs/BASE_DE_DONNEES.md](docs/BASE_DE_DONNEES.md) | Schéma complet de `srsp_db`, **généré à partir de la base vivante**. |
 | [docs/RESULTS_TESTS.md](docs/RESULTS_TESTS.md) | Résultats des campagnes de tests, anomalies corrigées, limites. |
@@ -189,7 +193,7 @@ SRSP-2026/
 │   │   ├── config/        # env, db, cors, multer, logger
 │   │   ├── controllers/   # logique métier par ressource
 │   │   ├── middleware/    # auth, RBAC, validation, erreurs
-│   │   ├── models/        # accès MySQL
+│   │   ├── models/        # accès PostgreSQL
 │   │   ├── routes/        # 28 routeurs REST (dossiers, workflow, documents, mandatement…)
 │   │   ├── services/      # workflow, rapport, référentiel…
 │   │   └── app.js         # configuration Express
@@ -204,7 +208,8 @@ SRSP-2026/
 │       ├── services/      # clients API axios
 │       ├── utils/         # formatDate, formatStatus, validateForm, fileHandler
 │       └── config/        # constants.js (statuts, rôles, workflow, états de pièce)
-├── Backend/scripts/       # migrations idempotentes, tests de bout en bout, générateur de documentation
+├── Backend/scripts/       # tests de bout en bout, audit et générateur de documentation
+├── database/              # srsp_db.sql : dump PostgreSQL de référence (schéma + données)
 └── docs/                  # manuels, guides, API, schéma, tests, formation
 ```
 
@@ -225,15 +230,15 @@ SRSP-2026/
 | Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **12 / 12** — 0 échec |
 | Noms d'onglets des exports Excel | `node Backend/scripts/test-e2e-exports-excel.mjs` | **15 / 15** — 0 échec |
 | **Balayage de toute l'API, tous profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur** |
-| **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **215 routes — 0 orpheline, 0 appel cassé** |
-| Tests du frontend | `cd Frontend && npm test` | **103 / 103** — 12 fichiers, 0 échec |
+| **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **222 routes — 0 orpheline, 0 appel cassé** |
+| Tests du frontend | `cd Frontend && npm test` | **104 / 104** — 12 fichiers, 0 échec |
 | Construction de production | `cd Frontend && npm run build` | **OK** |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 356 fichiers, 0 défaut |
-| Idempotence des migrations | relance de chaque migration avec `--apply` | **OK** |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 347 fichiers, 0 défaut |
+| Restauration PostgreSQL | import de `database/srsp_db.sql` dans une base de test | **OK** — 61 tables, 1 474 lignes |
 
-**Total backend : 417 contrôles, 417 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
-**Total frontend : 103 tests, 103 réussis, 0 échec.**
+**Total backend : 465 contrôles, 465 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
+**Total frontend : 104 tests, 104 réussis, 0 échec.**
 
 Le détail des contrôles, les anomalies corrigées et les limites de la campagne
 figurent dans [docs/RESULTS_TESTS.md](docs/RESULTS_TESTS.md).

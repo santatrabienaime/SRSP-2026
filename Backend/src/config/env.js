@@ -6,10 +6,10 @@ const defaults = {
   PORT: '5000',
   NODE_ENV: 'development',
   DB_HOST: 'localhost',
-  DB_PORT: '3306',
-  DB_USER: 'root',
+  DB_PORT: '5432',
+  DB_USER: 'postgres',
   DB_PASSWORD: '',
-  DB_NAME: 'srsp',
+  DB_NAME: 'srsp_db',
   JWT_SECRET: null, // pas de secret par défaut : obligatoire en production
   JWT_EXPIRES_IN: '8h',
   UPLOAD_DIR: './src/uploads',
@@ -40,7 +40,7 @@ export const config = {
   nodeEnv: getEnv('NODE_ENV'),
   db: {
     host: getEnv('DB_HOST'),
-    port: parseInt(getEnv('DB_PORT')) || 3306,
+    port: parseInt(getEnv('DB_PORT')) || 5432,
     user: getEnv('DB_USER'),
     password: getEnv('DB_PASSWORD') || '',
     name: getEnv('DB_NAME'),

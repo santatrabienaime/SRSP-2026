@@ -61,7 +61,7 @@ export async function findAll(filters = {}) {
   if (filters.date_fin) {
     /* Borne haute jusqu'au soir inclus : un `date_fin` à 29/09/00:00 exclurait
        par construction toutes les actions de la journée même. */
-    query += ' AND h.date_action < DATE_ADD(?, INTERVAL 1 DAY)';
+    query += ' AND h.date_action < (?::timestamp + make_interval(days => 1))';
     params.push(filters.date_fin);
   }
   // Filtre de division. Posé par le service à partir du périmètre de
@@ -108,7 +108,7 @@ export async function findAll(filters = {}) {
   if (filters.dossier_id) { countQuery += ' AND h.dossier_id = ?'; countParams.push(filters.dossier_id); }
   if (filters.action) { countQuery += ' AND h.action = ?'; countParams.push(filters.action); }
   if (filters.date_debut) { countQuery += ' AND h.date_action >= ?'; countParams.push(filters.date_debut); }
-  if (filters.date_fin) { countQuery += ' AND h.date_action < DATE_ADD(?, INTERVAL 1 DAY)'; countParams.push(filters.date_fin); }
+  if (filters.date_fin) { countQuery += ' AND h.date_action < (?::timestamp + make_interval(days => 1))'; countParams.push(filters.date_fin); }
   if (filters.division_id) { countQuery += ' AND d.division_id = ?'; countParams.push(Number(filters.division_id)); }
   if (filters.agent_id) { countQuery += ' AND a.id = ?'; countParams.push(Number(filters.agent_id)); }
   if (filters.user_id) { countQuery += ' AND h.user_id = ?'; countParams.push(Number(filters.user_id)); }

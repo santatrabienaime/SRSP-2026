@@ -4,7 +4,7 @@ async function generateNumeroCourrier(sens) {
   const year = new Date().getFullYear();
   const prefix = sens === 'ENTRANT' ? 'CE' : 'CS';
   const rows = await db.query(
-    `SELECT COUNT(*) AS total FROM courriers WHERE YEAR(created_at) = ? AND sens = ?`,
+    `SELECT COUNT(*) AS total FROM courriers WHERE EXTRACT(YEAR FROM created_at)::int = ? AND sens = ?`,
     [year, sens]
   );
   const n = (rows[0].total || 0) + 1;
@@ -45,7 +45,7 @@ export async function findCourrierById(id) {
 
 export async function createCourrier(data) {
   const { type_id, sens, objet, created_by } = data;
-  // Champs optionnels : jamais undefined (mysql2 l'interdit), null sinon.
+  // Champs optionnels : jamais undefined (le pilote l'interdit), null sinon.
   const expediteur = data.expediteur ?? null;
   const destinataire = data.destinataire ?? null;
   const division_id = data.division_id ?? null;

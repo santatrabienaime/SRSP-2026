@@ -20,7 +20,7 @@ export async function findDossiersParMatricule(matriculeNormalise) {
      FROM dossiers d
      JOIN types_dossiers t ON t.id = d.type_id
      JOIN statuts_dossiers s ON s.id = d.statut_id
-     WHERE REPLACE(REPLACE(REPLACE(IFNULL(d.matricule, ''), ' ', ''), '-', ''), '.', '') = ?
+     WHERE REPLACE(REPLACE(REPLACE(COALESCE(d.matricule, ''), ' ', ''), '-', ''), '.', '') = ?
      ORDER BY d.date_reception DESC, d.id DESC
      LIMIT 50`,
     [compact]
@@ -189,7 +189,7 @@ export async function findDossiers(filters = {}) {
   if (filters.recus_depuis_jours) {
     const jours = Number(filters.recus_depuis_jours);
     if (Number.isInteger(jours) && jours > 0) {
-      query += ' AND d.date_reception >= DATE_SUB(CURDATE(), INTERVAL ? DAY)';
+      query += ' AND d.date_reception >= CURRENT_DATE - make_interval(days => ?)';
       params.push(jours);
     }
   }
@@ -241,7 +241,7 @@ export async function findDossierById(id) {
      LEFT JOIN agents a ON a.id = d.agent_responsable_id
      LEFT JOIN agents v ON v.id = d.verificateur_id
      LEFT JOIN users u ON u.id = d.signataire_id
-     LEFT JOIN archives ar ON ar.dossier_id = d.id AND ar.restaure = FALSE
+     LEFT JOIN archives ar ON ar.dossier_id = d.id AND ar.restaure = 0
      LEFT JOIN users au ON au.id = ar.archive_par
      WHERE d.id = ?`,
     [id]
@@ -289,7 +289,7 @@ export async function createDossier(data) {
   /* Le pilote refuse une valeur `undefined` : il faut `null` pour écrire NULL.
      Or tous les champs facultatifs peuvent être absents de la requête — un
      dossier créé sans matricule ni échéance plantait la création sur une
-     erreur MySQL, au lieu d'être enregistré avec des colonnes vides. On
+     erreur SQL, au lieu d'être enregistré avec des colonnes vides. On
      normalise donc une fois, ici, plutôt que de multiplier les `|| null`
      partout : le risque d'en oublier un est réel. */
   const nul = (v) => (v === undefined ? null : v);
@@ -340,7 +340,7 @@ async function verifierMatricule(matricule) {
   }
   const rows = await db.query(
     `SELECT id, demandeur_nom, demandeur_prenom FROM dossiers
-     WHERE REPLACE(REPLACE(REPLACE(IFNULL(matricule, ''), ' ', ''), '-', ''), '.', '') = ?`,
+     WHERE REPLACE(REPLACE(REPLACE(COALESCE(matricule, ''), ' ', ''), '-', ''), '.', '') = ?`,
     [compact]
   );
   if (rows[0]) {
@@ -364,13 +364,13 @@ export async function updateDossier(id, data) {
   const params = [];
   for (const key of allowed) {
     if (data[key] !== undefined) {
-      sets.push(`d.${key} = ?`);
+      sets.push(`${key} = ?`);
       params.push(data[key]);
     }
   }
   if (sets.length === 0) return findDossierById(id);
   params.push(id);
-  await db.query(`UPDATE dossiers d SET ${sets.join(', ')} WHERE d.id = ?`, params);
+  await db.query(`UPDATE dossiers SET ${sets.join(', ')} WHERE id = ?`, params);
   return findDossierById(id);
 }
 
@@ -449,9 +449,10 @@ export async function setAgentResponsable(id, agentId) {
      On le conserve séparément : l'affectation peut changer sans effacer la
      trace du vérificateur qui a instruit le dossier. */
   await db.query(
-    `UPDATE dossiers d JOIN types_dossiers t ON t.id = d.type_id
-     SET d.verificateur_id = COALESCE(d.verificateur_id, ?)
-     WHERE d.id = ? AND t.code = 'VISA'`,
+    `UPDATE dossiers d
+     SET verificateur_id = COALESCE(d.verificateur_id, ?)
+     FROM types_dossiers t
+     WHERE t.id = d.type_id AND d.id = ? AND t.code = 'VISA'`,
     [agentId, id]
   );
 }

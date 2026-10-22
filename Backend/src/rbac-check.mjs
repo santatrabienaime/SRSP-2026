@@ -1,4 +1,4 @@
-// Vérifications RBAC v2.0 en conditions réelles (backend :5000, MariaDB :3307)
+// Vérifications RBAC v2.0 en conditions réelles (backend :5000, PostgreSQL :5432)
 const base = 'http://localhost:5000/api';
 
 async function login(identifiant, password) {

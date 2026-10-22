@@ -193,13 +193,13 @@ export async function rapportIncomplets() {
   const rows = await db.query(
     `SELECT d.numero, d.objet, d.demandeur, d.date_reception,
             dv.nom AS division,
-            GROUP_CONCAT(tp.libelle SEPARATOR ', ') AS pieces_manquantes
+            STRING_AGG(tp.libelle, ', ') AS pieces_manquantes
      FROM dossiers d
      JOIN divisions dv ON d.division_id = dv.id
      JOIN depouillements dp ON dp.dossier_id = d.id
      JOIN types_pieces tp ON tp.code = dp.piece
      WHERE dp.presente = 0 AND tp.obligatoire = 1
-     GROUP BY d.id
+     GROUP BY d.id, dv.nom
      ORDER BY d.date_reception ASC`
   );
   return { titre: 'Dossiers incomplets (pièces obligatoires manquantes)', lignes: rows };
@@ -295,7 +295,7 @@ export async function rapportClotures(filtres = {}) {
 /* ── 9. Liste des dossiers archivés ────────────────────────────────── */
 
 export async function rapportArchives(filtres = {}) {
-  const where = ['a.restaure = FALSE'];
+  const where = ['a.restaure = 0'];
   const params = [];
   if (filtres.date_debut) { where.push('DATE(a.date_archivage) >= ?'); params.push(filtres.date_debut); }
   if (filtres.date_fin) { where.push('DATE(a.date_archivage) <= ?'); params.push(filtres.date_fin); }
@@ -343,7 +343,7 @@ export async function statsParTypePeriodeDivision(filtres = {}) {
   );
 
   const parMois = await db.query(
-    `SELECT DATE_FORMAT(d.date_reception, '%Y-%m') AS mois, COUNT(*) AS total
+    `SELECT TO_CHAR(d.date_reception, 'YYYY-MM') AS mois, COUNT(*) AS total
      FROM dossiers d
      WHERE ${where.join(' AND ')}
      GROUP BY mois ORDER BY mois ASC`,

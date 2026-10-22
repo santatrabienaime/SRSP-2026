@@ -30,19 +30,20 @@ for (const r of rows) {
   );
 }
 
+const slots = COMPTES.map(() => '?').join(', ');
+
 // Remise en état : tous les comptes de démonstration sont réactivés.
 await db.query(
   `UPDATE users SET actif = 1, tentatives_echouees = 0, verrouille_jusqua = NULL
-   WHERE username IN (?)`,
-  [COMPTES]
+   WHERE username IN (${slots})`,
+  COMPTES
 );
 // Les fiches agents portent le même état : l'activation et la désactivation
 // d'une personne touchent les deux.
 await db.query(
-  `UPDATE agents a JOIN users u ON u.id = a.user_id
-   SET a.actif = 1
-   WHERE u.username IN (?)`,
-  [COMPTES]
+  `UPDATE agents SET actif = 1
+    WHERE user_id IN (SELECT id FROM users WHERE username IN (${slots}))`,
+  COMPTES
 );
 console.log('\nComptes et fiches de démonstration réactivés.');
 

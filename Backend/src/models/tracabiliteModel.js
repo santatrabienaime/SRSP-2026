@@ -57,9 +57,12 @@ export async function cloturerTraitement(dossier_id) {
   await db.query(
     `UPDATE traitements
      SET date_fin = NOW()
-     WHERE dossier_id = ? AND date_fin IS NULL
-     ORDER BY id DESC
-     LIMIT 1`,
+     WHERE id = (
+       SELECT id FROM traitements
+       WHERE dossier_id = ? AND date_fin IS NULL
+       ORDER BY id DESC
+       LIMIT 1
+     )`,
     [dossier_id]
   );
 }

@@ -19,7 +19,7 @@ export const updateUserSchema = Joi.object({
     .messages({ 'string.email': "L'adresse email n'est pas valide." }),
   role_id: Joi.number().integer().positive().required()
     .messages({ 'any.required': 'Le rôle est obligatoire.' }),
-  // Le front envoie actif au format 0/1 (tinyint en base) : on accepte les deux.
+  // Le front envoie actif au format 0/1 (smallint en base) : on accepte les deux.
   actif: Joi.boolean().truthy(1).falsy(0).required(),
 }).unknown(true);
 

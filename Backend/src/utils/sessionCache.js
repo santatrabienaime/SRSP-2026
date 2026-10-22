@@ -47,10 +47,10 @@ export function invaliderCacheSession(userId) {
  * État d'un compte : actif, et date du dernier changement de mot de passe.
  *
  * `mdpChange` est un horodatage epoch en **millisecondes**, calculé par
- * MySQL : il est donc directement comparable à l'instant d'émission d'un
- * jeton, sans conversion de fuseau horaire côté JavaScript — c'est la seule
- * façon d'éviter qu'une date lue en JavaScript et une date écrite par MySQL
- * se contredisent.
+ * PostgreSQL en tenant compte du fuseau de la session : il est donc
+ * directement comparable à l'instant d'émission d'un jeton, sans conversion
+ * de fuseau horaire côté JavaScript — c'est la seule façon d'éviter qu'une
+ * date lue en JavaScript et une date écrite en base se contredisent.
  *
  * La précision au millième est indispensable : `iat` du JWT est en
  * secondes, et un changement de mot de passe daté de la même seconde qu'une
@@ -67,7 +67,7 @@ export async function etatCompte(userId) {
 
   const rows = await db.query(
     `SELECT u.actif,
-            UNIX_TIMESTAMP(u.mot_de_passe_change_le) * 1000 AS mdp_change_ms
+            (EXTRACT(EPOCH FROM (u.mot_de_passe_change_le AT TIME ZONE current_setting('TimeZone'))) * 1000)::bigint AS mdp_change_ms
      FROM users u
      WHERE u.id = ?
      LIMIT 1`,

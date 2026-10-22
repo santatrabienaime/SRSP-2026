@@ -91,16 +91,16 @@ export async function savePiece({
 
   const etatFinal = normaliserEtat(etat, presente === undefined ? true : !!presente);
 
-  // INSERT ... ON DUPLICATE : un seul enregistrement par (dossier, pièce).
+  // INSERT ... ON CONFLICT : un seul enregistrement par (dossier, pièce).
   await db.query(
     `INSERT INTO depouillements (dossier_id, piece, presente, etat, observation, motif, agent_id)
      VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       presente = VALUES(presente),
-       etat = VALUES(etat),
-       observation = VALUES(observation),
-       motif = VALUES(motif),
-       agent_id = VALUES(agent_id),
+     ON CONFLICT (dossier_id, piece) DO UPDATE SET
+       presente = EXCLUDED.presente,
+       etat = EXCLUDED.etat,
+       observation = EXCLUDED.observation,
+       motif = EXCLUDED.motif,
+       agent_id = EXCLUDED.agent_id,
        date_controle = NOW()`,
     [
       dossier_id,

@@ -40,12 +40,12 @@ export async function saveMandatement({ dossier_id, montant_total, observation, 
   const [res] = await db.pool.execute(
     `INSERT INTO mandatements (dossier_id, montant_total, observation)
      VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       montant_total = VALUES(montant_total),
-       observation = VALUES(observation)`,
+     ON CONFLICT (dossier_id) DO UPDATE SET
+       montant_total = EXCLUDED.montant_total,
+       observation = EXCLUDED.observation`,
     [dossier_id, montant_total, observation || null]
   );
-  // insertId n'est pas exploitable en ON DUPLICATE : on relit l'identifiant.
+  // insertId n'est pas exploitable avec ON CONFLICT : on relit l'identifiant.
   const rows = await db.query('SELECT id, etat FROM mandatements WHERE dossier_id = ?', [dossier_id]);
   const mandatement = rows[0];
 
@@ -64,8 +64,9 @@ export async function saveMandatement({ dossier_id, montant_total, observation, 
   // Une entrée d'état est créée pour chaque pièce du mandatement.
   for (const p of piecesDeReference()) {
     await db.query(
-      `INSERT IGNORE INTO mandatement_pieces_etat (mandatement_id, piece_code)
-       VALUES (?, ?)`,
+      `INSERT INTO mandatement_pieces_etat (mandatement_id, piece_code)
+       VALUES (?, ?)
+       ON CONFLICT DO NOTHING`,
       [mandatement.id, p.code]
     );
   }
@@ -89,10 +90,10 @@ export async function marquerPieceImprimee(dossier_id, piece_code, imprimee = tr
   if (!m[0]) return null;
   await db.query(
     `INSERT INTO mandatement_pieces_etat (mandatement_id, piece_code, imprimee, date_impression)
-     VALUES (?, ?, ?, IF(?, NOW(), NULL))
-     ON DUPLICATE KEY UPDATE
-       imprimee = VALUES(imprimee),
-       date_impression = VALUES(date_impression)`,
+     VALUES (?, ?, ?, CASE WHEN ? = 1 THEN NOW() ELSE NULL END)
+     ON CONFLICT (mandatement_id, piece_code) DO UPDATE SET
+       imprimee = EXCLUDED.imprimee,
+       date_impression = EXCLUDED.date_impression`,
     [m[0].id, piece_code, imprimee ? 1 : 0, imprimee ? 1 : 0]
   );
   return findMandatement(dossier_id);
@@ -153,7 +154,7 @@ export async function saveCorrespondance(data, userId) {
         etat, date_envoi, etat_reponse, date_reponse, reponse,
         date_transmission_central, destinataire_central, reference_bordereau,
         etat_reception_central, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, IF(? = 'ENVOYEE', NOW(), NULL),
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'ENVOYEE' THEN NOW() ELSE NULL END,
              ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.dossier_id || null,

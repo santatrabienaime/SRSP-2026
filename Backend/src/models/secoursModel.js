@@ -150,8 +150,8 @@ export async function marquerReferenceReportee(mandatementId, code, userId) {
     `INSERT INTO references_logiciel_secours
      (mandatement_id, code, libelle, valeur, reporte_par, reporte_le)
      VALUES (?, ?, ?, ?, ?, NOW())
-     ON DUPLICATE KEY UPDATE
-       valeur = VALUES(valeur), reporte_par = VALUES(reporte_par), reporte_le = NOW()`,
+     ON CONFLICT (mandatement_id, code) DO UPDATE SET
+       valeur = EXCLUDED.valeur, reporte_par = EXCLUDED.reporte_par, reporte_le = NOW()`,
     [mandatementId, code, code, '', userId]
   );
   return { mandatement_id: mandatementId, code, enregistre: resultat.affectedRows > 0 };
@@ -198,7 +198,7 @@ export async function genererEtatEmargement(mandatementId, userId) {
   await db.query(
     `INSERT INTO etats_emargement (mandatement_id, genere_par, genere_le)
      VALUES (?, ?, NOW())
-     ON DUPLICATE KEY UPDATE genere_par = VALUES(genere_par), genere_le = NOW()`,
+     ON CONFLICT (mandatement_id) DO UPDATE SET genere_par = EXCLUDED.genere_par, genere_le = NOW()`,
     [mandatementId, userId]
   );
   const etat = (await db.query(
@@ -207,7 +207,7 @@ export async function genererEtatEmargement(mandatementId, userId) {
 
   for (const b of beneficiaires) {
     await db.query(
-      'INSERT IGNORE INTO emargements (etat_emargement_id, beneficiaire_id) VALUES (?, ?)',
+      'INSERT INTO emargements (etat_emargement_id, beneficiaire_id) VALUES (?, ?) ON CONFLICT DO NOTHING',
       [etat.id, b.id]
     );
   }
@@ -366,10 +366,10 @@ export async function apposerCachet(mandatementId, data, userId) {
     `INSERT INTO cachets_mandatement
      (mandatement_id, cache_par, date_cachet, titre_ordonnateur, nom_ordonnateur, observations)
      VALUES (?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       cache_par = VALUES(cache_par), date_cachet = VALUES(date_cachet),
-       titre_ordonnateur = VALUES(titre_ordonnateur),
-       nom_ordonnateur = VALUES(nom_ordonnateur), observations = VALUES(observations)`,
+     ON CONFLICT (mandatement_id) DO UPDATE SET
+       cache_par = EXCLUDED.cache_par, date_cachet = EXCLUDED.date_cachet,
+       titre_ordonnateur = EXCLUDED.titre_ordonnateur,
+       nom_ordonnateur = EXCLUDED.nom_ordonnateur, observations = EXCLUDED.observations`,
     [mandatementId, userId, data.date_cachet, data.titre_ordonnateur,
       data.nom_ordonnateur, data.observations || null]
   );

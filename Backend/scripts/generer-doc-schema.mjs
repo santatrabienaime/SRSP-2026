@@ -1,12 +1,12 @@
 /**
- * Produit la documentation du schéma de base de données.
+ * Produit la documentation du schéma de base de données PostgreSQL.
  *
  * La documentation est extraite de la base vivante : elle ne peut donc pas
  * diverger de ce que l'application utilise réellement. Chaque table est
  * décrite avec ses colonnes, ses clés étrangères et ses index.
  *
  * Usage (depuis Backend/) :
- *   node scripts/generer-doc-schema.mjs > ../docs/BASE_DE_DONNEES.md
+ *   node scripts/generer-doc-schema.mjs
  */
 import fs from 'fs';
 import db from '../src/config/db.js';
@@ -15,7 +15,7 @@ const COMMENTAIRES = {
   users: "Comptes de connexion. `role_id` désigne le rôle, qui porte les permissions.",
   roles: "Rôles métier (13 postes).",
   permissions: "Permissions unitaires, accordées aux rôles par `role_permissions`.",
-  role_permissions: "Table d'association rôle ↔ permission.",
+  role_permissions: "Table d'association rôle → permission.",
   agents: "Fiches des agents. `user_id` relie éventuellement la fiche au compte de connexion.",
   divisions: "Divisions du service. `type_dossier_id` détermine le type de dossier traité.",
   types_dossiers: "Types de dossiers (VISA, SOLDE, PENSION, SECOURS).",
@@ -40,7 +40,12 @@ const COMMENTAIRES = {
   types_documents: "Types de documents.",
   bordereaux: "Bordereaux de transmission d'un dossier à une division.",
   bordereaux_dossiers: "Dossiers contenus dans un bordereau.",
-  mandatement: "Mandatement (division Secours).",
+  mandatements: "Mandatement (division Secours).",
+  schemas_operations: "Configuration des champs et pièces propres à chaque type d'opération.",
+  donnees_operation: "Valeurs saisies pour une opération, contrôlées puis validées par le chef de division.",
+  signalements_dossier: "Signalements de blocage, d'interlocution ou d'arbitrage, rattachés à un dossier.",
+  immatriculations: "Demandes d'immatriculation de la Coordination.",
+  reinitialisations_mot_de_passe: "Demandes de réinitialisation et codes à usage unique.",
 };
 
 const TABLES_METIERS = [
@@ -50,65 +55,149 @@ const TABLES_METIERS = [
   'types_pieces', 'documents', 'archives', 'notifications', 'messages',
   'dossier_commentaires', 'affectations', 'transferts', 'traitements',
   'courriers', 'types_courriers', 'types_documents', 'bordereaux',
-  'bordereaux_dossiers', 'mandatements', 'fonctions',
+  'bordereaux_dossiers', 'mandatements', 'fonctions', 'schemas_operations',
+  'donnees_operation', 'signalements_dossier', 'immatriculations',
+  'reinitialisations_mot_de_passe',
 ];
 
-async function tableInfo(nom) {
-  const colonnes = await db.query(`SHOW FULL COLUMNS FROM \`${nom}\``);
-  const fk = await db.query(
-    `SELECT k.CONSTRAINT_NAME AS cn, k.COLUMN_NAME AS col, k.REFERENCED_TABLE_NAME AS ref,
-            c.DELETE_RULE AS rule, c.UPDATE_RULE AS urule
-     FROM information_schema.KEY_COLUMN_USAGE k
-     JOIN information_schema.REFERENTIAL_CONSTRAINTS c
-       ON c.CONSTRAINT_NAME = k.CONSTRAINT_NAME AND c.CONSTRAINT_SCHEMA = k.TABLE_SCHEMA
-     WHERE k.TABLE_SCHEMA = DATABASE() AND k.TABLE_NAME = ?`,
-    [nom]
-  );
-  const index = await db.query(`SHOW INDEX FROM \`${nom}\``);
-  const lignes = await db.query(`SELECT COUNT(*) AS n FROM \`${nom}\``);
-  return { colonnes, fk, index, lignes: lignes[0]?.n ?? 0 };
+function identifiant(nom) {
+  return `"${String(nom).replace(/"/g, '""')}"`;
 }
 
-function typeLisible(col) {
-  const t = String(col.Type).toLowerCase();
-  if (t.startsWith('int') || t.startsWith('bigint') || t.startsWith('tinyint')) return 'entier';
-  if (t.startsWith('decimal') || t.startsWith('numeric')) return 'nombre';
-  if (t.startsWith('varchar') || t.startsWith('char') || t.startsWith('text') || t.startsWith('longtext')) return 'texte';
-  if (t.startsWith('datetime') || t.startsWith('timestamp') || t.startsWith('date')) return 'date';
-  if (t.startsWith('enum') || t.startsWith('set')) return t;
+async function tableInfo(nom) {
+  const colonnes = await db.query(
+    `SELECT a.attname AS "Field",
+            format_type(a.atttypid, a.atttypmod) AS "Type",
+            CASE WHEN a.attnotnull THEN 'NO' ELSE 'YES' END AS "Null",
+            pg_get_expr(d.adbin, d.adrelid) AS "Default",
+            col_description(a.attrelid, a.attnum) AS "Comment"
+       FROM pg_attribute a
+       JOIN pg_class c ON c.oid = a.attrelid
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+      WHERE n.nspname = 'public'
+        AND c.relname = ?
+        AND a.attnum > 0
+        AND NOT a.attisdropped
+      ORDER BY a.attnum`,
+    [nom]
+  );
+
+  const fk = await db.query(
+    `SELECT con.conname AS "cn",
+            att.attname AS "col",
+            ref.relname AS "ref",
+            CASE con.confdeltype
+              WHEN 'c' THEN 'CASCADE'
+              WHEN 'n' THEN 'SET NULL'
+              WHEN 'r' THEN 'RESTRICT'
+              WHEN 'a' THEN 'NO ACTION'
+              WHEN 'd' THEN 'SET DEFAULT'
+            END AS "rule"
+       FROM pg_constraint con
+       JOIN pg_class rel ON rel.oid = con.conrelid
+       JOIN pg_namespace n ON n.oid = rel.relnamespace
+       JOIN pg_class ref ON ref.oid = con.confrelid
+       JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = con.conkey[1]
+      WHERE con.contype = 'f'
+        AND n.nspname = 'public'
+        AND rel.relname = ?
+      ORDER BY con.conname`,
+    [nom]
+  );
+
+  const index = await db.query(
+    `SELECT indexname, indexdef
+       FROM pg_indexes
+      WHERE schemaname = 'public' AND tablename = ?
+      ORDER BY indexname`,
+    [nom]
+  );
+
+  const lignes = await db.query(`SELECT COUNT(*) AS n FROM ${identifiant(nom)}`);
+  return { colonnes, fk, index, lignes: Number(lignes[0]?.n ?? 0) };
+}
+
+function typeLisible(type) {
+  const t = String(type).toLowerCase();
+  if (/^(smallint|integer|bigint|serial|bigserial)/.test(t)) return 'entier';
+  if (/^(numeric|decimal|real|double precision)/.test(t)) return 'nombre';
+  if (/^(character varying|character|text|varchar|char)/.test(t)) return 'texte';
+  if (t.startsWith('timestamp')) return 'horodatage';
+  if (t === 'date') return 'date';
+  if (t.startsWith('time')) return 'heure';
+  if (t === 'boolean') return 'booléen';
+  if (t === 'jsonb' || t === 'json') return 'JSON';
   return t;
+}
+
+function defaultLisible(valeur) {
+  if (valeur === null || valeur === undefined) return '—';
+  if (/^nextval\(/i.test(valeur)) return 'séquence';
+  return String(valeur).replace(
+    /::(character varying|text|bpchar|timestamp without time zone|date|smallint|integer|bigint)/gi,
+    ''
+  );
+}
+
+function cellule(valeur) {
+  return String(valeur ?? '—').replace(/\|/g, '\\|');
 }
 
 async function main() {
   const sortie = [
     '# Schéma de la base de données — `srsp_db`',
     '',
-    'Document **généré automatiquement** à partir de la base vivante :',
+    'Document **généré automatiquement** à partir de la base PostgreSQL vivante :',
     '`node Backend/scripts/generer-doc-schema.mjs`.',
     '',
-    'Il ne peut donc pas diverger de ce que l\'application utilise réellement.',
+    "Il ne peut donc pas diverger de ce que l'application utilise réellement.",
     '',
     '## Conventions',
     '',
     '| Convention | Règle |',
     '|---|---|',
+    '| SGBD | PostgreSQL 18, base `srsp_db`, schéma `public`. |',
     '| Noms de tables | `snake_case` au singulier. |',
-    '| Clés primaires | `id` en `INT AUTO_INCREMENT`. |',
-    '| Horodatage | `created_at` / `updated_at` (MySQL), `date_action` pour le journal. |',
+    '| Clés primaires | `id` entier, `GENERATED BY DEFAULT AS IDENTITY` (séquence PostgreSQL). |',
+    '| Horodatage | `timestamp without time zone`, heure locale du service ; `date_action` pour le journal. |',
+    '| Collation | Colonnes texte en `COLLATE ci` : recherche insensible à la casse et aux accents. |',
     '| Suppression | `ON DELETE CASCADE` quand l\'enfant n\'a aucun sens sans son parent ; `SET NULL` quand la trace doit survivre ; `RESTRICT` quand la référence est structurante. |',
-    '| Montants | `DECIMAL`, jamais `FLOAT`. |',
-    '| Dates de service | `DATE` pour un jour, `DATETIME` pour un horodatage. |',
+    '| Montants | `numeric`, jamais `double precision`. |',
+    '| Dates de service | `date` pour un jour, `timestamp` sans fuseau pour un horodatage. |',
     '',
   ];
 
-  const toutes = await db.query('SHOW TABLES');
-  const noms = toutes.map((r) => Object.values(r)[0]);
+  const toutes = await db.query(
+    `SELECT tablename
+       FROM pg_tables
+      WHERE schemaname = 'public'
+      ORDER BY tablename`
+  );
+  const noms = toutes.map((r) => r.tablename);
   const metier = TABLES_METIERS.filter((t) => noms.includes(t));
   const autres = noms.filter((t) => !metier.includes(t));
 
   for (const groupe of [
-    { titre: 'Référentiel et comptes', tables: metier.filter((t) => ['users', 'roles', 'permissions', 'role_permissions', 'agents', 'divisions', 'types_dossiers', 'sous_types_dossiers', 'statuts_dossiers', 'priorites', 'fonctions', 'types_courriers', 'types_documents'].includes(t)) },
-    { titre: 'Dossiers et circuit', tables: metier.filter((t) => ['dossiers', 'historique_actions', 'suppressions_dossiers', 'depouillements', 'types_pieces', 'documents', 'archives', 'affectations', 'transferts', 'traitements', 'dossier_commentaires', 'notifications', 'messages', 'bordereaux', 'bordereaux_dossiers', 'courriers', 'mandatements'].includes(t)) },
+    {
+      titre: 'Référentiel et comptes',
+      tables: metier.filter((t) => [
+        'users', 'roles', 'permissions', 'role_permissions', 'agents', 'divisions',
+        'types_dossiers', 'sous_types_dossiers', 'statuts_dossiers', 'priorites',
+        'fonctions', 'types_courriers', 'types_documents',
+      ].includes(t)),
+    },
+    {
+      titre: 'Dossiers et circuit',
+      tables: metier.filter((t) => [
+        'dossiers', 'historique_actions', 'suppressions_dossiers', 'depouillements',
+        'types_pieces', 'documents', 'archives', 'affectations', 'transferts',
+        'traitements', 'dossier_commentaires', 'notifications', 'messages',
+        'bordereaux', 'bordereaux_dossiers', 'courriers', 'mandatements',
+        'schemas_operations', 'donnees_operation', 'signalements_dossier',
+        'immatriculations', 'reinitialisations_mot_de_passe',
+      ].includes(t)),
+    },
     { titre: 'Autres tables', tables: autres },
   ]) {
     if (!groupe.tables.length) continue;
@@ -128,8 +217,8 @@ async function main() {
       sortie.push('|---|---|---|---|---|');
       for (const c of info.colonnes) {
         sortie.push(
-          `| \`${c.Field}\` | ${typeLisible(c)} | ${c.Null === 'YES' ? 'oui' : 'non'} | ` +
-          `${c.Default === null ? '—' : `\`${c.Default}\``} | ${c.Comment || '—'} |`
+          `| \`${c.Field}\` | ${typeLisible(c.Type)} | ${c.Null === 'YES' ? 'oui' : 'non'} | ` +
+          `${defaultLisible(c.Default)} | ${cellule(c.Comment)} |`
         );
       }
       sortie.push('');
@@ -143,11 +232,11 @@ async function main() {
         }
         sortie.push('');
       }
-      const indexUniques = [...new Set(
-        info.index.filter((i) => i.Key_name === 'PRIMARY' || i.Non_unique === 0).map((i) => i.Key_name)
-      )];
+      const indexUniques = info.index
+        .filter((i) => /^CREATE UNIQUE INDEX/i.test(i.indexdef))
+        .map((i) => i.indexname);
       if (indexUniques.length) {
-        sortie.push(`**Index** : ${indexUniques.map((i) => `\`${i}\``).join(', ')}.`);
+        sortie.push(`**Index uniques** : ${indexUniques.map((i) => `\`${i}\``).join(', ')}.`);
         sortie.push('');
       }
     }

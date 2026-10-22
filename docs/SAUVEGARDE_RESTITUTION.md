@@ -1,4 +1,4 @@
-# Sauvegarde et restauration — SRSP Fitovinany
+# Sauvegarde et restauration — SRSP Fitovinany (PostgreSQL)
 
 La plateforme tient deux choses qu'il ne faut pas perdre : **les données** et
 **les pièces jointes**. Une sauvegarde qui n'embarque que l'une des deux
@@ -11,9 +11,9 @@ s'ouvre. La procédure ci-dessous traite les deux ensemble.
 
 | Élément | Emplacement | Inclus par |
 |---|---|---|
-| Base de données `srsp_db` | MariaDB / MySQL | `mysqldump` |
-| Pièces jointes des dossiers | `Backend/src/uploads/documents/` | archive `tar.gz` |
-| Pièces jointes des courriers | `Backend/src/uploads/courriers/` | archive `tar.gz` |
+| Base de données `srsp_db` | PostgreSQL 18, `localhost:5432` | `pg_dump` |
+| Pièces jointes des dossiers | `Backend/src/uploads/documents/` | archive `tar.gz` / ZIP |
+| Pièces jointes des courriers | `Backend/src/uploads/courriers/` | archive `tar.gz` / ZIP |
 | Configuration | `Backend/.env` | copie manuelle chiffrée |
 
 > `Backend/.env` contient `JWT_SECRET` et les identifiants de la base. Il
@@ -24,140 +24,228 @@ s'ouvre. La procédure ci-dessous traite les deux ensemble.
 
 ---
 
-## 2. Sauvegarde depuis l'application
+## 2. Sauvegarde manuelle de la base
 
-**Administration → Sauvegarde** → **Sauvegarder maintenant**.
+Les commandes ci-dessous utilisent `pg_dump` (fourni avec PostgreSQL). Sous
+Windows, il se trouve dans `C:\Program Files\PostgreSQL\18\bin`.
 
-L'application produit **deux fichiers** dans `Backend/backups/` :
+### 2.1 Format SQL lisible (recommandé pour cette livraison)
 
-| Fichier | Contenu |
-|---|---|
-| `srsp-<date>.sql` | Dump SQL de **toutes** les tables applicatives |
-| `srsp-<date>-pieces.tar.gz` | Archive des pièces jointes (documents + courriers) |
+**Windows PowerShell**
 
-Le journal enregistre l'opération (`SAUVEGARDE_DB`) avec le nombre de
-fichiers inclus. **Une sauvegarde annoncée sans ses documents est un
-mensonge** : c'est pourquoi le journal précise explicitement si l'archive
-n'a pas pu être produite.
+```powershell
+$env:PGPASSWORD = "010622"
+$pgBin = "C:\Program Files\PostgreSQL\18\bin"
+$date = Get-Date -Format "yyyyMMdd-HHmm"
+$out = "Backend\backups\srsp-$date.sql"
 
-La liste des tables est **découverte au moment de la sauvegarde**, et non
-écrite en dur : une table créée demain est sauvegardée sans qu'on ait à
-modifier le code. Seules les tables techniques du moteur
-(`information_schema`, `performance_schema`, `mysql`, `sys`) sont exclues.
+& "$pgBin\pg_dump.exe" -h localhost -p 5432 -U postgres `
+  --no-owner --no-privileges --clean --if-exists `
+  -f $out srsp_db
+```
 
-### Vérifier une sauvegarde
+**Linux / macOS**
+
+```bash
+export PGPASSWORD='010622'
+mkdir -p Backend/backups
+pg_dump -h localhost -p 5432 -U postgres \
+  --no-owner --no-privileges --clean --if-exists \
+  -f "Backend/backups/srsp-$(date +%Y%m%d-%H%M).sql" srsp_db
+```
+
+`--clean --if-exists` permet de réimporter le dump sur une base qui contient
+déjà le schéma. Le fichier reste lisible et versionnable.
+
+### 2.2 Format binaire compressé (plus rapide pour les grosses bases)
+
+```bash
+pg_dump -h localhost -p 5432 -U postgres -Fc \
+  -f Backend/backups/srsp-$(date +%Y%m%d-%H%M).dump srsp_db
+```
+
+Restauration avec `pg_restore` (voir § 4).
+
+---
+
+## 3. Sauvegarde des pièces jointes
+
+**Linux / macOS**
+
+```bash
+tar -czf "Backend/backups/srsp-$(date +%Y%m%d-%H%M)-pieces.tar.gz" \
+  -C Backend/src/uploads documents courriers
+```
+
+**Windows PowerShell**
+
+```powershell
+$date = Get-Date -Format "yyyyMMdd-HHmm"
+Compress-Archive -Path Backend\src\uploads\documents, Backend\src\uploads\courriers `
+  -DestinationPath "Backend\backups\srsp-$date-pieces.zip" -Force
+```
+
+> Les fichiers sont stockés sous des noms UUID : l'archive doit conserver
+> l'arborescence `documents/` et `courriers/`, pas seulement les fichiers.
+
+---
+
+## 4. Restauration complète (base + pièces)
+
+> ⚠️ **La restauration est destructive.** Elle remplace les données actuelles
+> par celles de la sauvegarde. Ne l'utilisez qu'après avoir vérifié la
+> sauvegarde de sécurité et, idéalement, sur une base de test.
+
+### 4.1 Arrêter l'API
+
+```bash
+# Linux / macOS
+ss -ltnp | grep 5000
+kill <PID>
+```
+
+```powershell
+# Windows
+Get-NetTCPConnection -LocalPort 5000 -State Listen |
+  ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+```
+
+### 4.2 Restaurer la base
+
+**Windows PowerShell**
+
+```powershell
+$env:PGPASSWORD = "010622"
+$pgBin = "C:\Program Files\PostgreSQL\18\bin"
+$psql = Join-Path $pgBin "psql.exe"
+
+# Sauvegarde de sécurité de l'état courant (obligatoire)
+& "$pgBin\pg_dump.exe" -h localhost -U postgres `
+  -f "Backend\backups\avant-restauration-$(Get-Date -Format yyyyMMdd-HHmm).sql" srsp_db
+
+# Repartir d'une base vide
+& $psql -h localhost -U postgres -d postgres `
+  -c "DROP DATABASE IF EXISTS srsp_db WITH (FORCE);"
+& $psql -h localhost -U postgres -d postgres `
+  -c "CREATE DATABASE srsp_db ENCODING 'UTF8' TEMPLATE template0;"
+
+# Réimporter
+& $psql -h localhost -U postgres -d srsp_db `
+  -v ON_ERROR_STOP=1 -f "Backend\backups\srsp-<date>.sql"
+```
+
+**Linux / macOS**
+
+```bash
+export PGPASSWORD='010622'
+pg_dump -h localhost -U postgres -f "Backend/backups/avant-restauration-$(date +%Y%m%d-%H%M).sql" srsp_db
+
+dropdb -h localhost -U postgres --if-exists --force srsp_db
+createdb -h localhost -U postgres -E UTF8 -T template0 srsp_db
+psql -h localhost -U postgres -d srsp_db -v ON_ERROR_STOP=1 \
+  -f "Backend/backups/srsp-<date>.sql"
+```
+
+Avec un dump binaire (`-Fc`) :
+
+```bash
+pg_restore -h localhost -U postgres -d srsp_db --clean --if-exists \
+  "Backend/backups/srsp-<date>.dump"
+```
+
+### 4.3 Restaurer les pièces jointes
+
+```bash
+# Linux / macOS
+tar -xzf "Backend/backups/srsp-<date>-pieces.tar.gz" -C Backend/src/uploads
+```
+
+```powershell
+# Windows
+Expand-Archive -Path "Backend\backups\srsp-<date>-pieces.zip" `
+  -DestinationPath "Backend\src\uploads" -Force
+```
+
+### 4.4 Redémarrer et contrôler
+
+```bash
+cd Backend
+npm start
+```
+
+```bash
+curl -s http://localhost:5000/api/health
+psql -h localhost -U postgres -d srsp_db -c "SELECT COUNT(*) FROM dossiers;"
+```
+
+Puis se connecter avec un compte de démonstration, ouvrir un dossier archivé
+et **télécharger réellement une pièce jointe**.
+
+---
+
+## 5. Vérifier une sauvegarde
 
 Une sauvegarde n'est une sauvegarde que si elle se restaure. Après chaque
 sauvegarde :
 
 ```bash
-cd Backend/backups
+# Dump SQL : le fichier contient-il des données ?
+grep -c "^COPY " Backend/backups/srsp-<date>.sql
 
-# Le dump contient-il des données ?
-grep -c "INSERT INTO" srsp-<date>.sql
+# Dump binaire : lister son contenu
+pg_restore -l Backend/backups/srsp-<date>.dump | head
 
-# L'archive contient-elle des fichiers ?
-tar -tzf srsp-<date>-pieces.tar.gz | head
+# Archive des pièces : contient-elle des fichiers ?
+tar -tzf Backend/backups/srsp-<date>-pieces.tar.gz | head
 ```
 
-Un `0` sur la première commande, ou une archive vide sur la seconde, signifie
-que la sauvegarde est incomplète : la refaire avant de l'adresser.
+Un `0` sur la première commande, ou une archive vide, signifie que la
+sauvegarde est incomplète : la refaire avant de l'adresser.
 
 ---
 
-## 3. Sauvegarde manuelle (hors application)
+## 6. Test de restauration mensuel
 
-Quand `mysqldump` n'est pas installé, ou pour une sauvegarde planifiée :
+1. Créer une base de test :
+   ```bash
+   createdb -h localhost -U postgres -E UTF8 -T template0 srsp_test
+   ```
+2. Y restaurer le dump :
+   ```bash
+   psql -h localhost -U postgres -d srsp_test -v ON_ERROR_STOP=1 \
+     -f Backend/backups/srsp-<date>.sql
+   ```
+3. Vérifier les volumes :
+   ```bash
+   psql -h localhost -U postgres -d srsp_test -c \
+     "SELECT COUNT(*) AS tables FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"
+   psql -h localhost -U postgres -d srsp_test -c "SELECT COUNT(*) FROM dossiers;"
+   ```
+4. Pointer une instance de test de l'API sur `srsp_test` (`DB_NAME=srsp_test`,
+   autre port), puis vérifier :
+   - la connexion de chaque profil de démonstration ;
+   - l'ouverture d'un dossier archivé ;
+   - le **téléchargement** d'une pièce jointe ;
+   - l'affichage du journal d'audit.
+5. Supprimer la base de test :
+   ```bash
+   dropdb -h localhost -U postgres --if-exists --force srsp_test
+   ```
+6. Consigner le résultat (date, durée, anomalies) dans le registre
+   d'exploitation.
 
-```bash
-cd Backend
-
-# Dump de la base
-MYSQL_PWD='<mot-de-passe>' mysqldump \
-  -h127.0.0.1 -P3306 -u root \
-  srsp_db --single-transaction --routines --skip-lock-tables \
-  > backups/srsp-manuel-$(date +%F).sql
-
-# Pièces jointes
-tar -czf backups/srsp-manuel-$(date +%F)-pieces.tar.gz \
-  -C src/uploads documents courriers
-```
-
-`--single-transaction` est indispensable : sans lui, le dump lit chaque
-table séparément, et les données modifiées pendant l'opération sont
- incohérentes entre elles.
-
-Si `mysqldump` n'est pas dans le `PATH`, l'application le cherche dans
-`C:\xampp\mysql\bin`, `C:\Program Files\MySQL\MySQL Server 8.0\bin`,
-`C:\laragon\bin\mysql\current\bin` et `C:\wamp64\bin\mysql\current\bin`. Une
-variable `MYSQLDUMP_PATH` peut forcer le chemin.
-
----
-
-## 4. Restauration depuis l'application
-
-**Administration → Sauvegarde** → choisir une sauvegarde → **Restaurer**.
-
-La restauration :
-
-1. **crée d'abord une sauvegarde de sécurité** de l'état courant ;
-2. vide les tables applicatives ;
-3. recharge le dump ;
-4. **ne touche pas** aux pièces jointes (elles sont restaurées séparément,
-   voir ci-dessous).
-
-> ⚠️ **La restauration est destructive.** Elle remplace les données actuelles
-> par celles de la sauvegarde. Ne l'utilisez que sur une base de test, ou
-> après une sauvegarde de sécurité vérifiée.
+> Une sauvegarde jamais restaurée n'est pas une sauvegarde : c'est une
+> hypothèse.
 
 ---
 
-## 5. Restauration complète (base + pièces)
-
-```bash
-# 1. Sauvegarde de sécurité de l'état courant
-cd Backend
-node scripts/…   # ou *Administration → Sauvegarde* depuis l'application
-
-# 2. Restaurer la base
-MYSQL_PWD='<mot-de-passe>' mysql -h127.0.0.1 -P3306 -u root srsp_db \
-  < backups/srsp-<date>.sql
-
-# 3. Restaurer les pièces jointes
-#    (les fichiers portent des noms UUID : on les remplace en bloc)
-tar -xzf backups/srsp-<date>-pieces.tar.gz -C src/uploads
-
-# 4. Redémarrer l'API
-npm start
-```
-
-### Contrôle après restauration
-
-```bash
-# La base répond-elle ?
-curl -s http://localhost:5000/api/health
-
-# Les dossiers sont-ils là ?
-mysql -u root srsp_db -e "SELECT COUNT(*) FROM dossiers;"
-
-# Les documents sont-ils lisibles ?
-# → se connecter, ouvrir un dossier archivé, télécharger une pièce jointe
-```
-
-**Le test de restauration mensuel ne vaut que s'il est complet** : une base
-restaurée sans ses pièces jointes paraît fonctionnelle et ne l'est pas. Le
-test consiste donc à restaurer une sauvegarde dans une base de test **et à
-ouvrir réellement un document**.
-
----
-
-## 6. Politique de sauvegarde recommandée
+## 7. Politique de sauvegarde recommandée
 
 | Élément | Fréquence | Conservation |
 |---|---|---|
 | Sauvegarde complète (base + pièces) | **Quotidienne** | 30 jours glissants |
-| Sauvegarde avant toute migration | À chaque migration | Jusqu'à validation de la migration |
-| Sauvegarde avant une restauration | Systématique (automatique) | 30 jours |
+| Sauvegarde avant toute mise à jour | À chaque mise à jour | Jusqu'à validation |
+| Sauvegarde avant une restauration | Systématique | 30 jours |
 | Copie **hors site** (disque externe, NAS, cloud chiffré) | Hebdomadaire | 6 mois |
 | **Test de restauration** | **Mensuelle** | — |
 
@@ -166,100 +254,40 @@ ouvrir réellement un document**.
 
 ---
 
-## 7. Procédure d'incident
+## 8. Procédure d'incident
 
 | Situation | Conduite à tenir |
 |---|---|
-| Serveur HS | Réinstaller le système, restaurer la dernière sauvegarde, rejouer les journaux de la base si disponibles |
-| Base corrompue | Restaurer la dernière sauvegarde, puis **rejouer les saisies** postérieures à partir des pièces jointes et des notifications. Si MariaDB ne démarre plus, voir § 7 bis. |
+| Serveur HS | Réinstaller le système, restaurer la dernière sauvegarde, rejouer les saisies postérieures si possible |
+| Base corrompue | Restaurer la dernière sauvegarde vérifiée ; ne jamais tenter de réparer à chaud sans copie préalable |
+| Service PostgreSQL arrêté | `services.msc` → `postgresql-x64-18` → Démarrer, ou `net start postgresql-x64-18` |
 | Disque plein | Libérer de l'espace, **ne jamais supprimer une pièce jointe manuellement** : le lien entre le fichier et sa ligne en base serait perdu |
-| Compte compromis | Désactiver le compte (action immédiate), changer le mot de passe, consulter le journal (`CONNEXION_ECHOUEE`, `CONNEXION`) |
-| Pièce jointe manquante | La pièce est stockée sous un nom UUID : restaurer l'archive `tar.gz`, qui contient les noms d'origine et les UUID |
+| Compte compromis | Désactiver le compte, changer le mot de passe, consulter le journal (`CONNEXION_ECHOUEE`, `CONNEXION`) |
+| Pièce jointe manquante | La pièce est stockée sous un nom UUID : restaurer l'archive, qui contient l'arborescence d'origine |
 
 ---
 
-## 7 bis. Reprise d'une base InnoDB qui ne démarre plus
+## 9. Reprise après corruption PostgreSQL
 
-Symptômes dans `C:\xampp\mysql\data\mysql_error.log` :
+PostgreSQL résiste bien aux arrêts brutaux, mais une coupure de courant
+pendant une écriture peut encore laisser le serveur en état de récupération.
+La procédure est volontairement simple :
 
-```
-[ERROR] InnoDB: Page ... log sequence number ... is in the future!
-[ERROR] mysqld.exe: Index for table '.\mysql\proxies_priv' is corrupt
-[ERROR] Fatal error: Can't open and lock privilege tables
-```
-
-Un arrêt brutal — coupure, redémarrage de la machine, déplacement du projet —
-peut laisser les pages InnoDB en avance sur le journal de redo. La base
-applicative reste souvent lisible : on l'extrait **avant** de reconstruire.
-
-1. **Sauvegarder le répertoire de données**, même corrompu : c'est la seule
-   copie.
+1. **Sauvegarder le répertoire de données** avant toute manipulation
+   (par exemple `C:\Program Files\PostgreSQL\18\data`) : c'est la seule copie
+   de l'état courant.
+2. **Consulter le journal** `C:\Program Files\PostgreSQL\18\data\log\` ou
+   l'Observateur d'événements Windows. PostgreSQL refuse de démarrer plutôt
+   que de corrompre les données : lire le message avant d'agir.
+3. **Redémarrer le service** :
    ```powershell
-   robocopy C:\xampp\mysql\data C:\xampp\mysql\data_sauvegarde_<date> /E
+   Restart-Service postgresql-x64-18
    ```
-2. **Démarrer en lecture forcée**, sans contrôle des grants.
-   ```powershell
-   C:\xampp\mysql\bin\mysqld.exe --defaults-file=C:\xampp\mysql\bin\my.ini `
-     --innodb-force-recovery=4 --skip-grant-tables
-   ```
-3. **Extraire la base applicative** — avec `cmd`, jamais avec `>` de
-   PowerShell, qui écrit en UTF-16.
-   ```powershell
-   cmd /c "C:\xampp\mysql\bin\mysqldump.exe -u root --skip-lock-tables --single-transaction --routines --triggers --events --default-character-set=utf8mb4 srsp_db > D:\SRSP-2026\Backend\backups\srsp_db_recovery.sql"
-   ```
-   Vérifier que le fichier se termine par `-- Dump completed` et que sa
-   taille est plausible.
-4. **Arrêter le serveur de récupération**, déplacer le répertoire corrompu,
-   en créer un neuf et l'initialiser.
-   ```powershell
-   Stop-Process -Id (Get-NetTCPConnection -LocalPort 3306).OwningProcess -Force
-   Move-Item C:\xampp\mysql\data C:\xampp\mysql\data_corrompu_<date>
-   New-Item -ItemType Directory C:\xampp\mysql\data
-   C:\xampp\mysql\bin\mysql_install_db.exe --datadir=C:\xampp\mysql\data
-   ```
-5. **Redémarrer MariaDB**, recréer la base et importer le dump.
-   ```powershell
-   C:\xampp\mysql\bin\mysqld.exe --defaults-file=C:\xampp\mysql\bin\my.ini
-   C:\xampp\mysql\bin\mysql.exe -u root -e "CREATE DATABASE srsp_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-   cmd /c "C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 srsp_db < D:\SRSP-2026\Backend\backups\srsp_db_recovery.sql"
-   ```
-6. **Contrôler** : nombre de tables, comptes, dossiers, et un accent —
-   `HEX(LEFT(motif, 10))` doit commencer par `5069C3A8` pour « Pièce ».
-7. Redémarrer l'API, puis rejouer `test-e2e-droits.mjs` et la campagne de
-   référence.
+4. Si le serveur refuse toujours de démarrer, **restaurer la dernière
+   sauvegarde** dans une installation PostgreSQL saine. Ne pas supprimer le
+   répertoire `data` tant qu'une copie n'est pas faite.
+5. Contrôler après restauration : nombre de tables (61), nombre de dossiers,
+   connexion de chaque profil, ouverture d'une pièce jointe.
 
-> Le dump doit être **relu avant d'être importé**. Une redirection
-> PowerShell produit un fichier UTF-16 avec des NUL : MySQL s'arrête sur
-> `ASCII '\0' appeared in the statement`. Utiliser `cmd /c "... > fichier"`,
-> ou convertir explicitement en UTF-8 sans BOM.
-
----
-
-## 8. Vérification du bac à sable
-
-Le test de restauration mensuel :
-
-1. Créer une base `srsp_test` :
-   ```sql
-   CREATE DATABASE srsp_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   ```
-2. Y restaurer le dump :
-   ```bash
-   MYSQL_PWD='<mot-de-passe>' mysql -h127.0.0.1 -P3306 -u root srsp_test \
-     < backups/srsp-<date>.sql
-   ```
-3. Y extraire les pièces :
-   ```bash
-   tar -xzf backups/srsp-<date>-pieces.tar.gz -C /tmp/srsp-test
-   ```
-4. Pointer l'API de test sur `srsp_test` (variable `DB_NAME` du `.env` de
-   test), la démarrer sur un autre port, et vérifier :
-   - la connexion de chaque profil de démonstration ;
-   - l'ouverture d'un dossier archivé ;
-   - le **téléchargement** d'une pièce jointe ;
-   - l'affichage du journal d'audit.
-5. Consigner le résultat (date, durée, anomalies) dans le registre
-   d'exploitation.
-
-> Une sauvegarde jamais restaurée n'est pas une sauvegarde : c'est une
-> hypothèse.
+> Ne jamais éditer les fichiers de `data/` à la main. Pour une intervention
+> lourde, faire appel à un administrateur PostgreSQL.

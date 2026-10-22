@@ -356,7 +356,7 @@ export function DossierForm({ initial = null, onSaved }) {
       /* Le brouillon est enregistré depuis n'importe quelle étape : la
          priorité peut ne pas encore être choisie. Envoyer `Number('')` — donc
          0 — violait la clé étrangère des priorités et renvoyait une erreur
-         MySQL au lieu d'enregistrer la saisie. On retient la priorité normale
+         la base au lieu d'enregistrer la saisie. On retient la priorité normale
          du référentiel à défaut de choix. */
       const prioriteParDefaut = (referentiel.priorites || []).find(
         (p) => /normale/i.test(p.libelle || '')

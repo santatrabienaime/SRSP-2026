@@ -71,10 +71,10 @@ export async function updateUser(id, { email, role_id, actif }) {
 
 export async function updatePassword(id, password_hash) {
   // Le changement de mot de passe relance le delai de renouvellement (1.5).
-  // NOW(3) : la colonne est en millisecondes, et la comparaison avec
-  // l'instant d'émission du jeton doit être exacte.
+  // Précision à la milliseconde : la comparaison avec l'instant d'émission
+  // du jeton doit être exacte.
   await db.query(
-    'UPDATE users SET password_hash = ?, mot_de_passe_change_le = NOW(3) WHERE id = ?',
+    'UPDATE users SET password_hash = ?, mot_de_passe_change_le = CURRENT_TIMESTAMP(3) WHERE id = ?',
     [password_hash, id]
   );
   /* Le mot de passe vient de changer : les sessions ouvertes sur ce compte
@@ -115,7 +115,7 @@ export async function registerFailedAttempt(id, maxAttempts, lockMinutes) {
     `UPDATE users
      SET tentatives_echouees = tentatives_echouees + 1,
          verrouille_jusqua = CASE
-           WHEN tentatives_echouees >= ? THEN DATE_ADD(NOW(), INTERVAL ? MINUTE)
+           WHEN tentatives_echouees >= ? THEN NOW() + make_interval(mins => ?)
            ELSE verrouille_jusqua
          END
      WHERE id = ?`,

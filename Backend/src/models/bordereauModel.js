@@ -145,9 +145,10 @@ export async function create({ division_id, agent_id, observation, dossiers }) {
 
   if (dossiers?.length) {
     const values = dossiers.map((d, idx) => [insertId, d.id, d.ordre ?? idx]);
+    const placeholders = values.map(() => '(?, ?, ?)').join(', ');
     await db.query(
-      `INSERT INTO bordereaux_dossiers (bordereau_id, dossier_id, ordre) VALUES ?`,
-      [values]
+      `INSERT INTO bordereaux_dossiers (bordereau_id, dossier_id, ordre) VALUES ${placeholders}`,
+      values.flat()
     );
   }
 
@@ -184,9 +185,12 @@ export async function addDossiers(bordereauId, dossiers) {
   if (b.statut !== 'BROUILLON') throw new Error('Impossible d\'ajouter des dossiers : bordereau déjà émis');
 
   const values = dossiers.map((d, idx) => [bordereauId, d.id, d.ordre ?? idx]);
+  if (!values.length) return findById(bordereauId);
+  const placeholders = values.map(() => '(?, ?, ?)').join(', ');
   await db.query(
-    `INSERT IGNORE INTO bordereaux_dossiers (bordereau_id, dossier_id, ordre) VALUES ?`,
-    [values]
+    `INSERT INTO bordereaux_dossiers (bordereau_id, dossier_id, ordre)
+     VALUES ${placeholders} ON CONFLICT DO NOTHING`,
+    values.flat()
   );
   return findById(bordereauId);
 }

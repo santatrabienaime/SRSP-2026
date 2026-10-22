@@ -1,133 +1,122 @@
 # ============================================================================
-# SRSP Fitovinany - Script de démarrage MariaDB et Backend
+# SRSP Fitovinany - Démarrage PostgreSQL + Backend
+#
+# Ce script vérifie PostgreSQL, crée la base srsp_db si nécessaire, importe
+# database/srsp_db.sql sur une base vide, puis lance l'API en mode développement.
 # ============================================================================
 
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "  SRSP Fitovinany - Démarrage MariaDB + Backend" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
+$ErrorActionPreference = "Stop"
 
-$BACKEND_DIR = "C:\Users\TOSHIBA\Desktop\SRSP-2026\Backend"
-$ENV_FILE = "$BACKEND_DIR\.env"
-$ENV_EXAMPLE = "$BACKEND_DIR\.env.example"
+$BACKEND_DIR = $PSScriptRoot
+$ROOT = Split-Path $BACKEND_DIR -Parent
+$ENV_FILE = Join-Path $BACKEND_DIR ".env"
+$ENV_EXAMPLE = Join-Path $BACKEND_DIR ".env.example"
+$SQL_FILE = Join-Path $ROOT "database\srsp_db.sql"
+
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "  SRSP Fitovinany - Démarrage PostgreSQL + Backend" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
 
 # ---------------------------------------------------------------------------
-# Étape 1 : Vérifier que .env existe
+# Étape 1 : .env
 # ---------------------------------------------------------------------------
 Write-Host "`n[1/4] Vérification du fichier .env..." -ForegroundColor Yellow
-
 if (-Not (Test-Path $ENV_FILE)) {
-    Write-Host "  Le fichier .env n'existe pas. Création depuis .env.example..." -ForegroundColor Yellow
     Copy-Item $ENV_EXAMPLE $ENV_FILE
-    Write-Host "  Veuillez éditer $ENV_FILE avec vos identifiants MariaDB (DB_PASSWORD)." -ForegroundColor Yellow
-    Write-Host "  Puis relancez ce script." -ForegroundColor Yellow
+    Write-Host "  .env créé depuis .env.example. Renseignez DB_PASSWORD et JWT_SECRET, puis relancez." -ForegroundColor Yellow
     exit 1
-} else {
-    Write-Host "  Fichier .env trouvé." -ForegroundColor Green
 }
 
-# ---------------------------------------------------------------------------
-# Étape 2 : Vérifier/démarrer MariaDB
-# ---------------------------------------------------------------------------
-Write-Host "`n[2/4] Vérification de MariaDB..." -ForegroundColor Yellow
-
-# Fonction pour tester si MariaDB répond
-function Test-MariaDB {
-    try {
-        $result = mysql -u root -e "SELECT 1" 2>$null
-        return $true
-    } catch {
-        return $false
-    }
+function Get-EnvValue([string]$Name, [string]$Default) {
+    $line = Get-Content $ENV_FILE | Where-Object { $_ -match "^$([regex]::Escape($Name))=" } | Select-Object -First 1
+    if (-not $line) { return $Default }
+    return ($line -replace "^$([regex]::Escape($Name))=", "").Trim()
 }
 
-if (-Not (Test-MariaDB)) {
-    Write-Host "  MariaDB ne répond pas. Tentative de démarrage..." -ForegroundColor Yellow
-    
-    # Tentatives de démarrage selon l'environnement
-    $started = $false
-    
-    # Option 1 : Service Windows
-    try {
-        net start mariadb 2>$null
-        if ($LASTEXITCODE -eq 0) { $started = $true }
-    } catch {}
-    
-    # Option 2 : mysqld directement
-    if (-Not $started) {
-        try {
-            Start-Process "C:\Program Files\MariaDB\MariaDB 10.x\bin\mariadbd.exe" -ArgumentList "--defaults-file=C:\Program Files\MariaDB\MariaDB 10.x\data\my.ini" -WindowStyle Hidden
-            Start-Sleep -Seconds 5
-            if (Test-MariaDB) { $started = $true }
-        } catch {}
-    }
-    
-    # Option 3 : Service MySQL (alias)
-    if (-Not $started) {
-        try {
-            net start mysql 2>$null
-            if ($LASTEXITCODE -eq 0) { $started = $true }
-        } catch {}
-    }
-    
-    if (-Not $started) {
-        Write-Host "  Impossible de démarrer MariaDB automatiquement." -ForegroundColor Red
-        Write-Host "  Veuillez démarrer MariaDB manuellement :" -ForegroundColor Yellow
-        Write-Host "    - Windows : services.msc -> Démarrer 'MariaDB' ou 'MySQL'" -ForegroundColor Yellow
-        Write-Host "    - Ou : net start mariadb" -ForegroundColor Yellow
+$DB_HOST = Get-EnvValue "DB_HOST" "localhost"
+$DB_PORT = Get-EnvValue "DB_PORT" "5432"
+$DB_USER = Get-EnvValue "DB_USER" "postgres"
+$DB_PASSWORD = Get-EnvValue "DB_PASSWORD" ""
+$DB_NAME = Get-EnvValue "DB_NAME" "srsp_db"
+$env:PGPASSWORD = $DB_PASSWORD
+$env:PGCLIENTENCODING = "UTF8"
+
+# ---------------------------------------------------------------------------
+# Étape 2 : localiser et démarrer PostgreSQL
+# ---------------------------------------------------------------------------
+Write-Host "`n[2/4] Vérification de PostgreSQL..." -ForegroundColor Yellow
+
+$pgCandidates = @(
+    "C:\Program Files\PostgreSQL\18\bin",
+    "C:\Program Files\PostgreSQL\17\bin",
+    "C:\Program Files\PostgreSQL\16\bin",
+    "C:\Program Files\PostgreSQL\15\bin"
+)
+$pgBin = $null
+foreach ($dir in $pgCandidates) {
+    if (Test-Path (Join-Path $dir "psql.exe")) { $pgBin = $dir; break }
+}
+if (-not $pgBin) {
+    $psqlCommand = Get-Command psql.exe -ErrorAction SilentlyContinue
+    if ($psqlCommand) { $pgBin = Split-Path $psqlCommand.Source -Parent }
+}
+if (-not $pgBin) {
+    Write-Host "  ERREUR: psql.exe introuvable. Installez PostgreSQL 18." -ForegroundColor Red
+    exit 1
+}
+$PSQL = Join-Path $pgBin "psql.exe"
+
+$pgService = Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue |
+    Sort-Object Name | Select-Object -First 1
+if ($pgService -and $pgService.Status -ne "Running") {
+    Write-Host "  Démarrage du service $($pgService.Name)..." -ForegroundColor Yellow
+    Start-Service $pgService.Name
+    Start-Sleep -Seconds 3
+}
+
+$probe = (& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -tAc "SELECT 1" 2>$null)
+if ($LASTEXITCODE -ne 0 -or $probe.Trim() -ne "1") {
+    Write-Host "  ERREUR: PostgreSQL ne répond pas sur ${DB_HOST}:${DB_PORT}." -ForegroundColor Red
+    Write-Host "  Vérifiez le service et DB_PASSWORD dans Backend/.env." -ForegroundColor Yellow
+    exit 1
+}
+Write-Host "  PostgreSQL répond sur ${DB_HOST}:${DB_PORT}." -ForegroundColor Green
+
+# ---------------------------------------------------------------------------
+# Étape 3 : créer et initialiser la base
+# ---------------------------------------------------------------------------
+Write-Host "`n[3/4] Vérification de la base '$DB_NAME'..." -ForegroundColor Yellow
+
+$exists = (& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'").Trim()
+if ($exists -ne "1") {
+    Write-Host "  Création de la base '$DB_NAME'..." -ForegroundColor Yellow
+    & $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE `"$DB_NAME`" ENCODING 'UTF8' TEMPLATE template0;" | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  ERREUR: impossible de créer la base '$DB_NAME'." -ForegroundColor Red
         exit 1
     }
 }
 
-Write-Host "  MariaDB est démarré." -ForegroundColor Green
-
-# ---------------------------------------------------------------------------
-# Étape 3 : Créer la base de données srsp_db
-# ---------------------------------------------------------------------------
-Write-Host "`n[3/4] Vérification de la base de données srsp_db..." -ForegroundColor Yellow
-
-try {
-    $result = mysql -u root -e "SHOW DATABASES LIKE 'srsp_db';" 2>$null
-    if ($result -match "srsp_db") {
-        Write-Host "  Base de données srsp_db existe déjà." -ForegroundColor Green
-    } else {
-        Write-Host "  Création de la base de données srsp_db..." -ForegroundColor Yellow
-        mysql -u root -e "CREATE DATABASE srsp_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  Base de données srsp_db créée avec succès." -ForegroundColor Green
-        } else {
-            Write-Host "  Impossible de créer la base de données. Vérifiez votre mot de passe root dans .env" -ForegroundColor Red
-            exit 1
-        }
+$hasRoles = (& $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -tAc "SELECT to_regclass('public.roles') IS NOT NULL").Trim()
+if ($hasRoles -ne "t") {
+    if (-Not (Test-Path $SQL_FILE)) {
+        Write-Host "  ERREUR: base vide et fichier $SQL_FILE introuvable." -ForegroundColor Red
+        exit 1
     }
-} catch {
-    Write-Host "  Erreur lors de la vérification de la base de données." -ForegroundColor Red
-    exit 1
+    Write-Host "  Importation de database/srsp_db.sql..." -ForegroundColor Yellow
+    & $PSQL -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -v ON_ERROR_STOP=1 -f $SQL_FILE | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  ERREUR: l'importation du dump PostgreSQL a échoué." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  Base initialisée." -ForegroundColor Green
+} else {
+    Write-Host "  Base '$DB_NAME' déjà initialisée." -ForegroundColor Green
 }
 
 # ---------------------------------------------------------------------------
-# Étape 4 : Vérifier que le backend peut se connecter
+# Étape 4 : démarrer le backend
 # ---------------------------------------------------------------------------
-Write-Host "`n[4/4] Test de connexion à la base de données..." -ForegroundColor Yellow
-
-# Lire le DB_NAME depuis .env
-$dbName = (Get-Content $ENV_FILE | Where-Object { $_ -match "^DB_NAME=" }) -replace "DB_NAME=", ""
-if (-Not $dbName) { $dbName = "srsp_db" }
-
-try {
-    $result = mysql -u root -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$dbName';" 2>$null
-    Write-Host "  Connexion à la base de données réussie." -ForegroundColor Green
-} catch {
-    Write-Host "  Impossible de se connecter à la base de données $dbName." -ForegroundColor Red
-    Write-Host "  Vérifiez votre fichier .env (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)" -ForegroundColor Yellow
-    exit 1
-}
-
-# ---------------------------------------------------------------------------
-# Étape 5 : Démarrer le backend
-# ---------------------------------------------------------------------------
-Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  Tout est prêt ! Démarrage du backend..." -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
-
-cd $BACKEND_DIR
+Write-Host "`n[4/4] Démarrage du backend..." -ForegroundColor Yellow
+Set-Location $BACKEND_DIR
 npm run dev

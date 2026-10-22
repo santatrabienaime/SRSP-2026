@@ -16,7 +16,7 @@ for (const e of parEtat) {
 const parDocument = await db.query(
   `SELECT document,
           COUNT(*) AS total,
-          SUM(etat = 'LIVREE') AS livree
+          COUNT(*) FILTER (WHERE etat = 'LIVREE') AS livree
    FROM referentiel_fonctionnalites
    GROUP BY document ORDER BY document`
 );

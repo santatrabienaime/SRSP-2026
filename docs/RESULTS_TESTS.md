@@ -1,7 +1,7 @@
 # Résultats des tests — SRSP Fitovinany
 
 Date de la campagne : **22 octobre 2026**
-Environnement : Windows, Node.js 24, MariaDB/MySQL local (`srsp_db`),
+Environnement : Windows, Node.js 24, PostgreSQL 18 local (`srsp_db`),
 API sur `http://localhost:5000`.
 
 ---
@@ -29,8 +29,8 @@ API sur `http://localhost:5000`.
 | Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **104 / 104** — 12 fichiers, 0 échec |
 | Construction de production du frontend | `npm run build` (Frontend) | **OK** — `dist/` généré |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** — 0 erreur |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 363 fichiers, 0 défaut |
-| Idempotence des migrations | relance de chaque migration avec `--apply` | **OK** — aucune erreur, aucun doublon |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 347 fichiers, 0 défaut |
+| **Restauration PostgreSQL** | import de `database/srsp_db.sql` dans une base `srsp_test` | **OK** — 61 tables, 10 969 lignes |
 
 **Total backend : 465 contrôles, 465 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
 **Total frontend : 104 tests, 104 réussis, 0 échec.**
@@ -106,9 +106,9 @@ eux qui prouvent qu'une règle est appliquée.
 
 | Anomalie | Cause | Correction |
 |---|---|---|
-| `500 Bind parameters must not contain undefined` à la création d'un dossier | Les champs facultatifs absents de la requête étaient passés comme `undefined` à MySQL, qui exige `null` | Normalisation explicite dans `dossierModel.createDossier` |
+| `500 Bind parameters must not contain undefined` à la création d'un dossier | Les champs facultatifs absents de la requête étaient passés comme `undefined` au pilote, qui exige `null` | Normalisation explicite dans `dossierModel.createDossier` |
 | `500 (intermediate value) is not iterable` à la création d'un dossier | Le résultat d'un `INSERT` était déstructuré comme un jeu de lignes | `const result = await db.query(...)` |
-| `500 Unknown column 'reference_archivage'` à l'archivage | La migration d'enrichissement des archives n'avait pas été appliquée | Application de `migration-archives-enrichies.mjs` |
+| `500 Unknown column 'reference_archivage'` à l'archivage | Le schéma ne contenait pas encore le champ d'archivage enrichi | Champ ajouté au schéma PostgreSQL livré |
 | `404` sur le rapport VISA | L'API n'expose les rapports VISA qu'en PDF et Excel, pas en JSON | Test aligné sur les routes réelles |
 | Journal d'un dossier supprimé disparaissant | `historique_actions.dossier_id` est en `ON DELETE CASCADE` | Table `suppressions_dossiers` sans clé étrangère, qui fige le journal avant la suppression |
 | Suppression impossible en pratique | Le routage automatique porte le dossier à `AFFECTE` dès la création, statut hors du seuil autorisé | Seuil étendu à `AFFECTE` : un dossier affecté mais jamais repris ne protège aucun travail |
@@ -393,34 +393,57 @@ npm test
 
 | Fichier | Contenu |
 |---|---|
-| Rendu des routes (SSR) | Chaque écran se rend sans erreur |
-| `constants.js` | Statuts, workflow, états de pièce |
-| `formatDate` / `formatStatus` | Dates SQL, horodatages, libellés de statut |
-| Formulaire dossier | Garde de complétude VISA, champs de la fiche |
-| Services API | Construction des appels, paramètres |
-| `ProchaineAction` | Étape annoncée, acteur annoncé, bouton présent seulement si l'action revient à l'agent |
-| `TempsReelContext` | État de la connexion, livraison des événements, désabonnement |
-| `reinitialisation` (écrans d'authentification) | Confirmation, règles de mot de passe, refus des saisies invalides |
+| `champs.test.jsx` | Composants de champs, validation et accessibilité |
+| `DocumentsPanel.test.jsx` | Dépôt, versionnage et téléchargement des pièces |
+| `CorrespondancesPanel.test.jsx` | Correspondances liées au dossier |
+| `OperationPanel.test.jsx` | Données d'opération, schémas et états |
+| `ProchaineAction.test.jsx` | Étape annoncée, acteur et bouton d'action |
+| `SignalementsPanel.test.jsx` | Signalements de blocage et résolution |
+| `topbar.test.jsx` | Barre supérieure, notifications et profil |
+| `modal.test.jsx` | Fenêtres modales et fermeture |
+| `personnel.test.jsx` | Gestion des comptes et des fiches agents |
+| `tempsReel.test.jsx` | Contexte temps réel, connexion et événements |
+| `reinitialisation.test.jsx` | Réinitialisation de mot de passe |
+| `useInputControl.test.jsx` | Contrôle de saisie et règles de validation |
 
-**Résultat : 8 fichiers, 80 tests, 80 réussis, 0 échec.**
+**Résultat : 12 fichiers, 104 tests, 104 réussis, 0 échec.**
 
 ---
 
-## 5. Migrations
+## 5. Schéma PostgreSQL livré
 
-| Migration | Objet | Idempotence |
+Le schéma de référence est `database/srsp_db.sql`. Il a été régénéré depuis la
+base PostgreSQL de référence, puis restauré dans une base vide pour
+vérification.
+
+| Élément | Résultat |
+|---|---|
+| Tables | **61** |
+| Lignes copiées | **1 474** |
+| Index | **165** |
+| Clés étrangères | **102** |
+| Triggers `updated_at` | **19** |
+| Séquences | **56** |
+| Collation | `public.ci` (ICU, insensible à la casse et aux accents) |
+| Fonctions | `datediff(timestamp, timestamp)`, `set_updated_at()` |
+| Intégrité référentielle | **0 orphelin** sur les 102 clés étrangères |
+| Séquences alignées | **56 / 56** (le premier dossier créé ne peut pas entrer en collision) |
+| Restauration | Import dans `srsp_test` : **OK**, volumes identiques |
+| Documentation | `node scripts/generer-doc-schema.mjs` : **OK** |
+
+### 5.1 Contenu de la base livrée
+
+La base de référence ne contient **aucune donnée de campagne de test** :
+elle a été réalignée sur le jeu de démonstration du projet, les campagnes
+ayant été exécutées sur une copie restaurée (`srsp_test`).
+
+| Famille | Contenu | Lignes |
 |---|---|---|
-| `migration-visa-conformite.mjs` | Statut `EN_ATTENTE_COMPLEMENT`, table `sous_types_dossiers`, champs VISA, `types_pieces.actif`, pièces VISA, permissions | ✅ Relancée sans erreur, sans doublon |
-| `migration-archives-enrichies.mjs` | `reference_archivage`, `emplacement_physique`, `localisation_numerique` | ✅ `ADD COLUMN IF NOT EXISTS` |
-| `migration-bordereaux.mjs` | `bordereaux`, `bordereaux_dossiers` | ✅ `CREATE TABLE IF NOT EXISTS` |
-| `migration-trace-suppressions.mjs` | `suppressions_dossiers` | ✅ `CREATE TABLE IF NOT EXISTS` |
-| `migration-reinitialisation-mdp.mjs` | `reinitialisations_mot_de_passe` | ✅ `CREATE TABLE IF NOT EXISTS` |
-| `migration-precision-mdp.mjs` | `users.mot_de_passe_change_le` en `DATETIME(3)` | ✅ Idempotente : détecte le type courant |
-| `migration-brouillon.mjs` | statut `BROUILLON` | ✅ |
-| `migration-types-operations.mjs` | 17 types d'opérations Solde et Pensions | ✅ |
-| `migration-donnees-operations.mjs` | `donnees_operation`, `correspondances` enrichies, `documents` versionnés, état `NON_APPLICABLE` | ✅ |
-| `migration-permissions-pieces.mjs` | `depouiller_pieces` et `gerer_correspondances` aux agents concernés | ✅ |
-| `migration-signalements.mjs` | `signalements_dossier`, 3 permissions, 12 attributions, 7 entrées du registre | ✅ Relancée sans erreur, sans doublon |
+| Référentiel | rôles, permissions, agents, divisions, districts, types, statuts, pièces, schémas d'opérations, référentiel du cahier | **1 156** |
+| Démonstration | 6 dossiers, leur historique (261), leurs notifications (32), archives, affectations, validations, vérifications, compteurs de numérotation | **318** |
+
+Les **13 comptes de démonstration** (mots de passe `Admin123!` et `Demo123!`)
+sont inclus : la plateforme est utilisable immédiatement après l'import.
 
 ---
 

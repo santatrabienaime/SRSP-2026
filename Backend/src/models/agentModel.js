@@ -21,11 +21,11 @@ export async function findAll(filters = {}) {
               « traiter_dossier ». C'est la même règle que l'affectation
               automatique : elle est lue en base, pas écrite dans l'écran, pour
               qu'un rôle ajouté plus tard soit pris en compte sans développement. */
-           EXISTS(
+           CASE WHEN EXISTS(
              SELECT 1 FROM role_permissions rp
              JOIN permissions p ON p.id = rp.permission_id
              WHERE rp.role_id = u.role_id AND p.nom = 'traiter_dossier'
-           ) AS peut_traiter
+           ) THEN 1 ELSE 0 END AS peut_traiter
     FROM agents a
     LEFT JOIN fonctions f ON a.fonction_id = f.id
     LEFT JOIN divisions d ON a.division_id = d.id

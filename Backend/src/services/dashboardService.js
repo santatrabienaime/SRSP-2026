@@ -102,11 +102,11 @@ export async function getSummary(scope) {
      arbitrairement un dossier de « en retard ». */
   const [ages] = await db.query(
     `SELECT
-       COALESCE(SUM(DATEDIFF(CURDATE(), DATE(d.date_reception)) < 7), 0) AS moins_7,
-       COALESCE(SUM(DATEDIFF(CURDATE(), DATE(d.date_reception)) BETWEEN 7 AND 30), 0) AS de_7_a_30,
-       COALESCE(SUM(DATEDIFF(CURDATE(), DATE(d.date_reception)) BETWEEN 31 AND 90), 0) AS de_31_a_90,
-       COALESCE(SUM(DATEDIFF(CURDATE(), DATE(d.date_reception)) > 90), 0) AS plus_90,
-       COALESCE(ROUND(AVG(DATEDIFF(CURDATE(), DATE(d.date_reception)))), 0) AS age_moyen
+       COUNT(*) FILTER (WHERE DATEDIFF(CURRENT_DATE, d.date_reception) < 7) AS moins_7,
+       COUNT(*) FILTER (WHERE DATEDIFF(CURRENT_DATE, d.date_reception) BETWEEN 7 AND 30) AS de_7_a_30,
+       COUNT(*) FILTER (WHERE DATEDIFF(CURRENT_DATE, d.date_reception) BETWEEN 31 AND 90) AS de_31_a_90,
+       COUNT(*) FILTER (WHERE DATEDIFF(CURRENT_DATE, d.date_reception) > 90) AS plus_90,
+       COALESCE(ROUND(AVG(DATEDIFF(CURRENT_DATE, d.date_reception))), 0) AS age_moyen
      FROM dossiers d
      JOIN statuts_dossiers s ON d.statut_id = s.id
      WHERE s.code NOT IN ('CLOTURE', 'ARCHIVE')${f.where}`,
@@ -136,7 +136,7 @@ export async function getSummary(scope) {
      JOIN statuts_dossiers s ON d.statut_id = s.id
      WHERE s.code IN ('CLOTURE', 'ARCHIVE')
        AND COALESCE(d.date_cloture, d.date_archivage, d.updated_at)
-           >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)${f.where}`,
+           >= CURRENT_DATE - INTERVAL '30 days'${f.where}`,
     f.params
   );
   stats.cloturesRecents = Number(cloturesRecents.total);
@@ -209,7 +209,7 @@ export async function getByStatus(scope) {
 export async function getEvolution(scope) {
   const f = await filterFor(scope);
   return db.query(
-    `SELECT DATE_FORMAT(d.date_reception, '%Y-%m') AS mois, COUNT(*) AS total
+    `SELECT TO_CHAR(d.date_reception, 'YYYY-MM') AS mois, COUNT(*) AS total
      FROM dossiers d
      JOIN statuts_dossiers s ON d.statut_id = s.id
      WHERE 1=1${f.where}
@@ -228,7 +228,7 @@ export async function getEvolution(scope) {
  */
 export async function getRessources() {
   const courriers = await db.query(
-    `SELECT COUNT(*) AS total, COALESCE(SUM(statut = 'RECU'), 0) AS recus
+    `SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE statut = 'RECU') AS recus
      FROM courriers`
   );
   const c = courriers[0];
@@ -295,7 +295,7 @@ export async function getBoiteTravail(scope) {
         scope,
         ` AND s.code IN ('CLOTURE', 'ARCHIVE')
           AND COALESCE(d.date_cloture, d.date_archivage, d.updated_at)
-              >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`,
+              >= CURRENT_DATE - INTERVAL '30 days'`,
         []
       ),
     ]);

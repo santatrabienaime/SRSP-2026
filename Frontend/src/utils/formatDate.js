@@ -89,7 +89,7 @@ export function maintenantPourChampDateTime() {
 }
 
 /**
- * Convertit une valeur de <input type="datetime-local"> en DATETIME MySQL.
+ * Convertit une valeur de <input type="datetime-local"> en chaîne datetime locale.
  * `new Date()` ne doit pas être utilisé ici : on conserve l'heure saisie,
  * sans conversion de fuseau.
  */

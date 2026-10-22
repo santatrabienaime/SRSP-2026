@@ -389,62 +389,32 @@ depuis *Suivi → Archives*.
 
 ---
 
-## 5. Mises à jour du schéma
+## 5. Mises à jour du schéma PostgreSQL
 
-Les migrations sont **idempotentes** : les relancer plusieurs fois ne casse
-rien. Elles s'appliquent directement sur la base vivante.
+Le schéma de référence est livré dans **`database/srsp_db.sql`**. Il contient
+les 61 tables, les index, les clés étrangères, les fonctions, les triggers, la
+collation `ci`, les données de référence et les comptes de démonstration.
+
+Il n'y a **plus de scripts de migration à rejouer**. Pour faire évoluer le
+schéma :
+
+1. **Sauvegarder** la base (voir [SAUVEGARDE_RESTITUTION.md](SAUVEGARDE_RESTITUTION.md)).
+2. Tester la modification sur une base `srsp_test` restaurée depuis le dump.
+3. Appliquer le changement en SQL PostgreSQL, avec `psql -v ON_ERROR_STOP=1`.
+4. Vérifier les volumes, les contraintes et les parcours critiques.
+5. Mettre à jour `database/srsp_db.sql` avec un nouveau `pg_dump`, puis
+   régénérer la documentation :
 
 ```bash
 cd Backend
-
-# Conformité VISA (statuts, sous-types, champs VISA, pièces, permissions)
-node scripts/migration-visa-conformite.mjs --apply
-
-# Archives enrichies (référence, emplacement, localisation numérique)
-node scripts/migration-archives-enrichies.mjs --apply
-
-# Bordereaux de transmission
-node scripts/migration-bordereaux.mjs --apply
-
-# Trace durable des suppressions
-node scripts/migration-trace-suppressions.mjs --apply
-
-# Demandes de réinitialisation de mot de passe
-node scripts/migration-reinitialisation-mdp.mjs --apply
-
-# Précision à la milliseconde de la date de changement de mot de passe
-node scripts/migration-precision-mdp.mjs --apply
-
-# Statut brouillon
-node scripts/migration-brouillon.mjs --apply
-
-# Types d'opérations Solde et Pensions
-node scripts/migration-types-operations.mjs --apply
-
-# Données d'opération, versionnage des pièces, état « non applicable »
-node scripts/migration-donnees-operations.mjs --apply
-
-# Permissions de contrôle des pièces et des correspondances
-node scripts/migration-permissions-pieces.mjs --apply
-
-# Schémas de données par type d'opération
-node scripts/migration-schemas-operations.mjs --apply
-
-# Module d'immatriculation de la Coordination
-node scripts/migration-immatriculations.mjs --apply
-
-# Signalements de dossiers bloqués (table, permissions, registre)
-node scripts/migration-signalements.mjs --apply
+node scripts/generer-doc-schema.mjs
+node scripts/verifier-encodage.mjs
 ```
 
-> Toutes ces migrations sont **idempotentes** : les relancer ne casse rien
-> et ne duplique aucune ligne. Le contrôle de l'encodage des sources
-> (`node scripts/verifier-encodage.mjs`) est également à lancer après une
-> modification faite avec un outil en ligne de commande : un shell qui relit
-> un fichier avec le mauvais jeu de caractères dégrade les accents en silence,
-> et le code compile quand même.
-
-> Toujours **sauvegarder avant** une migration (voir §5).
+> Le contrôle d'encodage est à lancer après toute modification faite avec un
+> outil en ligne de commande : un shell qui relit un fichier avec le mauvais
+> jeu de caractères dégrade les accents en silence, et le code compile quand
+> même.
 
 Le schéma complet est documenté dans [BASE_DE_DONNEES.md](BASE_DE_DONNEES.md),
 généré à partir de la base vivante.
@@ -455,8 +425,8 @@ généré à partir de la base vivante.
 
 | Contrôle | Fréquence | Comment |
 |---|---|---|
-| Sauvegarde réussie | Quotidienne | *Administration → Sauvegarde*, ou tâche planifiée |
-| **Test de restauration** | **Mensuelle** | Restaurer une sauvegarde sur une base de test et vérifier l'ouverture d'un document |
+| Sauvegarde réussie | Quotidienne | `pg_dump` (voir [SAUVEGARDE_RESTITUTION.md](SAUVEGARDE_RESTITUTION.md)), ou tâche planifiée |
+| **Test de restauration** | **Mensuelle** | Restaurer une sauvegarde dans `srsp_test` et vérifier l'ouverture d'un document |
 | Comptes désactivés | Mensuelle | *Personnel* : vérifier que les partants sont désactivés |
 | Motifs de passe échoués | Hebdomadaire | *Historique* : filtrer sur `CONNEXION_ECHOUEE` |
 | Pièces du référentiel | Trimestrielle | *Référentiel → Types de pièces* : ajuster obligations et périmètres |

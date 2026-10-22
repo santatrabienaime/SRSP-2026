@@ -1,0 +1,3 @@
+# Les dumps PostgreSQL sont conservés en LF : un retour à la ligne CRLF
+# fonctionne, mais le fichier doit rester stable d'une machine à l'autre.
+*.sql text eol=lf

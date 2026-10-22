@@ -107,8 +107,8 @@ export async function findParDossier(dossierId) {
   );
   if (!rows[0]) return null;
   const ligne = rows[0];
-  /* Le champ JSON peut être une chaîne (MySQL le rend ainsi selon le
-     connecteur) : on le normalise en objet. */
+  /* Le champ JSON peut être une chaîne (selon le pilote) : on le normalise
+     en objet. */
   let donnees = ligne.donnees;
   if (typeof donnees === 'string') {
     try { donnees = JSON.parse(donnees); } catch { donnees = null; }
@@ -180,11 +180,11 @@ export async function controler(dossierId, { controleurId, decision, observation
     `INSERT INTO donnees_operation
        (dossier_id, controleur_id, decision_controle, observations_controle, date_controle)
      VALUES (?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       controleur_id = VALUES(controleur_id),
-       decision_controle = VALUES(decision_controle),
-       observations_controle = VALUES(observations_controle),
-       date_controle = VALUES(date_controle)`,
+     ON CONFLICT (dossier_id) DO UPDATE SET
+       controleur_id = EXCLUDED.controleur_id,
+       decision_controle = EXCLUDED.decision_controle,
+       observations_controle = EXCLUDED.observations_controle,
+       date_controle = EXCLUDED.date_controle`,
     [dossierId, controleurId || null, decision || null, observations || null, dateControle || null]
   );
   return findParDossier(dossierId);
@@ -202,10 +202,10 @@ export async function valider(dossierId, { validePar, dateValidation, observatio
   await db.query(
     `INSERT INTO donnees_operation (dossier_id, valide_par, date_validation, observation)
      VALUES (?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       valide_par = VALUES(valide_par),
-       date_validation = VALUES(date_validation),
-       observation = VALUES(observation)`,
+     ON CONFLICT (dossier_id) DO UPDATE SET
+       valide_par = EXCLUDED.valide_par,
+       date_validation = EXCLUDED.date_validation,
+       observation = EXCLUDED.observation`,
     [dossierId, validePar || null, dateValidation || null, observations || null]
   );
   return findParDossier(dossierId);

@@ -101,7 +101,7 @@ export async function cinDejaConnu(cin, exceptId = null) {
   const compact = String(cin).replace(/[\s.-]/g, '').toUpperCase();
   const params = [compact];
   let requete = `SELECT id, nom, prenom FROM immatriculations
-                 WHERE UPPER(REPLACE(REPLACE(IFNULL(cin, ''), ' ', ''), '-', '')) = ?`;
+                 WHERE UPPER(REPLACE(REPLACE(COALESCE(cin, ''), ' ', ''), '-', '')) = ?`;
   if (exceptId) {
     requete += ' AND id <> ?';
     params.push(Number(exceptId));
@@ -232,13 +232,12 @@ export async function updateChangementPaiement(id, data) {
  * numérotation est unique dans toute la plateforme, et ne se rend pas.
  */
 export async function attribuerReference() {
-  await db.query(
+  const resultat = await db.query(
     `INSERT INTO compteurs_numerotation (cle, valeur) VALUES ('IMMATRICULATION', 1)
-     ON DUPLICATE KEY UPDATE valeur = valeur + 1`
+     ON CONFLICT (cle) DO UPDATE SET valeur = compteurs_numerotation.valeur + 1
+     RETURNING valeur`
   );
-  const [compteur] = await db.query(
-    "SELECT valeur FROM compteurs_numerotation WHERE cle = 'IMMATRICULATION'"
-  );
+  const compteur = resultat.rows?.[0];
   return `IMMA-${String(compteur?.valeur || 1).padStart(6, '0')}`;
 }
 
@@ -269,8 +268,8 @@ export async function volumes({ dateDebut, dateFin, division_id } = {}) {
 
   const parDivision = await db.query(
     `SELECT COALESCE(dv.nom, '—') AS division, COUNT(*) AS total,
-            SUM(i.statut = 'ACTIVE') AS actives,
-            SUM(i.statut = 'EN_ATTENTE') AS en_attente
+            COUNT(*) FILTER (WHERE i.statut = 'ACTIVE') AS actives,
+            COUNT(*) FILTER (WHERE i.statut = 'EN_ATTENTE') AS en_attente
      FROM immatriculations i
      LEFT JOIN divisions dv ON dv.id = i.division_id
      ${condition}
@@ -294,7 +293,7 @@ export async function volumes({ dateDebut, dateFin, division_id } = {}) {
   );
 
   const parMois = await db.query(
-    `SELECT DATE_FORMAT(i.created_at, '%Y-%m') AS mois, COUNT(*) AS total
+    `SELECT TO_CHAR(i.created_at, 'YYYY-MM') AS mois, COUNT(*) AS total
      FROM immatriculations i
      ${condition}
      GROUP BY mois

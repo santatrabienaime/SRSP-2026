@@ -41,7 +41,7 @@ export async function createArchive({ dossier_id, archive_par, motif, reference_
   const ref = reference_archivage || await genererReferenceArchivage();
   if (precedente) {
     await db.query(
-      'UPDATE archives SET date_archivage = CURRENT_TIMESTAMP, archive_par = ?, motif = ?, reference_archivage = ?, emplacement_physique = ?, localisation_numerique = ?, restaure = FALSE WHERE id = ?',
+      'UPDATE archives SET date_archivage = CURRENT_TIMESTAMP, archive_par = ?, motif = ?, reference_archivage = ?, emplacement_physique = ?, localisation_numerique = ?, restaure = 0 WHERE id = ?',
       [archive_par || null, motif || null, ref, emplacement_physique || null, localisation_numerique || null, precedente.id]
     );
     return { id: precedente.id, reference_archivage: ref };
@@ -119,7 +119,7 @@ const SELECT_COLONNES = `
  * `filtres` vient du contrôleur : aucune valeur n'est concaténée dans le SQL.
  */
 function conditions(filtres = {}) {
-  const where = ['a.restaure = FALSE'];
+  const where = ['a.restaure = 0'];
   const params = [];
 
   if (filtres.q) {
@@ -144,14 +144,14 @@ function conditions(filtres = {}) {
   if (filtres.annee) {
     // L'année porte sur l'ARCHIVAGE, pas sur la création : c'est ce que
     // cherche l'utilisateur d'une archive.
-    where.push('YEAR(a.date_archivage) = ?');
+    where.push('EXTRACT(YEAR FROM a.date_archivage)::int = ?');
     params.push(Number(filtres.annee));
   }
   if (filtres.date_debut) { where.push('a.date_archivage >= ?'); params.push(filtres.date_debut); }
   if (filtres.date_fin) {
     // Borne haute incluse jusqu'au soir : sinon un dossier archivé le 30 à
     // 10:00 serait exclu par un `date_fin` à 30/09/00:00.
-    where.push('a.date_archivage < DATE_ADD(?, INTERVAL 1 DAY)');
+    where.push('a.date_archivage < (?::timestamp + make_interval(days => 1))');
     params.push(filtres.date_fin);
   }
   if (filtres.agent_id) { where.push('ag.id = ?'); params.push(Number(filtres.agent_id)); }
@@ -163,7 +163,7 @@ function conditions(filtres = {}) {
     /* Le matricule est saisi avec ou sans espaces. On compare sur la version
        compactée des deux côtés, sinon « 222 222 222 » ne trouverait pas un
        dossier enregistré « 222222222 ». */
-    where.push('REPLACE(REPLACE(IFNULL(d.matricule, \'\'), \' \', \'\'), \'-\', \'\') LIKE ?');
+    where.push('REPLACE(REPLACE(COALESCE(d.matricule, \'\'), \' \', \'\'), \'-\', \'\') LIKE ?');
     params.push(`%${String(filtres.matricule).replace(/[\s-]/g, '')}%`);
   }
 
@@ -221,7 +221,7 @@ export async function tousLesDossiers(filtres = {}, { max = 5000 } = {}) {
 /** Une archive par son dossier. */
 export async function parDossierId(dossierId) {
   const rows = await db.query(
-    `SELECT ${SELECT_COLONNES} ${FROM} WHERE a.dossier_id = ? AND a.restaure = FALSE LIMIT 1`,
+    `SELECT ${SELECT_COLONNES} ${FROM} WHERE a.dossier_id = ? AND a.restaure = 0 LIMIT 1`,
     [dossierId]
   );
   return rows[0] || null;
@@ -239,7 +239,7 @@ export async function findById(id) {
  * auditée, et NULLifier puis compléter une trace n'apporterait rien.
  */
 export async function marquerRestauration(archiveId, dossierId, userId, motif) {
-  await db.query('UPDATE archives SET restaure = TRUE WHERE id = ?', [archiveId]);
+  await db.query('UPDATE archives SET restaure = 1 WHERE id = ?', [archiveId]);
   await db.query(
     'INSERT INTO historique_actions (user_id, action, dossier_id, details) VALUES (?, ?, ?, ?)',
     [
@@ -266,7 +266,7 @@ export async function statistiques(filtres = {}) {
   );
 
   const parAnnee = await db.query(
-    `SELECT YEAR(a.date_archivage) AS annee, COUNT(*) AS total ${FROM}
+    `SELECT EXTRACT(YEAR FROM a.date_archivage)::int AS annee, COUNT(*) AS total ${FROM}
      WHERE ${where.join(' AND ')}
      GROUP BY annee ORDER BY annee DESC`,
     params
