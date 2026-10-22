@@ -21,6 +21,7 @@ import { Select } from '../../components/ui/Select.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { formatDateString } from '../../utils/formatDate.js';
+import { TRIS_DOSSIERS } from '../../config/triage.js';
 
 /** Critères vides : sert aussi de « réinitialiser ». */
 const CRITERES_VIDES = {
@@ -51,6 +52,10 @@ export function ArchivesPage() {
   const [stats, setStats] = useState(null);
   const [alertes, setAlertes] = useState([]);
   const [dossiersArchivables, setDossiersArchivables] = useState([]);
+  /* Tri des dossiers prêts à être archivés : c'est une file de traitement,
+     elle se lit donc comme les autres files — par échéance, par ancienneté,
+     ou par statut du circuit. */
+  const [triArchivables, setTriArchivables] = useState('prioritaire');
   const [saves, setSaves] = useState(recherchesSauvegardees.lister());
   const [modal, setModal] = useState(null); // 'sauver' | 'restaurer'
   const [nomSave, setNomSave] = useState('');
@@ -94,12 +99,12 @@ export function ArchivesPage() {
   const chargerArchivables = useCallback(async () => {
     if (!peutArchiver) { setDossiersArchivables([]); return; }
     try {
-      const data = await dossierService.list({ statut: 'CLOTURE', limit: 20 });
+      const data = await dossierService.list({ statut: 'CLOTURE', tri: triArchivables, limit: 20 });
       setDossiersArchivables(Array.isArray(data) ? data : []);
     } catch {
       setDossiersArchivables([]);
     }
-  }, [peutArchiver]);
+  }, [peutArchiver, triArchivables]);
 
   const charger = useCallback(async () => {
     setLoading(true);
@@ -499,7 +504,24 @@ export function ArchivesPage() {
       </Card>
 
       {peutArchiver && dossiersArchivables.length > 0 && (
-        <Card title="Dossiers clôturés prêts à être archivés">
+        <Card
+          title="Dossiers clôturés prêts à être archivés"
+          actions={
+            <div className="w-56">
+              <Select
+                label="Trier par"
+                value={triArchivables}
+                onChange={(e) => setTriArchivables(e.target.value)}
+              >
+                {TRIS_DOSSIERS.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          }
+        >
           <ul className="divide-y divide-slate-100">
             {dossiersArchivables.map((d) => (
               <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">

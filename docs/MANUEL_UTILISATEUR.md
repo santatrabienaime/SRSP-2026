@@ -521,6 +521,43 @@ Incomplets, **Mes brouillons**) sont des filtres serveur : le compteur affiché
 correspond exactement au contenu de la liste, et le **nombre de résultats**
 est annoncé au-dessus du tableau.
 
+### 7.1 Le triage : trier et regrouper par statut
+
+Le triage sert à retrouver vite le dossier à traiter, et à voir d'un coup d'œil
+où en est le service. Il est **ouvert à tous les profils** : chaque agent
+triage sa file, chaque chef de division triage sa division, chaque chef de
+service triage le service.
+
+**Trier par** — un sélecteur au-dessus de la liste. Le tri ne change ni le
+contenu de la liste, ni les droits, ni l'état d'un dossier : c'est un ordre
+de lecture.
+
+| Tri | Ce qu'il met en tête |
+|---|---|
+| À traiter en premier | L'urgence, puis l'échéance, puis l'ancienneté |
+| **Statut du circuit** | Les dossiers selon l'ordre du workflow : reçu → enregistré → orienté → affecté → en traitement → en attente de complément → soumis à vérification → correction demandée → validé → signé → clôturé → archivé |
+| Statut du circuit (inverse) | Le même ordre, en remontant le circuit |
+| Échéance la plus proche | Les dossiers dont la date limite approche |
+| Priorité | Les plus urgents d'abord |
+| Plus anciens / plus récents d'abord | L'ancienneté de la réception |
+| Numéro de dossier | L'ordre des numéros |
+| Type de dossier | Par nature de demande (Visa, Solde, Pension, Secours) |
+| Division | Par division |
+| Agent responsable | Par agent |
+| Demandeur | Par ordre alphabétique du nom |
+| **Dossiers signalés** | Les dossiers bloqués qui attendent une décision de la hiérarchie |
+
+**Grouper par statut** — un bouton à côté du tri. La liste est alors
+découpée en **sections, une par statut du circuit**, et chaque section affiche
+son effectif : c'est la vue qui répond à « où en est le service ? ». Une
+section de plus de dix dossiers est repliée ; un clic la déploie.
+
+Les deux se combinent : on peut grouper par statut et, à l'intérieur de
+chaque section, trier par échéance ou par priorité.
+
+Le même tri est proposé dans la **boîte de travail** (il ordonne les quatre
+files) et dans la liste des **dossiers prêts à être archivés**.
+
 ---
 
 ## 8. Notifications et commentaires

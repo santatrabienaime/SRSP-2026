@@ -55,7 +55,9 @@ export const dashboardService = {
    * brute : chaque file porte son `total` et ses `dossiers`, et l'écran se
    * charge de la présenter — aucune donnée n'est recalculée côté client.
    */
-  boiteTravail: () => apiClient.get('/dashboard/boite-travail').then((r) => r.data || {}),
+  boiteTravail: (tri) =>
+    apiClient.get('/dashboard/boite-travail', { params: tri ? { tri } : undefined })
+      .then((r) => r.data || {}),
   byDivision: () => apiClient.get('/dashboard/by-division').then((r) => r.data || []),
   byStatus: () => apiClient.get('/dashboard/by-status').then((r) => r.data || []),
   evolution: () => apiClient.get('/dashboard/evolution').then((r) => r.data || []),

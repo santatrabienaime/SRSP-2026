@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, UserCheck, User, Filter, X } from 'lucide-react';
+import { Search, Plus, UserCheck, User, Filter, X, Layers } from 'lucide-react';
 import { dossierService } from '../../services/dossierService.js';
 import { divisionService } from '../../services/divisionService.js';
 import { agentService } from '../../services/agentService.js';
@@ -20,6 +20,7 @@ import { EmptyState } from '../ui/EmptyState.jsx';
 import { formatDateString } from '../../utils/formatDate.js';
 import { formatStatus, statusBadgeClass, prioriteBadgeClass } from '../../utils/formatStatus.js';
 import { STATUTS, STATUT_LABELS, TYPES_DOSSIERS } from '../../config/constants.js';
+import { TRIS_DOSSIERS, grouperParStatut } from '../../config/triage.js';
 
 const STATUT_FILTERS = [
   { value: '', label: 'Tous les statuts' },
@@ -31,6 +32,13 @@ const STATUT_FILTERS = [
 
 /** Statuts pour lesquels une échéance dépassée n'a plus de sens. */
 const STATUTS_CLOS = [STATUTS.CLOTURE, STATUTS.ARCHIVE];
+
+/**
+ * Nombre de dossiers montrés par section quand la liste est groupée par
+ * statut. Au-delà, la section est repliée : un statut à deux cents dossiers
+ * écraserait tous les autres, et l'écran perdrait son intérêt.
+ */
+const TAILLE_GROUPE = 10;
 
 /**
  * Cellule d'échéance : affiche la date limite et signale le dépassement.
@@ -107,6 +115,15 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
      traité aujourd'hui — urgence, échéance, ancienneté. Un agent qui arrive le
      matin voit ainsi d'abord ce qui l'attend, au lieu du plus récemment reçu. */
   const [tri, setTri] = useState(agentPersonnel ? 'echeance' : 'prioritaire');
+  /* Regroupement par statut : la liste est alors découpée en sections, une
+     par statut du circuit, avec l'effectif de chacune. C'est la vue qui
+     répond à « où en est le service ? » ; la liste plate répond à « quel
+     dossier dois-je traiter ? ». */
+  const [regrouper, setRegrouper] = useState(false);
+  /* Un groupe trop long est replié : on montre les premiers dossiers et on
+     laisse le reste à la demande. Sans cela, un statut à deux cents dossiers
+     écrase tous les autres. */
+  const [groupesDeployes, setGroupesDeployes] = useState({});
   const debouncedSearch = useDebounce(search, 350);
   const { animationClass } = useAnimation({ delay: 100, type: 'slide-in-up' });
 
@@ -173,6 +190,9 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
   }, [abonner, load]);
 
   const pagination = usePagination(data, 10);
+  /* Les sections de la vue par statut : une par statut du circuit, dans
+     l'ordre du circuit. */
+  const groupes = useMemo(() => grouperParStatut(data), [data]);
   const canCreate = hasPermission('create_dossier');
 
   const columns = [
@@ -315,14 +335,26 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
             change rien au contenu de la liste. */}
         <div className="w-full sm:w-56">
           <Select label="Trier par" value={tri} onChange={(e) => setTri(e.target.value)}>
-            <option value="prioritaire">À traiter en premier</option>
-            <option value="echeance">Échéance la plus proche</option>
-            <option value="ancien">Plus anciens d'abord</option>
-            <option value="recent">Plus récents d'abord</option>
-            <option value="numero">Numéro de dossier</option>
-            <option value="division">Division</option>
-            <option value="agent">Agent responsable</option>
+            {TRIS_DOSSIERS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
           </Select>
+        </div>
+        {/* Regroupement par statut : la liste est découpée en sections, une par
+            statut du circuit, avec l'effectif de chacune. */}
+        <div className="w-full sm:w-auto">
+          <Button
+            variant={regrouper ? 'primary' : 'outline'}
+            onClick={() => setRegrouper((v) => !v)}
+            title="Afficher les dossiers section par statut"
+            aria-pressed={regrouper}
+            className="w-full sm:w-auto"
+          >
+            <Layers className="h-4 w-4" />
+            Grouper par statut
+          </Button>
         </div>
         {showTypeFilter ? (
           <div className="w-full sm:w-48">
@@ -468,11 +500,56 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
           {baseFilters.statut || baseFilters.brouillon || baseFilters.incomplets
             ? ' dans cette sélection'
             : ''}
+          {regrouper && groupes.length > 0 && (
+            <>
+              , répartis sur {groupes.length} statut{groupes.length > 1 ? 's' : ''}
+            </>
+          )}
           .
         </p>
       )}
 
-      <Table columns={columns} data={pagination.currentItems} loading={loading} />
+      {regrouper ? (
+        /* Vue par statut : une section par statut du circuit, dans l'ordre du
+           circuit. Chaque section porte son effectif — c'est ce qui permet de
+           repérer la surcharge d'un statut. */
+        <div className="space-y-5">
+          {groupes.map((groupe) => {
+            const deploye = Boolean(groupesDeployes[groupe.code]);
+            const visibles = deploye ? groupe.dossiers : groupe.dossiers.slice(0, TAILLE_GROUPE);
+            const reste = groupe.dossiers.length - visibles.length;
+            return (
+              <section key={groupe.code} aria-label={`Dossiers ${groupe.label}`}>
+                <div className="mb-2 flex items-center gap-2">
+                  <Badge className={statusBadgeClass(groupe.code)}>{groupe.label}</Badge>
+                  <span className="text-sm text-slate-500">
+                    {groupe.total} dossier{groupe.total > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <Table columns={columns} data={visibles} loading={loading} />
+                {reste > 0 && (
+                  <div className="mt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setGroupesDeployes((g) => ({ ...g, [groupe.code]: true }))
+                      }
+                    >
+                      Afficher les {reste} autres dossier{reste > 1 ? 's' : ''} « {groupe.label} »
+                    </Button>
+                  </div>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <>
+          <Table columns={columns} data={pagination.currentItems} loading={loading} />
+          <Pagination pagination={pagination} className="justify-end" />
+        </>
+      )}
 
       {!loading && data.length === 0 && (
         <EmptyState
@@ -489,8 +566,6 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
           }
         />
       )}
-
-      <Pagination pagination={pagination} className="justify-end" />
     </div>
   );
 }

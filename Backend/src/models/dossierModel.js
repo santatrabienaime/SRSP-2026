@@ -185,6 +185,28 @@ export async function findDossiers(filters = {}) {
     echeance: '(CASE WHEN d.date_limite IS NULL THEN 1 ELSE 0 END) ASC, d.date_limite ASC, d.id ASC',
     division: 'dv.nom ASC, p.niveau DESC, d.id ASC',
     agent: '(a.nom IS NULL) ASC, a.nom ASC, p.niveau DESC, d.id ASC',
+    /* Classer par statut : l'ordre du circuit (statuts_dossiers.ordre), pas
+       l'ordre alphabétique des libellés. Un agent qui trie par statut voit
+       d'abord ce qui doit être repris, puis ce qui attend une décision, puis
+       ce qui est terminé. */
+    statut: 's.ordre ASC, p.niveau DESC, d.date_reception ASC, d.id ASC',
+    statut_desc: 's.ordre DESC, p.niveau DESC, d.date_reception ASC, d.id ASC',
+    /* Classer par type de dossier : la file d'une division se lit alors par
+       nature de demande. */
+    type: 't.libelle ASC, s.ordre ASC, d.id ASC',
+    /* Classer par priorité : la file se lit du plus urgent au moins urgent. */
+    priorite: 'p.niveau DESC, s.ordre ASC, d.date_reception ASC, d.id ASC',
+    /* Classer par demandeur : utile au service de la secrétaire, qui saisit
+       beaucoup de demandes pour une même personne. */
+    demandeur: 'd.demandeur_nom ASC, d.demandeur_prenom ASC, d.id ASC',
+    /* Les dossiers signalés d'abord : ils attendent une décision de la
+       hiérarchie et n'avancent pas tout seuls. Un signalement traité
+       (résolu ou rejeté) ne les retarde plus. */
+    signalement:
+      `(EXISTS (SELECT 1 FROM signalements_dossier sg
+                 WHERE sg.dossier_id = d.id
+                   AND sg.statut IN ('OUVERT', 'EN_COURS'))) DESC, ` +
+      'p.niveau DESC, s.ordre ASC, d.date_reception ASC, d.id ASC',
   };
   if (filters.recus_depuis_jours) {
     const jours = Number(filters.recus_depuis_jours);

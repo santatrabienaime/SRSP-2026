@@ -8,11 +8,13 @@ import { useTempsReel } from '../../hooks/useTempsReel.js';
 import { Card } from '../../components/ui/Card.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Button } from '../../components/ui/Button.jsx';
+import { Select } from '../../components/ui/Select.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
 import { STATUT_LABELS } from '../../config/constants.js';
+import { TRIS_BOITE } from '../../config/triage.js';
 
 /**
  * Boîte de travail : l'écran qui répond à la question « qu'est-ce qui m'attend,
@@ -89,6 +91,11 @@ export function BoiteTravailPage() {
   const [boite, setBoite] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  /* Tri des files. C'est un ordre d'affichage, comme dans la liste des
+     dossiers : il ne change ni le contenu des files, ni les droits. Il est
+     calculé par le serveur, pour que les dossiers montrés soient ceux qu'on
+     veut voir — et non ceux qui se trouvent en tête d'un autre ordre. */
+  const [tri, setTri] = useState('prioritaire');
 
   const charger = useCallback(async (options = {}) => {
     /* Rechargement à chaud : la boîte reste affichée pendant la recharge,
@@ -99,14 +106,14 @@ export function BoiteTravailPage() {
       setError(null);
     }
     try {
-      const data = await dashboardService.boiteTravail();
+      const data = await dashboardService.boiteTravail(tri);
       setBoite(data || {});
     } catch (e) {
       if (!silencieux) setError(e);
     } finally {
       if (!silencieux) setLoading(false);
     }
-  }, []);
+  }, [tri]);
 
   useEffect(() => { Promise.resolve().then(charger); }, [charger]);
 
@@ -132,9 +139,20 @@ export function BoiteTravailPage() {
               : 'Ce qui attend une action, et ce qui en attend une autre.'}
           </p>
         </div>
-        <Button variant="secondary" size="sm" onClick={charger}>
-          <RefreshCw className="h-4 w-4" /> Actualiser
-        </Button>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="w-full sm:w-56">
+            <Select label="Trier par" value={tri} onChange={(e) => setTri(e.target.value)}>
+              {TRIS_BOITE.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => charger()}>
+            <RefreshCw className="h-4 w-4" /> Actualiser
+          </Button>
+        </div>
       </div>
 
       {error && (

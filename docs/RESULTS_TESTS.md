@@ -25,15 +25,16 @@ API sur `http://localhost:5000`.
 | Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **12 / 12** — 0 échec |
 | Noms d'onglets des exports Excel | `node Backend/scripts/test-e2e-exports-excel.mjs` | **15 / 15** — 0 échec |
 | **Balayage de toute l'API, avec tous les profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur serveur** |
+| **Triage des dossiers : tris et regroupement par statut** | `node Backend/scripts/test-e2e-tri-dossiers.mjs` | **24 / 24** — 0 échec |
 | **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **222 routes — 0 orpheline, 0 appel cassé** |
-| Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **104 / 104** — 12 fichiers, 0 échec |
+| Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **122 / 122** — 14 fichiers, 0 échec |
 | Construction de production du frontend | `npm run build` (Frontend) | **OK** — `dist/` généré |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** — 0 erreur |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 347 fichiers, 0 défaut |
-| **Restauration PostgreSQL** | import de `database/srsp_db.sql` dans une base `srsp_test` | **OK** — 61 tables, 10 969 lignes |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 351 fichiers, 0 défaut |
+| **Restauration PostgreSQL** | import de `database/srsp_db.sql` dans une base `srsp_test` | **OK** — 61 tables, 1 474 lignes |
 
-**Total backend : 465 contrôles, 465 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
-**Total frontend : 104 tests, 104 réussis, 0 échec.**
+**Total backend : 489 contrôles, 489 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
+**Total frontend : 122 tests, 122 réussis, 0 échec.**
 
 ---
 
@@ -384,6 +385,36 @@ nomme la difficulté, il ne remplace pas le circuit.
 
 ---
 
+## 3 bis. Le triage des dossiers — tris et regroupement par statut
+
+```bash
+cd Backend
+node scripts/test-e2e-tri-dossiers.mjs
+```
+
+Le triage est ce qui fait gagner du temps au quotidien : un tri pour trouver
+le dossier à traiter, un regroupement pour voir où en est le service. Ce
+contrôle vérifie, sur l'API réelle, que chaque tri classe réellement les
+dossiers dans l'ordre annoncé — et qu'aucun tri ne fait perdre de dossier.
+
+| Section | Points de contrôle | Résultat |
+|---|---|---|
+| 1. Référence | La liste de référence répond, elle n'est pas vide | 2 / 2 |
+| 2. Statut | `tri=statut` suit l'ordre du circuit, `tri=statut_desc` l'ordre inverse, aucun dossier perdu | 6 / 6 |
+| 3. Priorité, type, demandeur, ancienneté | Les priorités décroissent, les types et les noms sont classés, les réceptions croissent | 8 / 8 |
+| 4. Signalements | `tri=signalement` place les dossiers signalés non traités en tête | 2 / 2 |
+| 5. Robustesse | Un tri inconnu ne casse rien : repli sur le tri par défaut | 2 / 2 |
+| 6. Boîte de travail | La boîte accepte le même tri, les files sont ordonnées, les compteurs restent présents | 4 / 4 |
+
+**Résultat : 24 vérifications, 24 réussies, 0 échec.**
+
+> Sur la base de référence — qui ne comporte aucun signalement ouvert — le
+> contrôle « les dossiers signalés viennent d'abord » n'a pas d'objet : il est
+> annoncé comme tel, et non compté comme une réussite. Il a été vérifié à
+> 24 / 24 sur une base de test où un signalement ouvert existait.
+
+---
+
 ## 4. Tests du frontend
 
 ```bash
@@ -405,8 +436,10 @@ npm test
 | `tempsReel.test.jsx` | Contexte temps réel, connexion et événements |
 | `reinitialisation.test.jsx` | Réinitialisation de mot de passe |
 | `useInputControl.test.jsx` | Contrôle de saisie et règles de validation |
+| `triage.test.js` | Tris proposés, ordre du circuit, regroupement par statut |
+| `DossierList.test.jsx` | Sections par statut, section repliée, tri transmis au serveur |
 
-**Résultat : 12 fichiers, 104 tests, 104 réussis, 0 échec.**
+**Résultat : 14 fichiers, 122 tests, 122 réussis, 0 échec.**
 
 ---
 

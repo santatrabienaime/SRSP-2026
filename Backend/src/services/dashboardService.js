@@ -247,11 +247,12 @@ export async function getRessources() {
  */
 const SELECT_BOITE = `
   SELECT d.id, d.numero, d.reference_visa, d.objet, d.demandeur,
-         d.date_reception, d.date_heure_reception,
+         d.date_reception, d.date_heure_reception, d.date_limite,
          DATEDIFF(CURDATE(), DATE(d.date_reception)) AS age_jours,
          t.code AS type_code, t.libelle AS type_libelle,
-         s.code AS statut_code, s.libelle AS statut_libelle,
+         s.code AS statut_code, s.libelle AS statut_libelle, s.ordre AS statut_ordre,
          dv.nom AS division_nom,
+         p.libelle AS priorite_libelle, p.niveau AS priorite_niveau,
          a.nom AS agent_nom, a.prenom AS agent_prenom
   FROM dossiers d
   JOIN types_dossiers t ON t.id = d.type_id
@@ -261,12 +262,38 @@ const SELECT_BOITE = `
   LEFT JOIN agents a ON a.id = d.agent_responsable_id
 `;
 
-async function fileDossiers(scope, condition, params, limit = 8) {
+/**
+ * Tris de la boîte de travail.
+ *
+ * Même liste que la liste des dossiers : un ordre d'affichage, jamais une
+ * règle. La colonne est choisie par liste blanche, jamais concaténée depuis
+ * l'extérieur. L'ordre par défaut reste « à traiter en premier ».
+ */
+const TRIS_BOITE = {
+  prioritaire:
+    'p.niveau DESC, ' +
+    '(CASE WHEN d.date_limite IS NULL THEN 1 ELSE 0 END) ASC, ' +
+    'd.date_limite ASC, d.date_reception ASC, d.id ASC',
+  statut: 's.ordre ASC, p.niveau DESC, d.date_reception ASC, d.id ASC',
+  statut_desc: 's.ordre DESC, p.niveau DESC, d.date_reception ASC, d.id ASC',
+  echeance:
+    '(CASE WHEN d.date_limite IS NULL THEN 1 ELSE 0 END) ASC, d.date_limite ASC, d.id ASC',
+  priorite: 'p.niveau DESC, s.ordre ASC, d.date_reception ASC, d.id ASC',
+  ancien: 'd.date_reception ASC, d.id ASC',
+  recent: 'd.date_reception DESC, d.id DESC',
+  numero: 'd.numero ASC',
+  type: 't.libelle ASC, s.ordre ASC, d.id ASC',
+  division: 'dv.nom ASC, p.niveau DESC, d.id ASC',
+  agent: '(a.nom IS NULL) ASC, a.nom ASC, p.niveau DESC, d.id ASC',
+  demandeur: 'd.demandeur ASC, d.id ASC',
+};
+
+async function fileDossiers(scope, condition, params, limit = 8, tri = 'prioritaire') {
   const f = await filterFor(scope);
   const dossiers = await db.query(
     `${SELECT_BOITE}
      WHERE 1=1${f.where}${condition}
-     ORDER BY p.niveau DESC, d.date_reception ASC, d.id ASC
+     ORDER BY ${TRIS_BOITE[tri] || TRIS_BOITE.prioritaire}
      LIMIT ?`,
     [...f.params, ...params, Number(limit)]
   );
@@ -279,24 +306,29 @@ async function fileDossiers(scope, condition, params, limit = 8) {
   return { total: Number(total.total), dossiers };
 }
 
-export async function getBoiteTravail(scope) {
+export async function getBoiteTravail(scope, tri = 'prioritaire') {
   const aTraiter = conditionATraiter(scope);
+  const ordre = TRIS_BOITE[tri] ? tri : 'prioritaire';
 
   const [aTraiterParMoi, enAttenteValidation, incomplets, cloturesRecents] =
     await Promise.all([
-      fileDossiers(scope, aTraiter.where, aTraiter.params),
-      fileDossiers(scope, ` AND s.code = 'SOUMIS_A_VERIFICATION'`, []),
+      fileDossiers(scope, aTraiter.where, aTraiter.params, 8, ordre),
+      fileDossiers(scope, ` AND s.code = 'SOUMIS_A_VERIFICATION'`, [], 8, ordre),
       fileDossiers(
         scope,
         ` AND s.code NOT IN ('CLOTURE', 'ARCHIVE') AND ${CONDITION_INCOMPLET}`,
-        []
+        [],
+        8,
+        ordre
       ),
       fileDossiers(
         scope,
         ` AND s.code IN ('CLOTURE', 'ARCHIVE')
           AND COALESCE(d.date_cloture, d.date_archivage, d.updated_at)
               >= CURRENT_DATE - INTERVAL '30 days'`,
-        []
+        [],
+        8,
+        ordre
       ),
     ]);
 

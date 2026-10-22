@@ -104,6 +104,10 @@ numérotation automatique, historique complet, notifications et rapports.
 - **Fin du cycle Secours** : l'archivage de la copie signée, dernier acte du mandatement.
 - **Rapports par division** : opérations d'une division, opérations par type, suivi des dossiers
   Secours — en PDF et Excel, paramétrés par division et période.
+- **Triage des dossiers, ouvert à tous les profils** : un tri complet — par statut du circuit,
+  priorité, type, demandeur, échéance, ancienneté, dossiers signalés — et un **regroupement par
+  statut** qui découpe la liste en sections avec leur effectif. Chaque agent trie sa file, chaque
+  chef de division trie sa division, chaque chef de service trie le service.
 
 ## 🚀 Démarrage rapide
 
@@ -230,15 +234,16 @@ SRSP-2026/
 | Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **12 / 12** — 0 échec |
 | Noms d'onglets des exports Excel | `node Backend/scripts/test-e2e-exports-excel.mjs` | **15 / 15** — 0 échec |
 | **Balayage de toute l'API, tous profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur** |
+| **Triage des dossiers : tris et regroupement par statut** | `node Backend/scripts/test-e2e-tri-dossiers.mjs` | **24 / 24** — 0 échec |
 | **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **222 routes — 0 orpheline, 0 appel cassé** |
-| Tests du frontend | `cd Frontend && npm test` | **104 / 104** — 12 fichiers, 0 échec |
+| Tests du frontend | `cd Frontend && npm test` | **122 / 122** — 14 fichiers, 0 échec |
 | Construction de production | `cd Frontend && npm run build` | **OK** |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 347 fichiers, 0 défaut |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 351 fichiers, 0 défaut |
 | Restauration PostgreSQL | import de `database/srsp_db.sql` dans une base de test | **OK** — 61 tables, 1 474 lignes |
 
-**Total backend : 465 contrôles, 465 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
-**Total frontend : 104 tests, 104 réussis, 0 échec.**
+**Total backend : 489 contrôles, 489 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
+**Total frontend : 122 tests, 122 réussis, 0 échec.**
 
 Le détail des contrôles, les anomalies corrigées et les limites de la campagne
 figurent dans [docs/RESULTS_TESTS.md](docs/RESULTS_TESTS.md).

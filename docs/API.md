@@ -442,7 +442,21 @@ un agent ne voit que ses dossiers, un chef de division que ceux de sa division.
 | `echeance` | string | `depassee` pour les échéances dépassées |
 | `incomplets` | 1 | Dossiers dont une pièce obligatoire de dépouillement n'est pas « présente » |
 | `priorite_haute` | 1 | Priorité haute ou urgente |
-| `tri` | string | `prioritaire`, `echeance`, `ancien`, `recent`, `numero`, `division`, `agent` |
+| `tri` | string | Ordre d'affichage : `prioritaire`, `statut`, `statut_desc`, `echeance`, `priorite`, `ancien`, `recent`, `numero`, `numero_desc`, `type`, `division`, `agent`, `demandeur`, `signalement`. Valeur inconnue : repli sur `prioritaire`. |
+
+> **`tri` et le triage.** Un tri ne change ni le contenu de la liste, ni les
+> droits, ni l'état d'un dossier : c'est un ordre de lecture. `statut` et
+> `statut_desc` classent les dossiers suivant l'**ordre du circuit**
+> (`statuts_dossiers.ordre`), pas l'ordre alphabétique des libellés :
+> `RECU → ENREGISTRE → ORIENTE → AFFECTE → EN_TRAITEMENT →
+> EN_ATTENTE_COMPLEMENT → SOUMIS_A_VERIFICATION → CORRECTION_DEMANDEE →
+> VALIDE → SIGNE → CLOTURE → ARCHIVE`. `signalement` place en tête les
+> dossiers porteurs d'un signalement **non traité** (`OUVERT`, `EN_COURS`) :
+> ils attendent une décision et n'avancent pas seuls.
+>
+> Le regroupement par statut, lui, est fait par l'interface : la liste
+> complète est découpée en sections, une par statut du circuit, avec
+> l'effectif de chacune.
 
 Chaque dossier : `{ id, numero, reference_visa, type_id, type_code, type_libelle, sous_type_id,
 sous_type_libelle, type_acte, annee_reference, verificateur_id, verificateur_nom, date_heure_reception,
@@ -783,6 +797,10 @@ d'attente par rôle, restreints au périmètre de l'utilisateur.
 ### `GET /dashboard/boite-travail`
 La boîte de travail :
 
+| Query param | Type | Description |
+|---|---|---|
+| `tri` | string | Ordre des dossiers **dans chaque file** : `prioritaire`, `statut`, `echeance`, `priorite`, `ancien`, `recent`, `numero`, `type`, `division`, `agent`, `demandeur`. Valeur inconnue : repli sur `prioritaire`. |
+
 ```json
 {
   "a_traiter_par_moi":   { "total": 4, "dossiers": [ … ] },
@@ -794,6 +812,10 @@ La boîte de travail :
   "perimetre":           { "type": "AGENT", "libelle": "…", "role": "VERIFICATEUR_VISA" }
 }
 ```
+
+> Le tri porte sur l'aperçu de chaque file (huit dossiers au plus) : il est
+> calculé **par le serveur**, pour que les dossiers montrés soient ceux qu'on
+> veut voir — et non ceux qui se trouvent en tête d'un autre ordre.
 
 ### `GET /dashboard/by-division`
 Répartition des dossiers par division.

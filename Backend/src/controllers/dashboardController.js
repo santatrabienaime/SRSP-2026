@@ -63,7 +63,7 @@ export async function boiteTravail(req, res, next) {
   try {
     const scope = await scopeService.getScope(req.user.id);
     res.json({
-      ...(await dashboardService.getBoiteTravail(scope)),
+      ...(await dashboardService.getBoiteTravail(scope, req.query.tri)),
       perimetre: {
         type: scope.agentScoped ? 'AGENT' : scope.divisionScoped ? 'DIVISION' : 'GLOBAL',
         libelle: scopeService.libellePerimetre(scope),

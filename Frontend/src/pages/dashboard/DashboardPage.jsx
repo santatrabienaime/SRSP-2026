@@ -149,7 +149,11 @@ export function DashboardPage() {
         dashboardService.byStatus(),
         dashboardService.byDivision(),
         dashboardService.evolution(),
-        dossierService.list({ limit: 6 }),
+        /* Les six derniers dossiers reçus : le tri est demandé explicitement,
+           sinon la liste prendrait l'ordre « à traiter en premier » et le
+           panneau ne montrerait pas les derniers dossiers, mais les plus
+           urgents. */
+        dossierService.list({ limit: 6, tri: 'recent' }),
         dashboardService.ressources(),
         dashboardService.boiteTravail(),
       ]);
