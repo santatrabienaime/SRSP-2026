@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, Clock, Archive, User, FolderKanban, FileEdit } from 'lucide-react';
+import {
+  Inbox, Loader2, CheckCircle2, Layers, AlertTriangle, Clock, Archive, User,
+  FolderKanban, FileEdit, Stamp, Wallet, PiggyBank, HandCoins,
+} from 'lucide-react';
 import { DossierList } from '../../components/dossier/DossierList.jsx';
 import { dashboardService } from '../../services/dashboardService.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -82,15 +85,73 @@ const GROUPES = [
   },
 ];
 
+/**
+ * Onglets par type de dossier — la vue du secrétariat.
+ *
+ * Le secrétariat instruit les quatre types de dossier : il enregistre, oriente
+ * et suit des demandes de visa, de solde, de pension et de secours. Ce que
+ * ces quatre natures ont en commun n'est pas leur avancement, mais leur
+ * nature : les onglets sont donc les types, et non l'avancement du traitement.
+ *
+ * Le compteur de chaque onglet est celui du serveur (la répartition par type
+ * du tableau de bord) : il annonce exactement ce que la liste va montrer.
+ */
+const ONGLETS_TYPES = [
+  {
+    code: 'VISA', label: 'Visas', icon: Stamp,
+    actif: 'border-sky-600 bg-sky-600 shadow-[0_0_16px_rgba(2,132,199,0.35)]',
+    hint: 'Demandes de visa',
+  },
+  {
+    code: 'SOLDE', label: 'Soldes', icon: Wallet,
+    actif: 'border-emerald-600 bg-emerald-600 shadow-[0_0_16px_rgba(16,185,129,0.35)]',
+    hint: 'Mandatements et avances',
+  },
+  {
+    code: 'PENSION', label: 'Pensions', icon: PiggyBank,
+    actif: 'border-violet-600 bg-violet-600 shadow-[0_0_16px_rgba(124,58,237,0.35)]',
+    hint: 'Liquidations de pension',
+  },
+  {
+    code: 'SECOURS', label: 'Secours', icon: HandCoins,
+    actif: 'border-amber-600 bg-amber-600 shadow-[0_0_16px_rgba(245,158,11,0.35)]',
+    hint: 'Secours de décès',
+  },
+];
+
+/**
+ * Raccourcis du secrétariat, en complément des onglets par type.
+ *
+ * Un onglet par type ne remplace pas les raccourcis utiles : les urgents,
+ * les incomplets et les saisies en cours restent accessibles en un clic. Ils
+ * sont complémentaires du type choisi, jamais concurrents : « Secours » et
+ * « Urgents » ensemble veut dire les dossiers Secours urgents.
+ */
+const RACCOURCIS = [
+  { code: 'NOUVEAUX', label: 'Nouveaux', icon: Inbox, filters: { statut: 'RECU,ENREGISTRE' } },
+  { code: 'URGENTS', label: 'Urgents', icon: AlertTriangle, filters: { priorite_haute: 1 } },
+  { code: 'INCOMPLETS', label: 'Incomplets', icon: AlertTriangle, filters: { incomplets: 1 } },
+  { code: 'BROUILLONS', label: 'Mes brouillons', icon: FileEdit, filters: { brouillon: 1 } },
+];
+
 export function DossierListPage({ initialGroupe = 'NOUVEAUX' }) {
   const { user, hasPermission } = useAuth();
   const [groupe, setGroupe] = useState(initialGroupe);
+  const [typeActif, setTypeActif] = useState('');
+  const [raccourci, setRaccourci] = useState(
+    initialGroupe === 'INCOMPLETS' ? 'INCOMPLETS' : ''
+  );
   const [compteurs, setCompteurs] = useState(null);
   const [chargement, setChargement] = useState(true);
 
   const roleNom = user?.role_nom || '';
   const global = ROLES_GLOBAUX.includes(roleNom);
   const typeFiltre = !global && user?.type_code ? user.type_code : null;
+
+  /* Le secrétariat travaille sur les quatre types de dossier : ses onglets
+     sont les types. Les autres profils gardent les onglets d'avancement, qui
+     répondent à « qu'est-ce qui m'attend ? ». */
+  const estSecretaire = roleNom === 'SECRETAIRE';
 
   // Détecte si l'utilisateur est un agent restreint à ses propres dossiers
   const agentPersonnel = hasPermission('view_assigned_dossiers') && !hasPermission('view_all_dossiers');
@@ -112,22 +173,44 @@ export function DossierListPage({ initialGroupe = 'NOUVEAUX' }) {
   const compte = (g) =>
     compteurs && typeof g.compte === 'function' ? g.compte(compteurs) : null;
 
-  const groupeActif = GROUPES.find((g) => g.code === groupe);
-  const baseFilters = {
-    ...(typeFiltre ? { type: typeFiltre } : {}),
-    ...(groupeActif?.filters || {}),
+  /* Le nombre de dossiers d'un type : celui de la répartition par type du
+     tableau de bord, calculée par le serveur sur le même périmètre. */
+  const compteType = (code) => {
+    const ligne = (compteurs?.par_type || []).find((t) => t.type_code === code);
+    return ligne ? Number(ligne.total) : null;
   };
+
+  const groupeActif = GROUPES.find((g) => g.code === groupe);
+  const raccourciActif = RACCOURCIS.find((r) => r.code === raccourci);
+
+  const baseFilters = estSecretaire
+    ? {
+      ...(typeActif ? { type: typeActif } : {}),
+      ...(raccourciActif?.filters || {}),
+    }
+    : {
+      ...(typeFiltre ? { type: typeFiltre } : {}),
+      ...(groupeActif?.filters || {}),
+    };
+
+  /* La liste est rechargée à chaque changement d'onglet : la clé force le
+     remontage du composant, pour que les filtres ne se cumulent pas. */
+  const cleListe = estSecretaire
+    ? `secretariat-${typeActif || 'tous'}-${raccourci || 'aucun'}`
+    : `${typeFiltre || 'all'}-${groupe}`;
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Dossiers</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          {agentPersonnel
-            ? 'Vos dossiers personnels — vous ne voyez que ceux dont vous êtes responsable.'
-            : typeFiltre
-              ? 'Dossiers de votre division, répartis par avancement.'
-              : 'Répartition par avancement du traitement.'}
+          {estSecretaire
+            ? 'Dossiers du secrétariat, par type de dossier.'
+            : agentPersonnel
+              ? 'Vos dossiers personnels — vous ne voyez que ceux dont vous êtes responsable.'
+              : typeFiltre
+                ? 'Dossiers de votre division, répartis par avancement.'
+                : 'Répartition par avancement du traitement.'}
         </p>
       </div>
 
@@ -139,61 +222,155 @@ export function DossierListPage({ initialGroupe = 'NOUVEAUX' }) {
         </div>
       )}
 
-      {/* Séparation des dossiers : un ensemble affiché à la fois. */}
-      <div className="flex flex-wrap gap-2">
-        {GROUPES.filter((g) => !g.roles || g.roles.includes(roleNom)).map((g) => {
-          const Icon = g.icon;
-          const actif = groupe === g.code;
-          const n = compte(g);
-          return (
-            <button
-              key={g.code}
-              type="button"
-              onClick={() => setGroupe(g.code)}
-              className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none ${actif
-                ? `text-white ${g.actif}`
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700'}`}
-            >
-              <Icon className={`h-4 w-4 ${actif ? 'text-white' : ''}`} />
-              <span className="flex flex-col items-start leading-tight">
-                {g.label}
-                {g.hint && (
+      {estSecretaire ? (
+        /* Onglets par type de dossier. */
+        <div className="flex flex-wrap gap-2">
+          {ONGLETS_TYPES.map((t) => {
+            const Icon = t.icon;
+            const actif = typeActif === t.code;
+            const n = compteType(t.code);
+            return (
+              <button
+                key={t.code}
+                type="button"
+                onClick={() => setTypeActif(t.code)}
+                aria-pressed={actif}
+                aria-label={`Dossiers ${t.label}`}
+                className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none ${actif
+                  ? `text-white ${t.actif}`
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700'}`}
+              >
+                <Icon className={`h-4 w-4 ${actif ? 'text-white' : ''}`} />
+                <span className="flex flex-col items-start leading-tight">
+                  {t.label}
                   <span className={`text-[10px] font-normal ${actif ? 'text-white/80' : 'text-slate-400'}`}>
-                    {g.hint}
+                    {t.hint}
                   </span>
-                )}
-              </span>
-              {chargement ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : n !== null ? (
-                <span className={`rounded-full px-1.5 text-xs font-semibold ${actif ? 'bg-white/20' : 'bg-slate-100 text-slate-600'}`}>
-                  {n}
                 </span>
-              ) : null}
-            </button>
-          );
-        })}
+                {chargement ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : n !== null ? (
+                  <span className={`rounded-full px-1.5 text-xs font-semibold ${actif ? 'bg-white/20' : 'bg-slate-100 text-slate-600'}`}>
+                    {n}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
 
-        <button
-          type="button"
-          onClick={() => setGroupe('')}
-          className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none ${groupe === ''
-            ? 'border-slate-700 bg-slate-700 text-white shadow-[0_0_15px_rgba(74,85,99,0.3)]'
-            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700'}`}
-          title="Tous les dossiers"
-        >
-          <Layers className="h-4 w-4" />
-          <span className="flex flex-col items-start leading-tight">
-            Tous
-            <span className="text-[10px] font-normal text-slate-400 dark:text-slate-400">Tous les statuts</span>
-          </span>
-          {compteurs && !chargement && (
-            <span className={`rounded-full px-1.5 text-xs font-semibold ${groupe === '' ? 'bg-white/20' : 'bg-slate-100 text-slate-600'}`}>
-              {compteurs.total ?? 0}
+          <button
+            type="button"
+            onClick={() => setTypeActif('')}
+            aria-pressed={typeActif === ''}
+            aria-label="Tous les types de dossier"
+            className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none ${typeActif === ''
+              ? 'border-slate-700 bg-slate-700 text-white shadow-[0_0_15px_rgba(74,85,99,0.3)]'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700'}`}
+            title="Tous les types de dossier"
+          >
+            <Layers className="h-4 w-4" />
+            <span className="flex flex-col items-start leading-tight">
+              Tous
+              <span className="text-[10px] font-normal text-slate-400 dark:text-slate-400">Tous les types</span>
             </span>
+            {compteurs && !chargement && (
+              <span className={`rounded-full px-1.5 text-xs font-semibold ${typeActif === '' ? 'bg-white/20' : 'bg-slate-100 text-slate-600'}`}>
+                {compteurs.total ?? 0}
+              </span>
+            )}
+          </button>
+        </div>
+      ) : (
+        /* Séparation des dossiers : un ensemble affiché à la fois. */
+        <div className="flex flex-wrap gap-2">
+          {GROUPES.filter((g) => !g.roles || g.roles.includes(roleNom)).map((g) => {
+            const Icon = g.icon;
+            const actif = groupe === g.code;
+            const n = compte(g);
+            return (
+              <button
+                key={g.code}
+                type="button"
+                onClick={() => setGroupe(g.code)}
+                className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none ${actif
+                  ? `text-white ${g.actif}`
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700'}`}
+              >
+                <Icon className={`h-4 w-4 ${actif ? 'text-white' : ''}`} />
+                <span className="flex flex-col items-start leading-tight">
+                  {g.label}
+                  {g.hint && (
+                    <span className={`text-[10px] font-normal ${actif ? 'text-white/80' : 'text-slate-400'}`}>
+                      {g.hint}
+                    </span>
+                  )}
+                </span>
+                {chargement ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : n !== null ? (
+                  <span className={`rounded-full px-1.5 text-xs font-semibold ${actif ? 'bg-white/20' : 'bg-slate-100 text-slate-600'}`}>
+                    {n}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => setGroupe('')}
+            className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none ${groupe === ''
+              ? 'border-slate-700 bg-slate-700 text-white shadow-[0_0_15px_rgba(74,85,99,0.3)]'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-700'}`}
+            title="Tous les dossiers"
+          >
+            <Layers className="h-4 w-4" />
+            <span className="flex flex-col items-start leading-tight">
+              Tous
+              <span className="text-[10px] font-normal text-slate-400 dark:text-slate-400">Tous les statuts</span>
+            </span>
+            {compteurs && !chargement && (
+              <span className={`rounded-full px-1.5 text-xs font-semibold ${groupe === '' ? 'bg-white/20' : 'bg-slate-100 text-slate-600'}`}>
+                {compteurs.total ?? 0}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
+      {estSecretaire && (
+        /* Raccourcis du secrétariat : ils se cumulent avec l'onglet de type. */
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-slate-500">Filtres rapides :</span>
+          {RACCOURCIS.map((r) => {
+            const Icon = r.icon;
+            const actif = raccourci === r.code;
+            return (
+              <button
+                key={r.code}
+                type="button"
+                onClick={() => setRaccourci(actif ? '' : r.code)}
+                aria-pressed={actif}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-200 motion-reduce:transition-none ${actif
+                  ? 'border-primary-600 bg-primary-600 text-white'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {r.label}
+              </button>
+            );
+          })}
+          {raccourci && (
+            <button
+              type="button"
+              onClick={() => setRaccourci('')}
+              className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700"
+            >
+              Effacer
+            </button>
           )}
-        </button>
-      </div>
+        </div>
+      )}
 
       {chargement ? (
         <div className="flex min-h-[30vh] items-center justify-center">
@@ -208,7 +385,7 @@ export function DossierListPage({ initialGroupe = 'NOUVEAUX' }) {
         </div>
       ) : (
         <DossierList
-          key={`${typeFiltre || 'all'}-${groupe}`}
+          key={cleListe}
           baseFilters={baseFilters}
           agentPersonnel={agentPersonnel}
         />

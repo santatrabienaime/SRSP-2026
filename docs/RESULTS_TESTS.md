@@ -22,19 +22,19 @@ API sur `http://localhost:5000`.
 | **Droits et routes : cohérence** | `node Backend/scripts/test-e2e-droits.mjs` | **2 / 2** — 0 échec |
 | Contrôle des données attendues par chaque écran | `node Backend/scripts/test-ecrans.mjs` | **53 / 53** — 0 échec |
 | Points d'entrée du tableau de bord, avec tous les profils | `node Backend/scripts/test-e2e-tableaux-bord.mjs` | **91 / 91** — 0 échec |
-| Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **12 / 12** — 0 échec |
+| Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **14 / 14** — 0 échec |
 | Noms d'onglets des exports Excel | `node Backend/scripts/test-e2e-exports-excel.mjs` | **15 / 15** — 0 échec |
 | **Balayage de toute l'API, avec tous les profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur serveur** |
 | **Triage des dossiers : tris et regroupement par statut** | `node Backend/scripts/test-e2e-tri-dossiers.mjs` | **24 / 24** — 0 échec |
 | **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **222 routes — 0 orpheline, 0 appel cassé** |
-| Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **122 / 122** — 14 fichiers, 0 échec |
+| Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **127 / 127** — 15 fichiers, 0 échec |
 | Construction de production du frontend | `npm run build` (Frontend) | **OK** — `dist/` généré |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** — 0 erreur |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 351 fichiers, 0 défaut |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 352 fichiers, 0 défaut |
 | **Restauration PostgreSQL** | import de `database/srsp_db.sql` dans une base `srsp_test` | **OK** — 61 tables, 1 474 lignes |
 
-**Total backend : 489 contrôles, 489 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
-**Total frontend : 122 tests, 122 réussis, 0 échec.**
+**Total backend : 491 contrôles, 491 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
+**Total frontend : 127 tests, 127 réussis, 0 échec.**
 
 ---
 
@@ -438,8 +438,9 @@ npm test
 | `useInputControl.test.jsx` | Contrôle de saisie et règles de validation |
 | `triage.test.js` | Tris proposés, ordre du circuit, regroupement par statut |
 | `DossierList.test.jsx` | Sections par statut, section repliée, tri transmis au serveur |
+| `DossierListPage.test.jsx` | Onglets par type du secrétariat, raccourcis, onglets d'avancement des autres profils |
 
-**Résultat : 14 fichiers, 122 tests, 122 réussis, 0 échec.**
+**Résultat : 15 fichiers, 127 tests, 127 réussis, 0 échec.**
 
 ---
 
@@ -522,7 +523,7 @@ Quatre campagnes ont été ajoutées pour combler ce manque.
 | Campagne | Ce qu'elle vérifie |
 |---|---|
 | `test-e2e-tableaux-bord.mjs` | Les sept points d'entrée du tableau de bord, avec les treize profils — 91 combinaisons. |
-| `test-e2e-coherence-tableau-bord.mjs` | Que les chiffres affichés correspondent au SQL : les brouillons sont exclus, les statuts sans dossier restent listés, la somme des compteurs retrouve le total. |
+| `test-e2e-coherence-tableau-bord.mjs` | Que les chiffres affichés correspondent au SQL : les brouillons sont exclus, les statuts sans dossier restent listés, la somme des compteurs retrouve le total, et la répartition par type — les onglets du secrétariat — retrouve elle aussi le total. |
 | `test-e2e-exports-excel.mjs` | Que les quinze exports Excel portent des noms d'onglets valides (Excel refuse au-delà de 31 caractères). |
 | `test-e2e-balayage-api.mjs` | **Tous** les points d'entrée en lecture, avec **tous** les profils : 120 × 13 = 1 560 appels. |
 | `audit-api-frontend.mjs` | Que **chaque route** a son écran et **chaque écran** sa route : 222 routes, 0 orpheline, 0 appel cassé. |

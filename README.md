@@ -108,6 +108,10 @@ numérotation automatique, historique complet, notifications et rapports.
   priorité, type, demandeur, échéance, ancienneté, dossiers signalés — et un **regroupement par
   statut** qui découpe la liste en sections avec leur effectif. Chaque agent trie sa file, chaque
   chef de division trie sa division, chaque chef de service trie le service.
+- **Onglets par type pour le secrétariat** : l'écran *Dossiers* du secrétariat est découpé en
+  **Visas, Soldes, Pensions, Secours** — et non par avancement du traitement. Chaque onglet porte
+  son effectif, calculé par le serveur, et se cumule avec les filtres rapides (nouveaux, urgents,
+  incomplets, brouillons).
 
 ## 🚀 Démarrage rapide
 
@@ -231,19 +235,19 @@ SRSP-2026/
 | Droits et routes : cohérence | `node Backend/scripts/test-e2e-droits.mjs` | **2 / 2** — 0 échec |
 | Données attendues par chaque écran | `node Backend/scripts/test-ecrans.mjs` | **53 / 53** — 0 échec |
 | Points d'entrée du tableau de bord, tous profils | `node Backend/scripts/test-e2e-tableaux-bord.mjs` | **91 / 91** — 0 échec |
-| Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **12 / 12** — 0 échec |
+| Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **14 / 14** — 0 échec |
 | Noms d'onglets des exports Excel | `node Backend/scripts/test-e2e-exports-excel.mjs` | **15 / 15** — 0 échec |
 | **Balayage de toute l'API, tous profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur** |
 | **Triage des dossiers : tris et regroupement par statut** | `node Backend/scripts/test-e2e-tri-dossiers.mjs` | **24 / 24** — 0 échec |
 | **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **222 routes — 0 orpheline, 0 appel cassé** |
-| Tests du frontend | `cd Frontend && npm test` | **122 / 122** — 14 fichiers, 0 échec |
+| Tests du frontend | `cd Frontend && npm test` | **127 / 127** — 15 fichiers, 0 échec |
 | Construction de production | `cd Frontend && npm run build` | **OK** |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 351 fichiers, 0 défaut |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 352 fichiers, 0 défaut |
 | Restauration PostgreSQL | import de `database/srsp_db.sql` dans une base de test | **OK** — 61 tables, 1 474 lignes |
 
-**Total backend : 489 contrôles, 489 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
-**Total frontend : 122 tests, 122 réussis, 0 échec.**
+**Total backend : 491 contrôles, 491 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
+**Total frontend : 127 tests, 127 réussis, 0 échec.**
 
 Le détail des contrôles, les anomalies corrigées et les limites de la campagne
 figurent dans [docs/RESULTS_TESTS.md](docs/RESULTS_TESTS.md).

@@ -794,6 +794,28 @@ Chaque entrée : `{ id, user_id, user_nom, action, dossier_id, details, created_
 Indicateurs globaux (total dossiers, par statut, par type…) et files
 d'attente par rôle, restreints au périmètre de l'utilisateur.
 
+Le champ `par_type` donne la répartition par type de dossier — c'est elle qui
+alimente les onglets du secrétariat (Visa, Solde, Pension, Secours) :
+
+```json
+{
+  "total": 6,
+  "RECU": 1, "ENREGISTRE": 0, "…": 0,
+  "prioritaires": 4,
+  "incomplets": 0,
+  "par_type": [
+    { "type_code": "VISA",    "type_libelle": "Division Visa",    "total": 2 },
+    { "type_code": "SOLDE",   "type_libelle": "Division Solde",   "total": 1 },
+    { "type_code": "PENSION", "type_libelle": "Division Pension", "total": 1 },
+    { "type_code": "SECOURS", "type_libelle": "Division Secours", "total": 2 }
+  ]
+}
+```
+
+> `par_type` est calculé sur le **même périmètre** et avec la **même
+> exclusion des brouillons** que la répartition par statut : les deux cartes
+> ne doivent pas se contredire.
+
 ### `GET /dashboard/boite-travail`
 La boîte de travail :
 

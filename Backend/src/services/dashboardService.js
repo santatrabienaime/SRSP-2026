@@ -162,6 +162,31 @@ export async function getSummary(scope) {
   );
   stats.prioritaires = prioritaires.total;
 
+  /* Répartition par type de dossier.
+   *
+   * Le secrétariat instruit les quatre types : ses onglets sont les types,
+   * et le compteur de chaque onglet doit dire exactement ce que la liste
+   * montrera. Le calcul est fait sur le même périmètre et avec la même
+   * exclusion des brouillons que la répartition par statut — les deux cartes
+   * ne doivent pas se contredire. */
+  const parType = await db.query(
+    `SELECT t.code AS type_code, t.libelle AS type_libelle, COUNT(d.id) AS total
+       FROM types_dossiers t
+       LEFT JOIN dossiers d
+         ON d.type_id = t.id
+        AND d.statut_id <> COALESCE(
+              (SELECT id FROM statuts_dossiers WHERE code = 'BROUILLON'), -1)
+        ${perimetre.where}
+      GROUP BY t.id, t.code, t.libelle
+      ORDER BY t.libelle`,
+    perimetre.params
+  );
+  stats.par_type = parType.map((r) => ({
+    type_code: r.type_code,
+    type_libelle: r.type_libelle,
+    total: Number(r.total),
+  }));
+
   return stats;
 }
 

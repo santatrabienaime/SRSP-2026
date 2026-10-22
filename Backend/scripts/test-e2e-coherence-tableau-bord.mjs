@@ -124,5 +124,33 @@ check('boîte de travail : les compteurs sont des nombres',
     .every((cle) => typeof boite[cle]?.total === 'number'),
   `à traiter : ${boite.a_traiter_par_moi?.total}`);
 
+/* La répartition par type de dossier doit, elle aussi, retrouver le total :
+   ce sont les onglets du secrétariat, et un onglet qui annonce un nombre que
+   la liste contredit ferait perdre confiance dans l'écran. */
+const resumeParType = await get('/dashboard/summary');
+const sommeTypes = (resumeParType.par_type || []).reduce(
+  (somme, t) => somme + Number(t.total), 0
+);
+check('summary : la somme des types retrouve le total',
+  sommeTypes === Number(resumeParType.total),
+  `${sommeTypes} vs ${resumeParType.total}`);
+
+const parTypeSql = await db.query(
+  `SELECT t.code AS type_code, COUNT(d.id) AS total
+   FROM types_dossiers t
+   LEFT JOIN dossiers d
+     ON d.type_id = t.id
+    AND d.statut_id <> COALESCE(
+          (SELECT id FROM statuts_dossiers WHERE code = 'BROUILLON'), -1)
+   GROUP BY t.id, t.code
+   ORDER BY t.code`
+);
+check('summary : chaque type correspond à ce que donne la base',
+  parTypeSql.every((ligne) => {
+    const annonce = (resumeParType.par_type || []).find((t) => t.type_code === ligne.type_code);
+    return annonce && Number(annonce.total) === Number(ligne.total);
+  }),
+  parTypeSql.map((l) => `${l.type_code}: ${l.total}`).join(' · '));
+
 console.log(`\nRésultat : ${ok} vérification(s) réussie(s), ${ko} échec(s).`);
 process.exit(ko === 0 ? 0 : 1);

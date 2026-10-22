@@ -521,6 +521,10 @@ Incomplets, **Mes brouillons**) sont des filtres serveur : le compteur affiché
 correspond exactement au contenu de la liste, et le **nombre de résultats**
 est annoncé au-dessus du tableau.
 
+> **Au secrétariat, les onglets sont les types de dossier** — *Visas*,
+> *Soldes*, *Pensions*, *Secours* — et non l'avancement du traitement. Voir
+> § 7.2.
+
 ### 7.1 Le triage : trier et regrouper par statut
 
 Le triage sert à retrouver vite le dossier à traiter, et à voir d'un coup d'œil
@@ -557,6 +561,38 @@ chaque section, trier par échéance ou par priorité.
 
 Le même tri est proposé dans la **boîte de travail** (il ordonne les quatre
 files) et dans la liste des **dossiers prêts à être archivés**.
+
+### 7.2 Les onglets du secrétariat : par type de dossier
+
+Le secrétariat instruit les quatre natures de dossier. Ce qui les rassemble
+n'est pas leur avancement — un visa et un secours ne se traitent pas de la
+même façon — mais leur nature : les onglets de l'écran *Dossiers* sont donc
+**Visas, Soldes, Pensions, Secours**, plus un onglet *Tous*.
+
+| Onglet | Ce qu'il montre |
+|---|---|
+| **Visas** | Les demandes de visa et d'exploitation |
+| **Soldes** | Les mandatements et avances de solde |
+| **Pensions** | Les liquidations de pension et oppositions |
+| **Secours** | Les secours de décès |
+| **Tous** | Les quatre types réunis |
+
+Chaque onglet porte son **effectif**, calculé par le serveur : le nombre
+annoncé est exactement celui que la liste va montrer.
+
+En dessous, des **filtres rapides** complètent l'onglet choisi : *Nouveaux*,
+*Urgents*, *Incomplets*, *Mes brouillons*. Ils se **cumulent** avec l'onglet :
+« Secours » puis « Urgents » donne les dossiers Secours urgents ; un clic de
+plus sur le même filtre l'enlève.
+
+La recherche, le tri, le regroupement par statut et les filtres avancés
+(division, responsable, période) restent disponibles, exactement comme pour
+les autres profils.
+
+> Les autres profils — chef de service, chef de division, vérificateur — gardent
+> leurs onglets d'avancement (*Nouveaux*, *En cours*, *Terminés*…), qui
+> répondent à « qu'est-ce qui m'attend ? ». Un chef de division ne voit de
+> toute façon qu'une seule nature de dossier.
 
 ---
 
