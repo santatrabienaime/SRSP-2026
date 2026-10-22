@@ -240,14 +240,14 @@ SRSP-2026/
 | **Balayage de toute l'API, tous profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur** |
 | **Triage des dossiers : tris et regroupement par statut** | `node Backend/scripts/test-e2e-tri-dossiers.mjs` | **24 / 24** — 0 échec |
 | **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **222 routes — 0 orpheline, 0 appel cassé** |
-| Tests du frontend | `cd Frontend && npm test` | **127 / 127** — 15 fichiers, 0 échec |
+| Tests du frontend | `cd Frontend && npm test` | **131 / 131** — 16 fichiers, 0 échec |
 | Construction de production | `cd Frontend && npm run build` | **OK** |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 352 fichiers, 0 défaut |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 353 fichiers, 0 défaut |
 | Restauration PostgreSQL | import de `database/srsp_db.sql` dans une base de test | **OK** — 61 tables, 1 474 lignes |
 
 **Total backend : 491 contrôles, 491 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
-**Total frontend : 127 tests, 127 réussis, 0 échec.**
+**Total frontend : 131 tests, 131 réussis, 0 échec.**
 
 Le détail des contrôles, les anomalies corrigées et les limites de la campagne
 figurent dans [docs/RESULTS_TESTS.md](docs/RESULTS_TESTS.md).

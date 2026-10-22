@@ -92,6 +92,18 @@ export function DossierForm({ initial = null, onSaved }) {
 
   const [form, setForm] = useState(() => vide(initial));
   const [etape, setEtape] = useState(1);
+  /* Le message d'erreur est en haut du formulaire, alors que le bouton
+     cliqué est en bas : sans ce recul, l'agent croit que rien ne s'est
+     passé. */
+  const zoneErreurRef = useRef(null);
+
+  useEffect(() => {
+    if (!error) return;
+    const zone = zoneErreurRef.current;
+    if (zone && typeof zone.scrollIntoView === 'function') {
+      zone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
 
   // Recherche du demandeur pendant la saisie du matricule.
   const [recherche, setRecherche] = useState(null);
@@ -230,6 +242,15 @@ export function DossierForm({ initial = null, onSaved }) {
     return manquants;
   }, [estVisa, form]);
 
+  /* Le sous-type — « type d'acte » pour le VISA, « type d'opération » pour les
+     autres divisions — est requis dès que le type de dossier en distingue
+     plusieurs. C'est la règle du serveur, qui refuse (422) un dossier publié
+     sans type d'opération. L'écran doit donc la poser de la même façon, pour
+     tous les types : sinon l'agent remplit tout le formulaire et découvre le
+     refus au dernier écran. */
+  const sousTypeRequis = sousTypesDisponibles.length > 0;
+  const libelleSousType = estVisa ? 'type d’acte' : 'type d’opération';
+
   /**
    * Reprend les coordonnées déjà connues.
    *
@@ -277,9 +298,53 @@ export function DossierForm({ initial = null, onSaved }) {
     setEtape(n);
   };
 
+  /**
+   * Passage à l'étape 2.
+   *
+   * Le bouton n'est jamais désactivé : un bouton gris, sans explication, est
+   * un mur. Un clic sur un formulaire incomplet affiche au contraire la
+   * raison exacte — c'est ce que l'agent doit savoir, et tout de suite.
+   */
+  const continuerEtape1 = () => {
+    setError(null);
+    if (!form.type_id) {
+      setError({ message: 'Choisissez le type de dossier pour continuer.' });
+      return;
+    }
+    if (sousTypeRequis && !form.sous_type_id) {
+      setError({
+        message: `Choisissez le ${libelleSousType} pour continuer : ce type de dossier en distingue plusieurs, et le serveur l’exige.`,
+      });
+      return;
+    }
+    setEtape(2);
+  };
+
+  /** Passage à l'étape 3, pour la même raison : le motif est nommé. */
+  const continuerEtape2 = () => {
+    setError(null);
+    if (problemesEtape2.length) {
+      setError({
+        message: 'Complétez l’étape « Demandeur » pour continuer :',
+        details: problemesEtape2,
+      });
+      return;
+    }
+    setEtape(3);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    /* Le type d'acte ou d'opération est demandé avant tout le reste : c'est
+       lui qui décide des pièces requises et du circuit. Le serveur l'exige
+       également — mieux vaut le dire ici qu'un 422 au dernier écran. */
+    if (sousTypeRequis && !form.sous_type_id) {
+      setError({
+        message: `Choisissez le ${libelleSousType} : ce type de dossier en distingue plusieurs.`,
+      });
+      return;
+    }
     if (validation.length || visaManquants.length) {
       setError({
         message: 'Veuillez corriger les points suivants :',
@@ -536,16 +601,18 @@ export function DossierForm({ initial = null, onSaved }) {
     return (
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <Alert type="error" title="Impossible d'enregistrer">
-            {error.message}
-            {error.details && (
-              <ul className="mt-1 list-inside list-disc text-xs">
-                {error.details.map((d, i) => (
-                  <li key={i}>{typeof d === 'string' ? d : d.message}</li>
-                ))}
-              </ul>
-            )}
-          </Alert>
+          <div ref={zoneErreurRef}>
+            <Alert type="error" title="Impossible d'enregistrer">
+              {error.message}
+              {error.details && (
+                <ul className="mt-1 list-inside list-disc text-xs">
+                  {error.details.map((d, i) => (
+                    <li key={i}>{typeof d === 'string' ? d : d.message}</li>
+                  ))}
+                </ul>
+              )}
+            </Alert>
+          </div>
         )}
 
         <fieldset disabled>
@@ -629,8 +696,17 @@ export function DossierForm({ initial = null, onSaved }) {
         />
 
 
+        {estVisa && visaManquants.length > 0 && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <p className="font-medium">Fiche de réception VISA — à compléter :</p>
+            <ul className="mt-1 list-inside list-disc text-xs">
+              {visaManquants.map((m) => <li key={m}>{m}</li>)}
+            </ul>
+          </div>
+        )}
+
         <div className="flex justify-end gap-2">
-          <Button type="submit" loading={saving} disabled={visaManquants.length > 0}>
+          <Button type="submit" loading={saving}>
             Enregistrer les modifications
           </Button>
         </div>
@@ -647,16 +723,18 @@ export function DossierForm({ initial = null, onSaved }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <Alert type="error" title={etape === 3 ? 'Impossible d\'enregistrer' : 'Vérification'}>
-          {error.message}
-          {error.details && (
-            <ul className="mt-1 list-inside list-disc text-xs">
-              {error.details.map((d, i) => (
-                <li key={i}>{typeof d === 'string' ? d : d.message}</li>
-              ))}
-            </ul>
-          )}
-        </Alert>
+        <div ref={zoneErreurRef}>
+          <Alert type="error" title={etape === 3 ? 'Impossible d\'enregistrer' : 'Vérification'}>
+            {error.message}
+            {error.details && (
+              <ul className="mt-1 list-inside list-disc text-xs">
+                {error.details.map((d, i) => (
+                  <li key={i}>{typeof d === 'string' ? d : d.message}</li>
+                ))}
+              </ul>
+            )}
+          </Alert>
+        </div>
       )}
 
       {/* Avertissements : ils n'empêchent PAS de continuer, contrairement aux
@@ -749,9 +827,10 @@ export function DossierForm({ initial = null, onSaved }) {
           {!estVisa && sousTypesDisponibles.length > 0 && (
             <Select
               label="Type d'opération"
+              required
               value={form.sous_type_id}
               onChange={set('sous_type_id')}
-              hint="Il détermine les pièces requises et le circuit de l’opération."
+              hint="Il détermine les pièces requises et le circuit de l’opération. Obligatoire : ce type de dossier en distingue plusieurs."
             >
               <option value="">Sélectionner…</option>
               {sousTypesDisponibles.map((st) => (
@@ -775,8 +854,8 @@ export function DossierForm({ initial = null, onSaved }) {
               onChange={set('sous_type_id')}
               hint={
                 sousTypesDisponibles.length === 0
-                  ? 'Aucun sous-type actif pour le VISA : complétez le référentiel.'
-                  : undefined
+                  ? 'Aucun type d’acte actif pour le VISA : demandez à l’administrateur de compléter le référentiel.'
+                  : 'Obligatoire pour un dossier VISA : l’acte visé est demandé dans la fiche de réception.'
               }
             >
               <option value="">Sélectionner…</option>
@@ -808,11 +887,7 @@ export function DossierForm({ initial = null, onSaved }) {
         </div>
 
           <div className="flex items-end justify-end">
-            <Button
-              type="button"
-              onClick={() => allerA(2)}
-              disabled={problemesEtape1.length > 0 || (estVisa && !form.sous_type_id)}
-            >
+            <Button type="button" onClick={continuerEtape1}>
               Continuer <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -873,7 +948,7 @@ export function DossierForm({ initial = null, onSaved }) {
             <Button type="button" variant="ghost" onClick={() => allerA(1)}>
               <ArrowLeft className="h-4 w-4" /> Retour
             </Button>
-            <Button type="button" onClick={() => allerA(3)} disabled={problemesEtape2.length > 0}>
+            <Button type="button" onClick={continuerEtape2}>
               Continuer <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -991,6 +1066,17 @@ export function DossierForm({ initial = null, onSaved }) {
             </dl>
           </div>
 
+          {/* Ce qui manque encore : l'agent voit la liste avant de cliquer, et
+              le clic rappelle la même liste. Rien n'est bloqué en silence. */}
+          {estVisa && visaManquants.length > 0 && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <p className="font-medium">Fiche de réception VISA — à compléter :</p>
+              <ul className="mt-1 list-inside list-disc text-xs">
+                {visaManquants.map((m) => <li key={m}>{m}</li>)}
+              </ul>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Button type="button" variant="ghost" onClick={() => allerA(2)}>
               <ArrowLeft className="h-4 w-4" /> Retour
@@ -1009,11 +1095,7 @@ export function DossierForm({ initial = null, onSaved }) {
               >
                 <Save className="h-4 w-4" /> Enregistrer en brouillon
               </Button>
-              <Button
-                type="submit"
-                loading={saving}
-                disabled={validation.length > 0 || visaManquants.length > 0}
-              >
+              <Button type="submit" loading={saving}>
                 <Check className="h-4 w-4" /> Créer le dossier
               </Button>
             </div>

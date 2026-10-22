@@ -181,7 +181,7 @@ demander au demandeur pendant qu'il est là.
 
 | Champ | Contenu |
 |---|---|
-| **Type d'acte** | Liste déroulante des types d'acte (mariage, naissance, décès, séjour, autre). Configurable par l'administrateur. |
+| **Type d'acte** | Liste déroulante des types d'acte (mariage, naissance, décès, séjour, autre). Configurable par l'administrateur. **Demandé dès la première étape** : c'est lui qui dit de quel acte il s'agit, et le serveur l'exige. |
 | **Date et heure de réception** | Moment précis de la remise du dossier. |
 | **Origine / présentateur** | Qui a remis le dossier (guichet, courrier, etc.). |
 | **Comptable présentateur** | Le comptable qui a transmis la demande. |
@@ -190,6 +190,11 @@ demander au demandeur pendant qu'il est là.
 | **Bénéficiaire** | La personne concernée. |
 | **Organisme** | L'organisme émetteur. |
 | **Référence VISA** | Unique. Par défaut, le numéro de dossier. |
+
+Pendant la saisie, un encadré **« Fiche de réception VISA — à compléter »**
+rappelle en permanence ce qui manque. Le bouton *Créer le dossier* n'est
+jamais gris : un clic affiche la liste exacte de ce qu'il reste à renseigner.
+Aucun bouton ne bloque sans dire pourquoi.
 
 Le dossier reçoit automatiquement un numéro de la forme
 `VISA-2026-000042`, et sa référence VISA.
@@ -211,6 +216,11 @@ Chaque division distingue des **types d'opérations** :
 Le type d'opération se choisit **à la création**. Il porte le libellé
 affiché sur le dossier et détermine **les pièces obligatoires** de son
 dépouillement.
+
+> Le type d'acte (VISA) ou d'opération (autres divisions) est demandé dès la
+> **première étape** : un dossier publié doit dire de quelle opération il
+> s'agit. Un clic sur *Continuer* sans l'avoir choisi indique précisément
+> quoi faire — aucun bouton ne se fige sans explication.
 
 > Les listes exactes de pièces par opération restent **à valider par le
 > SRSP** : elles sont configurables depuis l'écran *Référentiel*, sans

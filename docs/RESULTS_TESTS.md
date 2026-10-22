@@ -27,14 +27,14 @@ API sur `http://localhost:5000`.
 | **Balayage de toute l'API, avec tous les profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur serveur** |
 | **Triage des dossiers : tris et regroupement par statut** | `node Backend/scripts/test-e2e-tri-dossiers.mjs` | **24 / 24** — 0 échec |
 | **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **222 routes — 0 orpheline, 0 appel cassé** |
-| Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **127 / 127** — 15 fichiers, 0 échec |
+| Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **131 / 131** — 16 fichiers, 0 échec |
 | Construction de production du frontend | `npm run build` (Frontend) | **OK** — `dist/` généré |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** — 0 erreur |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 352 fichiers, 0 défaut |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 353 fichiers, 0 défaut |
 | **Restauration PostgreSQL** | import de `database/srsp_db.sql` dans une base `srsp_test` | **OK** — 61 tables, 1 474 lignes |
 
 **Total backend : 491 contrôles, 491 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
-**Total frontend : 127 tests, 127 réussis, 0 échec.**
+**Total frontend : 131 tests, 131 réussis, 0 échec.**
 
 ---
 
@@ -439,8 +439,9 @@ npm test
 | `triage.test.js` | Tris proposés, ordre du circuit, regroupement par statut |
 | `DossierList.test.jsx` | Sections par statut, section repliée, tri transmis au serveur |
 | `DossierListPage.test.jsx` | Onglets par type du secrétariat, raccourcis, onglets d'avancement des autres profils |
+| `DossierForm.test.jsx` | Création VISA : le type d'acte est proposé, aucun bouton ne bloque sans explication, la fiche incomplète est listée |
 
-**Résultat : 15 fichiers, 127 tests, 127 réussis, 0 échec.**
+**Résultat : 16 fichiers, 131 tests, 131 réussis, 0 échec.**
 
 ---
 
