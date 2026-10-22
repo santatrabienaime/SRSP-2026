@@ -220,38 +220,5 @@ check('Performance : l\'evolution sur douze mois', perfEvolution.status === 200,
 check('Performance : le mois est au format AAAA-MM',
   (perfEvolution.data || []).every((m) => /^\d{4}-\d{2}$/.test(m.mois)));
 
-/* ── Écran « Bilan de conformité » ───────────────────────────────────────
-   L'écran attend : le décompte des exigences par état, la répartition par
-   poste, et le registre détaillé des exigences. */
-const bilan = await get(admin, '/referentiel/bilan');
-check('Bilan : les indicateurs de conformite', bilan.status === 200,
-  `${bilan.data?.total} exigence(s)`);
-check('Bilan : la somme des etats retrouve le total',
-  Object.values(bilan.data?.par_etat || {}).reduce((s, n) => s + Number(n), 0)
-  === Number(bilan.data?.total));
-check('Bilan : la repartition par poste', Array.isArray(bilan.data?.par_poste),
-  `${(bilan.data?.par_poste || []).length} poste(s)`);
-
-const conformite = await get(admin, '/referentiel/conformite?document=OBLIGATOIRE');
-check('Bilan : le registre detaille des exigences', conformite.status === 200,
-  `${conformite.data?.total} exigence(s)`);
-check('Bilan : le registre et le bilan portent le meme compte',
-  Number(conformite.data?.total) === Number(bilan.data?.total),
-  `${conformite.data?.total} vs ${bilan.data?.total}`);
-check('Bilan : chaque exigence porte son etat et son numero source',
-  (conformite.data?.lignes || []).every((l) => l.etat && l.numero_source));
-
-/* Les fonctions non livrées : c'est la question que le chef BAAF posera en
-   premier. Le registre doit les rendre accessibles par un seul filtre. */
-const manquantes = await get(admin, '/referentiel/conformite?document=OBLIGATOIRE&manquantes=1');
-check('Bilan : le filtre « non livrées » ne rend que des fonctions non livrées',
-  (manquantes.data?.lignes || []).every((l) => l.etat !== 'LIVREE'),
-  `${manquantes.data?.total} non livrée(s)`);
-
-/* Le registre dit ce qui manque : il n'est pas public. */
-const conformiteSecretaire = await get(secretaire, '/referentiel/conformite');
-check('Bilan : hors périmètre pour un profil non habilité (403)',
-  conformiteSecretaire.status === 403, `${conformiteSecretaire.status}`);
-
 console.log(`\nRésultat : ${ok} vérification(s) réussie(s), ${ko} échec(s).`);
 process.exit(ko === 0 ? 0 : 1);

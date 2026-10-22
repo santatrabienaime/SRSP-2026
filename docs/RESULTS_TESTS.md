@@ -18,19 +18,19 @@ API sur `http://localhost:5000`.
 | Module d'immatriculation de la Coordination | `node Backend/scripts/test-e2e-immatriculation.mjs` | **22 / 22** — 0 échec |
 | **Circuit Secours de bout en bout** | `node Backend/scripts/test-e2e-secours.mjs` | **20 / 20** — 0 échec |
 | **Droits et routes : cohérence** | `node Backend/scripts/test-e2e-droits.mjs` | **2 / 2** — 0 échec |
-| Contrôle des données attendues par chaque écran | `node Backend/scripts/test-ecrans.mjs` | **61 / 61** — 0 échec |
+| Contrôle des données attendues par chaque écran | `node Backend/scripts/test-ecrans.mjs` | **53 / 53** — 0 échec |
 | Points d'entrée du tableau de bord, avec tous les profils | `node Backend/scripts/test-e2e-tableaux-bord.mjs` | **91 / 91** — 0 échec |
 | Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **12 / 12** — 0 échec |
 | Noms d'onglets des exports Excel | `node Backend/scripts/test-e2e-exports-excel.mjs` | **15 / 15** — 0 échec |
-| **Balayage de toute l'API, avec tous les profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 625 appels — 0 erreur serveur** |
-| **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **225 routes — 0 orpheline, 0 appel cassé** |
+| **Balayage de toute l'API, avec tous les profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur serveur** |
+| **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **215 routes — 0 orpheline, 0 appel cassé** |
 | Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **103 / 103** — 12 fichiers, 0 échec |
 | Construction de production du frontend | `npm run build` (Frontend) | **OK** — `dist/` généré |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** — 0 erreur |
 | Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 356 fichiers, 0 défaut |
 | Idempotence des migrations | relance de chaque migration avec `--apply` | **OK** — aucune erreur, aucun doublon |
 
-**Total backend : 425 contrôles, 425 réussis, 0 échec — plus 1 625 appels de balayage, tous sans erreur.**
+**Total backend : 417 contrôles, 417 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
 **Total frontend : 103 tests, 103 réussis, 0 échec.**
 
 ---
@@ -406,8 +406,8 @@ Quatre campagnes ont été ajoutées pour combler ce manque.
 | `test-e2e-tableaux-bord.mjs` | Les sept points d'entrée du tableau de bord, avec les treize profils — 91 combinaisons. |
 | `test-e2e-coherence-tableau-bord.mjs` | Que les chiffres affichés correspondent au SQL : les brouillons sont exclus, les statuts sans dossier restent listés, la somme des compteurs retrouve le total. |
 | `test-e2e-exports-excel.mjs` | Que les quinze exports Excel portent des noms d'onglets valides (Excel refuse au-delà de 31 caractères). |
-| `test-e2e-balayage-api.mjs` | **Tous** les points d'entrée en lecture, avec **tous** les profils : 125 × 13 = 1 625 appels. |
-| `audit-api-frontend.mjs` | Que **chaque route** a son écran et **chaque écran** sa route : 225 routes, 0 orpheline, 0 appel cassé. |
+| `test-e2e-balayage-api.mjs` | **Tous** les points d'entrée en lecture, avec **tous** les profils : 120 × 13 = 1 560 appels. |
+| `audit-api-frontend.mjs` | Que **chaque route** a son écran et **chaque écran** sa route : 215 routes, 0 orpheline, 0 appel cassé. |
 | `test-e2e-secours.mjs` | Le circuit Secours **de bout en bout** : mandatement, visa du contrôle financier, références, état d'émargement, signature de l'ordonnateur, archivage de la copie signée, cachet — et le refus à un profil d'une autre division. |
 | `test-e2e-droits.mjs` | Qu'aucune route n'est fermée à tout le monde, que le registre ne cite aucun droit inexistant, et que les attributions attendues sont satisfaites. |
 
@@ -507,6 +507,32 @@ Et la règle a une seconde lecture, explicite : quand on **liste des statuts**,
 c'est le pseudo-statut `BROUILLON` qu'il faut retirer — sinon les statuts qui
 n'ont aucun dossier disparaissent de la répartition, et le tableau cesse de
 montrer le circuit complet.
+
+---
+
+### Le retrait des éléments hors du thème
+
+Le thème du projet : « plateforme web de gestion, de suivi et de traçabilité
+des dossiers administratifs au sein du SRSP Fitovinany ». Cinq éléments ne
+servaient pas le dossier, et ont été retirés :
+
+| Retiré | Pourquoi |
+|---|---|
+| **Bilan de conformité** (écran, routes, lecture du registre) | Le projet qui s'évalue lui-même contre le cahier. C'est le livrable de l'analyse, pas une fonction de la plateforme. L'analyse reste dans `docs/CONFORMITE_CAHIER.md`. |
+| **Informations système** (carte, route) | La supervision de la machine : processeur, mémoire, disque. |
+| **Sauvegarde et restauration** (écran, service, routes) | Le cycle de vie de la base. La procédure manuelle reste écrite dans `docs/SAUVEGARDE_RESTITUTION.md`. |
+| **Paramètres** (écran) | Ce qui restait faisait doublon : le compte connecté avec *Profil*, les divisions avec *Référentiel › Divisions*. |
+| **Journal d'audit** (entrée de menu) | Doublon exact de l'écran *Historique* — même composant, même route. |
+
+Le **contrôle d'accès aux comptes et aux permissions**, et la
+**réinitialisation de mot de passe**, sont conservés : ce sont les
+moyens d'exploitation du service au quotidien. Sans eux, un agent qui perd
+son mot de passe serait bloqué définitivement — la voie d'auto-service
+envoie un courriel, et le courriel est hors périmètre du MVP.
+
+Après le retrait : **215 routes** et **210 appels** de l'interface, sans
+aucune route orpheline et aucun appel cassé. Le contrôle croisé
+`audit-api-frontend.mjs` le vérifie à chaque campagne.
 
 ---
 

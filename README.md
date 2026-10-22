@@ -220,19 +220,19 @@ SRSP-2026/
 | Module d'immatriculation de la Coordination | `node Backend/scripts/test-e2e-immatriculation.mjs` | **22 / 22** — 0 échec |
 | Circuit Secours de bout en bout | `node Backend/scripts/test-e2e-secours.mjs` | **20 / 20** — 0 échec |
 | Droits et routes : cohérence | `node Backend/scripts/test-e2e-droits.mjs` | **2 / 2** — 0 échec |
-| Données attendues par chaque écran | `node Backend/scripts/test-ecrans.mjs` | **61 / 61** — 0 échec |
+| Données attendues par chaque écran | `node Backend/scripts/test-ecrans.mjs` | **53 / 53** — 0 échec |
 | Points d'entrée du tableau de bord, tous profils | `node Backend/scripts/test-e2e-tableaux-bord.mjs` | **91 / 91** — 0 échec |
 | Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **12 / 12** — 0 échec |
 | Noms d'onglets des exports Excel | `node Backend/scripts/test-e2e-exports-excel.mjs` | **15 / 15** — 0 échec |
-| **Balayage de toute l'API, tous profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 625 appels — 0 erreur** |
-| **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **225 routes — 0 orpheline, 0 appel cassé** |
+| **Balayage de toute l'API, tous profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur** |
+| **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **215 routes — 0 orpheline, 0 appel cassé** |
 | Tests du frontend | `cd Frontend && npm test` | **103 / 103** — 12 fichiers, 0 échec |
 | Construction de production | `cd Frontend && npm run build` | **OK** |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** |
 | Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 356 fichiers, 0 défaut |
 | Idempotence des migrations | relance de chaque migration avec `--apply` | **OK** |
 
-**Total backend : 425 contrôles, 425 réussis, 0 échec — plus 1 625 appels de balayage, tous sans erreur.**
+**Total backend : 417 contrôles, 417 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
 **Total frontend : 103 tests, 103 réussis, 0 échec.**
 
 Le détail des contrôles, les anomalies corrigées et les limites de la campagne

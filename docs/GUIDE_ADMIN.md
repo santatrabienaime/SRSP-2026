@@ -377,79 +377,7 @@ depuis *Suivi → Archives*.
 
 ---
 
-## 5. Sauvegarde et restauration
-
-Voir [SAUVEGARDE_RESTITUTION.md](SAUVEGARDE_RESTITUTION.md) pour la procédure
-complète, la fréquence recommandée et le test de restauration.
-
-En résumé :
-
-- *Administration → Sauvegarde* permet de lancer une sauvegarde et de
-  restaurer une sauvegarde existante.
-- Une sauvegarde produit **deux fichiers** : le dump SQL (`srsp-<date>.sql`)
-  et l'archive des pièces jointes (`srsp-<date>-pieces.tar.gz`). Les deux
-  sont nécessaires : le dump seul ne contient que les *chemins* des
-  documents.
-- Une restauration **crée d'abord une sauvegarde de sécurité** de l'état
-  courant.
-
----
-
-## 6. Paramètres
-
-**Administration → Paramètres**. Les réglages d'exploitation :
-
-- durée de validité d'un mot de passe (défaut : 90 jours) ;
-- durée de validité d'un jeton de session ;
-- éléments affichés sur le tableau de bord selon le rôle ;
-- limites de dépôt de fichiers.
-
-L'écran porte aussi une carte **Système** : l'état de la machine qui sert
-l'application — processeur, mémoire, espace disque, durée de fonctionnement.
-Ce n'est pas une curiosité : un export qui ne finit pas, ou une machine qui
-cesse de répondre, s'expliquent souvent par là. La carte n'est visible que
-pour l'administrateur technique, et les chiffres qu'elle affiche décrivent
-la machine, pas le service.
-
-### 6 bis. Le bilan de conformité — *Suivi → Bilan de conformité*
-
-L'écran qui répond à « **où en est la plateforme face au cahier ?** ».
-
-La plateforme tient un registre des exigences du cahier des fonctionnalités —
-une par une, avec son état. Ce registre était dans la base **sans qu'aucun
-écran ne le montre** : ni l'administrateur, ni le chef BAAF ne pouvaient
-répondre à la question.
-
-L'écran montre trois choses :
-
-1. **Le décompte par état** — cinq tuiles cliquables :
-
-   | État | Signification |
-   |---|---|
-   | Livrée | L'exigence est en service. |
-   | Partielle | Elle existe, mais ne couvre pas tout. |
-   | Inerte | Elle est déclarée, la permission existe, et elle **ne mène nulle part**. C'est la catégorie la plus trompeuse, et la plus facile à laisser traîner. |
-   | Non construite | Elle reste à faire. |
-   | Hors plateforme | Elle ne concerne pas l'application. |
-
-   L'écran signale en outre les fonctions non livrées **sans motif** : un
-   motif est ce qui permet de comprendre pourquoi, et de le corriger plus
-   tard.
-
-2. **La répartition par poste** — quel rôle porte quelles exigences, et ce
-   qui lui manque.
-
-3. **Le registre détaillé** — exigence par exigence, filtrable par état, par
-   poste, et par « non livrées seulement ». Le bouton **Exporter** produit
-   un CSV de la sélection.
-
-> L'écran est accessible à l'administrateur et au **chef BAAF**
-> (permission `consolidate_reports`). Le registre dit ce qui manque : il
-> n'est pas public.
-
----
-
-## 7. Mises à jour du schéma
+## 5. Mises à jour du schéma
 
 Les migrations sont **idempotentes** : les relancer plusieurs fois ne casse
 rien. Elles s'appliquent directement sur la base vivante.
@@ -508,7 +436,7 @@ généré à partir de la base vivante.
 
 ---
 
-## 8. Vérifications périodiques
+## 6. Vérifications périodiques
 
 | Contrôle | Fréquence | Comment |
 |---|---|---|

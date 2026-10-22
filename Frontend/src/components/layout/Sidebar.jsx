@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, FolderKanban, Mail, History, Archive,
-  BarChart3, FileBarChart2, Settings, Users, Shield, Bell,
-  UserCog, Building2, ScrollText, PanelLeftClose, PanelLeftOpen,
-  Database, FileCheck, Inbox, KeyRound, IdCard, Gauge, MapPinned, ClipboardCheck,
+  BarChart3, FileBarChart2, Users, Shield, Bell,
+  UserCog, Building2, PanelLeftClose, PanelLeftOpen,
+  Database, FileCheck, Inbox, KeyRound, IdCard, Gauge, MapPinned,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUI } from '../../contexts/UIContext.jsx';
@@ -20,17 +20,14 @@ const ICONS = {
   rapports: FileBarChart2,
   users: Users,
   roles: Shield,
-  settings: Settings,
   personnel: UserCog,
   divisions: Building2,
   database: Database,
-  audit: ScrollText,
   filecheck: FileCheck,
   boite: Inbox,
   reinitialisation: KeyRound,
   immatriculation: IdCard,
   territoire: MapPinned,
-  conformite: ClipboardCheck,
 };
 
 /**
@@ -126,9 +123,6 @@ export function Sidebar() {
         { to: '/territoire', label: 'Territoire', icon: 'territoire', perms: ['view_stats'] },
         /* Immatriculations : la mission propre de la Coordination. */
         { to: '/coordination/immatriculations', label: 'Immatriculations', icon: 'immatriculation', perms: ['gerer_immatriculations'] },
-        /* Bilan de conformité : où en est la plateforme face au cahier.
-           Le registre des exigences était dans la base, sans écran. */
-        { to: '/conformite', label: 'Bilan de conformité', icon: 'conformite', perms: ['consolidate_reports'] },
       ],
     },
   ];
@@ -145,12 +139,6 @@ export function Sidebar() {
           : []),
         ...(show({ perms: ['manage_roles'] })
           ? [{ to: '/administration/roles', label: 'Rôles & permissions', icon: 'roles' }]
-          : []),
-        ...(show({ perms: ['view_audit'] })
-          ? [{ to: '/administration/audit', label: "Journal d'audit", icon: 'audit' }]
-          : []),
-        ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
-          ? [{ to: '/administration/parametres', label: 'Paramètres', icon: 'settings' }]
           : []),
         ...(show({ roles: ['ADMIN'], perms: ['system_config'] })
           ? [{ to: '/administration/referentiel', label: 'Référentiel', icon: 'database' }]

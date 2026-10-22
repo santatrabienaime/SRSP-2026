@@ -23,9 +23,6 @@ router.get('/service', ctrl.service);
    les fonctions d'emploi du personnel — deux choses sans rapport, dans le
    même écran. Elle porte le même contrôle que le bilan : ce registre dit ce
    qui manque, et il n'est pas public. */
-router.get('/conformite', rbacMiddleware(['view_audit', 'consolidate_reports']), ctrl.lister);
-router.get('/bilan', rbacMiddleware(['view_audit', 'consolidate_reports']), ctrl.bilan);
-router.get('/postes', rbacMiddleware(['view_audit', 'consolidate_reports']), ctrl.postes);
 
 // CRUD types de dossiers
 router.get('/types-dossiers', crudCtrl.listTypesDossiers);

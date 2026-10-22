@@ -31,8 +31,6 @@ import { ProfilePage } from '../pages/profile/ProfilePage.jsx';
 import { PersonnelPage } from '../pages/personnel/PersonnelPage.jsx';
 import { BordereauPage } from '../pages/bordereau/BordereauPage.jsx';
 import { RolesAdminPage } from '../pages/administration/RolesAdminPage.jsx';
-import { SettingsPage } from '../pages/administration/SettingsPage.jsx';
-import { BackupPage } from '../pages/administration/BackupPage.jsx';
 import { ReinitialisationsPage } from '../pages/administration/ReinitialisationsPage.jsx';
 import { ImmatriculationsPage } from '../pages/coordination/ImmatriculationsPage.jsx';
 import { ReferentielPage } from '../pages/referentiel/ReferentielPage.jsx';
@@ -43,7 +41,6 @@ import { DivisionDetailPage } from '../pages/divisions/DivisionDetailPage.jsx';
 import { DivisionDashboardPage } from '../pages/divisions/DivisionDashboardPage.jsx';
 
 import { TerritoirePage } from '../pages/territoire/TerritoirePage.jsx';
-import { BilanPage } from '../pages/referentiel/BilanPage.jsx';
 
 import { NotFoundPage } from '../pages/errors/NotFoundPage.jsx';
 import { ForbiddenPage } from '../pages/errors/ForbiddenPage.jsx';
@@ -207,14 +204,6 @@ export function AppRouter() {
               registre existait dans la base sans être visible nulle part ;
               ni l'administrateur ni le chef BAAF ne pouvaient répondre à
               « où en est la plateforme ? ». */}
-          <Route
-            path="/conformite"
-            element={
-              <RoleRoute permissions={['consolidate_reports']}>
-                <BilanPage />
-              </RoleRoute>
-            }
-          />
           <Route path="/profil" element={<ProfilePage />} />
 
           {/* Administration */}
@@ -243,30 +232,6 @@ export function AppRouter() {
             element={
               <RoleRoute roles={[ROLES.ADMIN]}>
                 <RolesAdminPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/administration/audit"
-            element={
-              <RoleRoute roles={[ROLES.ADMIN]}>
-                <HistoriquePage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/administration/parametres"
-            element={
-              <RoleRoute roles={[ROLES.ADMIN]}>
-                <SettingsPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="/administration/sauvegarde"
-            element={
-              <RoleRoute roles={[ROLES.ADMIN]}>
-                <BackupPage />
               </RoleRoute>
             }
           />

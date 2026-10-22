@@ -61,19 +61,6 @@ export const referentielService = {
   remplacerSchemaOperation: (sousTypeId, corps) =>
     apiClient.put(`/referentiel/schemas-operations/${sousTypeId}`, corps).then((r) => r.data),
 
-  /* ── Bilan de conformité ────────────────────────────────────────────
-     Le registre des exigences du cahier : une par une, avec son état. Il
-     est distinct des « fonctions » du personnel — ce sont les fonctions
-     d'emploi, celles-ci sont les exigences de conformité. */
-  bilan: (params) =>
-    apiClient.get('/referentiel/bilan', { params }).then((r) => r.data || {}),
-  conformite: (params) =>
-    apiClient.get('/referentiel/conformite', { params }).then((r) => r.data || {}),
-  postes: () =>
-    apiClient.get('/referentiel/postes').then((r) => r.data || []),
-  infosService: () =>
-    apiClient.get('/referentiel/service').then((r) => r.data || {}),
-
   /** Liste des types de courriers. */
   typesCourriers: () => apiClient.get('/referentiel/types-courriers').then((r) => r.data || []),
 

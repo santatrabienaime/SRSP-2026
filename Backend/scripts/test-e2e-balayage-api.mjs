@@ -43,8 +43,6 @@ const MONTAGES = {
   performanceRoutes: '/performance',
   commentaireRoutes: '/dossiers',
   rapportRoutes: '/rapports',
-  backupRoutes: '/admin/backup',
-  systemRoutes: '/admin/system',
   depouillementRoutes: '/dossiers',
   mandatementRoutes: '/dossiers',
   secoursRoutes: '/dossiers',

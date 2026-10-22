@@ -272,23 +272,6 @@ rattachement des dossiers à un district.
 > Les dossiers **sans** district sont comptés à part et non ignorés : les
 > perdre dans la somme ferait croire que le service en a moins qu'il n'en a.
 
-## 3 septies. Conformité au cahier — `/referentiel`
-
-Le registre des exigences du cahier des fonctionnalités : une par une, avec
-son état. Ces routes sont réservées à qui a le droit de voir ce qui manque
-(`view_audit` ou `consolidate_reports`).
-
-| Endpoint | Description |
-|---|---|
-| `GET /referentiel/bilan?document=OBLIGATOIRE\|HISTORIQUE` | Le décompte par état, par nature et par poste ; le nombre de fonctions non livrées **sans motif** |
-| `GET /referentiel/conformite?document=&etat=&poste=&section=&manquantes=1` | Le registre détaillé. `manquantes=1` ne rend que les fonctions non livrées. |
-| `GET /referentiel/postes` | Les postes porteurs d'exigences |
-
-> La route s'appelait `/referentiel/fonctions`, ce qui se confondait avec les
-> **fonctions d'emploi** du personnel — deux choses sans rapport, dans le
-> même écran. Elle porte aussi un contrôle d'accès : le registre dit ce qui
-> manque, il n'est pas public.
-
 ## 3 quinquies. Immatriculations — `/immatriculations`
 Le module de la Coordination. Permission `gerer_immatriculations`.
 

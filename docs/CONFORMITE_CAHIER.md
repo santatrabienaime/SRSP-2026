@@ -249,9 +249,9 @@ Le module VISA est le plus abouti : il est conforme au cahier dans son intégral
 | **Secrétariat** — réception, enregistrement, distribution, chronologie des actes émis | **En place** | Dossiers et courriers entrants, registre des courriers, bordereaux, fiche de réception, registre. |
 | **Coordination** — immatriculation, nouveaux arrivants, changements de mode de paiement | **En place** | Demande d'immatriculation avec **référence attribuée**, doublons de CIN et de matricule refusés **avant** l'attribution, insertion en paie (éléments requis pour les systèmes de paie et de pension), changements de mode de paiement avec **motif obligatoire** et pièces vérifiées, volumes par type de demande, période et division. |
 | **Coordination** — attestation en ligne, insertion Augure, ordres de déplacement | **Hors périmètre** | La plateforme ne dialogue avec aucun logiciel externe : le cahier ne mentionne aucune interface autorisée et documentée. L'insertion est **enregistrée** dans la plateforme, à charge de la coordination de la transmettre. |
-| **Chef BAAF** — gestion administrative et comptable interne | **En place** | Documents, courriers, rapports consolidés, et le **bilan de conformité** au cahier (l'état des 514 exigences, exigence par exigence). *Les « situations FCC / BCSE » ne sont pas gérées.* |
+| **Chef BAAF** — gestion administrative et comptable interne | **En place** | Documents, courriers, rapports consolidés. *Les « situations FCC / BCSE » ne sont pas gérées.* |
 | **Chef de Service** — pilotage, signature, retour motivé, rapports consolidés | **En place** | Tableau de bord consolidé, signature, dérogation motivée, archives, écran **Performance** (délais de traitement, dossiers en retard, répartition par division et par agent). |
-| **Administrateur technique** | **En place** | Comptes, rôles, référentiel, sauvegardes, schémas d'opérations, informations système. **Aucun pouvoir de décision métier** — vérifié par le test. |
+| **Administrateur technique** | **En place** | Comptes, rôles, référentiel, schémas d'opérations. **Aucun pouvoir de décision métier** — vérifié par le test. |
 | **Territoire** — périmètre géographique du service | **En place** | Antennes et districts, synthèse par antenne, rattachement d'un dossier à un district avec historique. *Les dossiers sans district sont comptés à part.* |
 
 ---

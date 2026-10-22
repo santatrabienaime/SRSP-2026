@@ -15,26 +15,8 @@ export async function getReferentiel(req, res, next) {
   } catch (error) { next(error); }
 }
 
-export async function lister(req, res, next) {
-  try {
-    res.json(await M.lister({
-      etat: req.query.etat,
-      nature: req.query.nature,
-      poste_code: req.query.poste,
-      section: req.query.section,
-      manquantes: req.query.manquantes,
-      document: req.query.document,
-    }));
-  } catch (e) { next(e); }
-}
 
-export async function bilan(req, res, next) {
-  try { res.json(await M.bilan({ document: req.query.document })); } catch (e) { next(e); }
-}
 
-export async function postes(req, res, next) {
-  try { res.json(await M.listerPostes()); } catch (e) { next(e); }
-}
 
 export async function service(req, res, next) {
   try { res.json(await M.infosService()); } catch (e) { next(e); }
