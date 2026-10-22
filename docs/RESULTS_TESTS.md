@@ -16,6 +16,8 @@ API sur `http://localhost:5000`.
 | Fonctions d'ergonomie | `node Backend/scripts/test-e2e-ergonomie.mjs` | **34 / 34** — 0 échec |
 | Données d'opération, versionnage, état « non applicable » | `node Backend/scripts/test-e2e-operations.mjs` | **50 / 50** — 0 échec |
 | Module d'immatriculation de la Coordination | `node Backend/scripts/test-e2e-immatriculation.mjs` | **22 / 22** — 0 échec |
+| **Circuit Secours de bout en bout** | `node Backend/scripts/test-e2e-secours.mjs` | **20 / 20** — 0 échec |
+| **Droits et routes : cohérence** | `node Backend/scripts/test-e2e-droits.mjs` | **2 / 2** — 0 échec |
 | Contrôle des données attendues par chaque écran | `node Backend/scripts/test-ecrans.mjs` | **61 / 61** — 0 échec |
 | Points d'entrée du tableau de bord, avec tous les profils | `node Backend/scripts/test-e2e-tableaux-bord.mjs` | **91 / 91** — 0 échec |
 | Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **12 / 12** — 0 échec |
@@ -28,7 +30,7 @@ API sur `http://localhost:5000`.
 | Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 356 fichiers, 0 défaut |
 | Idempotence des migrations | relance de chaque migration avec `--apply` | **OK** — aucune erreur, aucun doublon |
 
-**Total backend : 403 contrôles, 403 réussis, 0 échec — plus 1 625 appels de balayage, tous sans erreur.**
+**Total backend : 425 contrôles, 425 réussis, 0 échec — plus 1 625 appels de balayage, tous sans erreur.**
 **Total frontend : 103 tests, 103 réussis, 0 échec.**
 
 ---
@@ -406,6 +408,8 @@ Quatre campagnes ont été ajoutées pour combler ce manque.
 | `test-e2e-exports-excel.mjs` | Que les quinze exports Excel portent des noms d'onglets valides (Excel refuse au-delà de 31 caractères). |
 | `test-e2e-balayage-api.mjs` | **Tous** les points d'entrée en lecture, avec **tous** les profils : 125 × 13 = 1 625 appels. |
 | `audit-api-frontend.mjs` | Que **chaque route** a son écran et **chaque écran** sa route : 225 routes, 0 orpheline, 0 appel cassé. |
+| `test-e2e-secours.mjs` | Le circuit Secours **de bout en bout** : mandatement, visa du contrôle financier, références, état d'émargement, signature de l'ordonnateur, archivage de la copie signée, cachet — et le refus à un profil d'une autre division. |
+| `test-e2e-droits.mjs` | Qu'aucune route n'est fermée à tout le monde, que le registre ne cite aucun droit inexistant, et que les attributions attendues sont satisfaites. |
 
 ### Les défauts trouvés
 
@@ -440,6 +444,56 @@ Un bug a été corrigé au passage : `a.siege` figurait dans le `GROUP BY` de la
 synthèse territoriale mais pas dans son `SELECT`, et le modèle renvoyait un
 `siege` toujours vide. L'antenne siège — celle qui porte le service central —
 n'était donc jamais signalée comme telle.
+
+### Le circuit Secours : des droits que personne ne portait
+
+La campagne `test-e2e-secours.mjs` est née d'une relecture du code, pas d'un
+bug signalé. En comparant les droits exigés par les routes aux droits
+portés par les rôles, **cinq points d'entrée exigeaient un droit qu'aucun
+rôle ne portait** :
+
+| Droit exigé par la route | Écran bloqué |
+|---|---|
+| `enregistrer_visa_cf` | Le visa du contrôle financier |
+| `generer_etat_emargement` | L'état d'émargement et les références |
+| `signer_pieces_mandatement` | La signature de l'ordonnateur |
+| `archiver_copie_mandatement` | L'archivage de la copie signée |
+| `apposer_cachet` | Le cachet de l'ordonnateur |
+
+Le code était là, les données étaient là, les tables étaient là. Le
+mandat n'était pas : le serveur répondait 403 à tout le monde, et l'écran
+montrait cinq étapes que personne ne pouvait faire avancer. **Aucune campagne
+ne le voyait**, parce qu'aucune ne parcourait le circuit Secours.
+
+Les attributions ont été lues dans le registre de conformité, qui porte pour
+chaque exigence le poste qui l'exerce et le droit qui l'exerce :
+
+| Droit | Porté par | Fondement |
+|---|---|---|
+| `enregistrer_visa_cf` | Chef de Division Secours | Registre 75, 76 |
+| `generer_etat_emargement` | Chef de Division Secours | Registre 81, 92, 94 |
+| `signer_pieces_mandatement` | Chef de Division Secours | Registre 95 — droit **dédié** : le chef de division fait signer, il ne signe pas |
+| `apposer_cachet` | Chargé de Secours | Registre 97, 98 |
+| `archiver_copie_mandatement` | Chef de Division Secours et Chargé de Secours | Dernier acte du mandat |
+| `consolidate_reports` | Chef de Service et Coordination | Registre 109, 150, 151 |
+| `manage_personnel` | Chef BAAF | Registre 126, 127 |
+| `liquider_pension` | Chef de Division Pensions | Registre 50 |
+| `gerer_ordonnancement` | Chef de Division Solde et Liquidateur | Registre 29, 60 |
+| `preparer_mandatement` | Chef de Division Solde et Vérificateur Solde | Registre 31, 42 |
+
+Deux droits existaient mais **ne menaient nulle part** : aucune route ne les
+exigeait. `liquider_pension` et `controler_decomptes` sont désormais exigés
+par les opérations qu'ils décrivent — la liquidation de pension et les
+décomptes d'avance et de trop-perçu. Sans cela, le registre de conformité ne
+pouvait pas être vérifié, et il disait « inerte » sur des fonctions livrées.
+
+**Un écart a été assumé.** Le registre attribue « traiter les dossiers de
+retraite, de secours, de salaires » au chef de division. Le droit
+`traiter_dossier` ne lui est **pas** accordé : l'affectation automatique ne
+propose un dossier qu'aux agents qui portent ce droit, et l'accorder aux
+chefs les chargerait du traitement qu'ils n'ont pas à faire. La raison est
+écrite dans `affectationAutoService`, et la campagne de contrôle des droits
+la connaît : elle distingue l'écart assumé de l'oubli.
 
 ### La correction de fond
 

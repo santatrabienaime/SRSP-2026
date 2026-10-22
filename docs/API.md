@@ -637,10 +637,23 @@ Réponse de transition : `{ "message": "…" }` ; en cas de statut incohérent :
 ### `GET /dossiers/:id/fiche-reception`
 Fiche de réception en PDF (`application/pdf`).
 
-### Module Secours — `/dossiers/:id/secours`
+### Module Secours - `/dossiers/:id/secours`
 
 Les cinq étapes du mandat de décès. La lecture est ouverte à qui peut
 consulter le dossier ; chaque écriture a sa permission dédiée.
+
+> **Ces permissions doivent être portées par un rôle.** Une route qui exige
+> un droit que personne ne porte est une route fermée : le serveur répond 403
+> à tout le monde. Le contrôle `test-e2e-droits.mjs` le vérifie à chaque
+> campagne.
+>
+> | Droit | Porté par |
+> |---|---|
+> | `enregistrer_visa_cf` | Chef de Division Secours |
+> | `generer_etat_emargement` | Chef de Division Secours |
+> | `signer_pieces_mandatement` | Chef de Division Secours |
+> | `archiver_copie_mandatement` | Chef de Division Secours, Chargé de Secours |
+> | `apposer_cachet` | Chargé de Secours |
 
 | Endpoint | Permission | Description |
 |---|---|---|

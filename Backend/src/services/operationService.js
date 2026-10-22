@@ -110,6 +110,36 @@ export async function lire(dossierId) {
  * indépendamment, sinon le dossier et sa donnée risqueraient de ne pas
  * d'accord.
  */
+/**
+ * Les droits dédiés à certaines opérations.
+ *
+ * Le cahier distingue, dans une même division, le droit de **préparer** et
+ * le droit de **vérifier** : le vérificateur de Solde prépare les décomptes,
+ * le chef de division les vérifie ; le liquidateur établit la liquidation,
+ * le chef de division la gère.
+ *
+ * Le droit générique (`saisir_donnees_operation`, `controler_donnees_operation`)
+ * reste la porte d'entrée ; le droit dédié s'y ajoute pour les opérations
+ * concernées. Sans cela, `liquider_pension` et `controler_decomptes` ne
+ * mèneraient nulle part : le registre de conformité dirait « inerte » sur
+ * des fonctions qui sont, elles, livrées.
+ *
+ * `ecriture` : le droit qu'il faut pour saisir les données de l'opération.
+ * `lecture`  : le droit qu'il faut pour les contrôler.
+ */
+const DROITS_DEDIES = {
+  PENSION_LIQUIDATION: { ecriture: 'liquider_pension', lecture: 'liquider_pension' },
+  SOLDE_AVANCE: { lecture: 'controler_decomptes' },
+  SOLDE_TROP_PERCU: { lecture: 'controler_decomptes' },
+};
+
+/** Le droit dédié qu'exige cette opération, s'il y en a un. */
+function droitDedie(operationCode, nature) {
+  const droits = DROITS_DEDIES[operationCode];
+  if (!droits) return null;
+  return droits[nature] || null;
+}
+
 export async function saisir(dossierId, corps, userId) {
   const dossier = await exigerDossier(dossierId);
   const permissions = await permissionsDe(userId);
@@ -122,6 +152,14 @@ export async function saisir(dossierId, corps, userId) {
 
   const operation = await operationModel.schemaAvecOperation(dossier.sous_type_id);
   const champs = operation?.champs || [];
+
+  const dedie = droitDedie(operation?.code, 'ecriture');
+  if (dedie && !permissions.includes(dedie)) {
+    throw httpError(
+      403,
+      `Cette opération relève d’un droit qui n’est pas le vôtre.`
+    );
+  }
 
   /* Deux formes acceptées : `valeurs` (la forme déclarative) et le corps
      plat (la forme historique). Le frontend a employer's la première ; la
@@ -169,7 +207,7 @@ export async function saisir(dossierId, corps, userId) {
  * distingue une opération vérifiée d'une opération seulement saisie.
  */
 export async function controler(dossierId, { decision, observations, date_controle }, userId) {
-  await exigerDossier(dossierId);
+  const dossier = await exigerDossier(dossierId);
   const permissions = await permissionsDe(userId);
   if (!permissions.includes('controler_donnees_operation')) {
     throw httpError(
@@ -177,6 +215,19 @@ export async function controler(dossierId, { decision, observations, date_contro
       'Contrôler les données d’une opération n’est pas de votre ressort.'
     );
   }
+
+  /* Le droit dédié de l'opération s'ajoute au droit générique : vérifier
+     un décompte n'est pas la même chose que contrôler une donnée
+     d'opération, et le cahier les distingue. */
+  const operation = await operationModel.schemaAvecOperation(dossier.sous_type_id);
+  const dedie = droitDedie(operation?.code, 'lecture');
+  if (dedie && !permissions.includes(dedie)) {
+    throw httpError(
+      403,
+      'Contrôler cette opération relève d’un droit qui n’est pas le vôtre.'
+    );
+  }
+
   if (!String(decision || '').trim()) {
     throw httpError(422, 'La décision de contrôle est requise.');
   }

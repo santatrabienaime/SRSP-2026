@@ -338,7 +338,7 @@ export function SecoursPanel({ dossierId, onRefresh }) {
               <p className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
                 La copie signée est archivée.
               </p>
-            ) : hasAnyPermission(['signer_pieces_mandatement', 'archiver_dossier']) ? (
+            ) : hasAnyPermission(['archiver_copie_mandatement', 'archiver_dossier']) ? (
               <Button
                 variant="outline"
                 size="sm"

@@ -237,6 +237,8 @@ Le module VISA est le plus abouti : il est conforme au cahier dans son intégral
 | Statuts Secours proposés | **En place** | Couverts par le circuit commun, plus les étapes propres au mandat. |
 
 > Les cinq étapes du mandat étaient **inaccessibles depuis l'interface** (le serveur les exposait, aucun écran ne les appelait). Elles sont désormais réunies dans l'onglet *Secours* de la fiche.
+>
+> Elles étaient de surcroît **inopérantes** : les cinq routes exigeaient un droit qu'aucun rôle ne portait. Le serveur répondait 403 à tout le monde, et l'agent voyait un mandat que personne ne pouvait faire avancer. Les attributions ont été reprises du registre de conformité, et la campagne `test-e2e-secours.mjs` parcourt désormais le circuit de bout en bout — y compris le refus à un profil d'une autre division.
 
 ---
 
@@ -403,6 +405,8 @@ Ces points ne sont pas des défauts : ce sont des règles que le cahier ne tranc
 | 14 | **État « non applicable » d'une pièce** | **En place** — l'état existe : la pièce ne bloque pas la validation et ne demande pas de motif. |
 | 15 | **Traçabilité des versions d'une pièce remplacée** | **En place** — un dépôt crée une version suivante, la précédente est conservée et liée ; une version antérieure ne peut plus être supprimée. |
 | 16 | **Champs exacts de chaque type d'opération** | **En place, à valider** — les 17 types du cahier portent leurs champs, et l'écran *Référentiel → Schémas d'opérations* permet de les faire évoluer sans développement. C'est là que le SRSP doit dire ce qui est juste. |
+| 17 | **Les droits du registre de conformité** | **En place, à valider** — le registre porte, pour chaque exigence, le poste qui l'exerce et le droit qui l'exerce. L'audit `test-e2e-droits.mjs` vérifie que les attributions attendues sont satisfaites, et qu'aucune route n'est fermée à tout le monde. **Un écart est assumé** : les chefs de division ne portent pas `traiter_dossier` — l'affectation automatique ne propose un dossier qu'aux agents qui le portent, et l'accorder aux chefs les chargerait du traitement qu'ils n'ont pas à faire. Le registre attribue « traiter les dossiers » au chef de division : c'est le vocabulaire du cahier, pas le fonctionnement de la plateforme. *À confirmer.* |
+| 18 | **Le certificat de cessation imprimable** | **À faire** — la donnée de cessation est gérée (opération `PENSION_CERTIFICAT_CESSATION`, et `SOLDE_CERTIFICAT_CESSATION`), la production du certificat imprimable n'existe pas. |
 
 ---
 
