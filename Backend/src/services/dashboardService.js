@@ -500,13 +500,16 @@ export async function getSecretaireKPIs(scope) {
     f.params
   );
 
-  // 5. Dossiers incomplets (pièces manquantes au dépouillement)
-  // Un dossier peut avoir plusieurs pièces dépouillées : on compte les
-  // dossiers distincts, pas les pièces.
+  // 5. Dossiers incomplets (pièces manquantes au dépouillement).
+  // Même définition que le tableau de bord : une pièce obligatoire de
+  // dépouillement est incomplète si elle n'a pas été contrôlée « présente »
+  // (absente du dépouillement, manquante, illisible ou à corriger). On ne
+  // compte que les dossiers non clôturés ni archivés.
   const [incomplets] = await db.query(
-    `SELECT COUNT(DISTINCT d.id) AS total FROM dossiers d
-     JOIN depouillements dp ON dp.dossier_id = d.id
-     WHERE dp.presente = 0${f.where}`,
+    `SELECT COUNT(*) AS total FROM dossiers d
+     JOIN statuts_dossiers s ON d.statut_id = s.id
+     WHERE s.code NOT IN ('CLOTURE', 'ARCHIVE')
+       AND ${CONDITION_INCOMPLET}${f.where}`,
     f.params
   );
 
