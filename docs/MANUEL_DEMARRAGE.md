@@ -122,7 +122,7 @@ psql -h localhost -U postgres -d srsp_db -c "SELECT COUNT(*) FROM dossiers;"
 ```
 
 Attendu : **61 tables**, **13 rôles**, **6 dossiers** de démonstration et
-**1 474 lignes** au total.
+**1 442 lignes** au total.
 
 > **Contenu de la base livrée** : le référentiel complet (rôles, permissions,
 > pièces requises, schémas d'opérations, statuts, divisions, districts,

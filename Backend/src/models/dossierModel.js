@@ -1,6 +1,7 @@
 import db from '../config/db.js';
 import { generateDossierNumber } from '../utils/generateDossierNumber.js';
 import { normaliserMatricule } from '../validators/dossierValidators.js';
+import { LIBELLES_ACTIONS } from '../utils/libellesActions.js';
 
 /**
  * Dossiers d'une personne, identifiés par son matricule compacté.
@@ -42,14 +43,19 @@ export async function findDossiers(filters = {}) {
            d.demandeur_nom, d.demandeur_prenom, d.demandeur_tel,
            d.demandeur_email, d.demandeur_adresse,
            d.observation, d.date_limite, d.date_cloture, d.date_archivage, d.created_at,
-           d.agent_responsable_id, d.priorite_id,
+           d.agent_responsable_id, d.priorite_id, p.niveau AS priorite_niveau,
            DATEDIFF(CURDATE(), DATE(d.date_reception)) AS age_jours,
            t.libelle AS type_libelle, t.code AS type_code,
            st.libelle AS sous_type_libelle,
            s.libelle AS statut_libelle, s.code AS statut_code,
            dv.nom AS division_nom, p.libelle AS priorite_libelle,
            a.nom AS agent_nom, a.prenom AS agent_prenom,
-           v.nom AS verificateur_nom, v.prenom AS verificateur_prenom
+           v.nom AS verificateur_nom, v.prenom AS verificateur_prenom,
+           /* Dernier acte du dossier : il dit où le dossier circule
+              aujourd'hui. Une sous-requête latérale par dossier coûte moins
+              qu'une seconde requête par ligne. */
+           dm.date_action AS dernier_mouvement,
+           dm.action AS derniere_action
      FROM dossiers d
      JOIN types_dossiers t ON d.type_id = t.id
      LEFT JOIN sous_types_dossiers st ON st.id = d.sous_type_id
@@ -58,6 +64,13 @@ export async function findDossiers(filters = {}) {
      JOIN priorites p ON d.priorite_id = p.id
      LEFT JOIN agents a ON d.agent_responsable_id = a.id
      LEFT JOIN agents v ON v.id = d.verificateur_id
+     LEFT JOIN LATERAL (
+       SELECT h.date_action, h.action
+         FROM historique_actions h
+        WHERE h.dossier_id = d.id
+        ORDER BY h.date_action DESC, h.id DESC
+        LIMIT 1
+     ) dm ON true
      WHERE 1=1
   `;
   const params = [];
@@ -122,6 +135,16 @@ export async function findDossiers(filters = {}) {
   if (filters.priorite_id) {
     query += ' AND d.priorite_id = ?';
     params.push(filters.priorite_id);
+  }
+  /* Le niveau de priorité (4 = URGENTE, 1 = BASSE) est un filtre à part
+     entière : un chef de division peut vouloir ne voir que les urgents, sans
+     trier. */
+  if (filters.niveau) {
+    const niveau = Number(filters.niveau);
+    if (Number.isInteger(niveau) && niveau > 0) {
+      query += ' AND p.niveau = ?';
+      params.push(niveau);
+    }
   }
   if (filters.division_id) {
     query += ' AND d.division_id = ?';
@@ -196,6 +219,12 @@ export async function findDossiers(filters = {}) {
     type: 't.libelle ASC, s.ordre ASC, d.id ASC',
     /* Classer par priorité : la file se lit du plus urgent au moins urgent. */
     priorite: 'p.niveau DESC, s.ordre ASC, d.date_reception ASC, d.id ASC',
+    /* Classer par NIVEAU seul : l'urgence d'abord, puis l'ancienneté. Le
+       niveau vient du référentiel (URGENTE = 4, BASSE = 1) : un tri
+       décroissant place donc les urgents en tête. `niveau_asc` fait
+       l'inverse, pour relire une file du moins prioritaire au plus urgent. */
+    niveau: 'p.niveau DESC, d.date_reception ASC, d.id ASC',
+    niveau_asc: 'p.niveau ASC, d.date_reception ASC, d.id ASC',
     /* Classer par demandeur : utile au service de la secrétaire, qui saisit
        beaucoup de demandes pour une même personne. */
     demandeur: 'd.demandeur_nom ASC, d.demandeur_prenom ASC, d.id ASC',
@@ -238,7 +267,17 @@ export async function findDossiers(filters = {}) {
      sinon la requête est rejetée. La liste des tris est fermée, la colonne
      n'est donc jamais concaténée depuis l'extérieur. */
   query += ` ORDER BY ${TRIS[filters.tri] || TRIS.prioritaire}`;
-  return db.query(query, params);
+  const lignes = await db.query(query, params);
+
+  /* Le dernier acte est stocké en code technique (VALIDATION) : le frontend
+     n'a pas à connaître ce vocabulaire. On le traduit ici, une fois, comme le
+     fait déjà le journal des actions. */
+  return lignes.map((ligne) => ({
+    ...ligne,
+    derniere_action_libelle: ligne.derniere_action
+      ? (LIBELLES_ACTIONS[ligne.derniere_action] || ligne.derniere_action)
+      : null,
+  }));
 }
 
 export async function findDossierById(id) {

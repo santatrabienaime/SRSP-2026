@@ -4,6 +4,7 @@ import { Search, Plus, UserCheck, User, Filter, X, Layers } from 'lucide-react';
 import { dossierService } from '../../services/dossierService.js';
 import { divisionService } from '../../services/divisionService.js';
 import { agentService } from '../../services/agentService.js';
+import { referentielService } from '../../services/referentielService.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { usePagination } from '../../hooks/usePagination.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -17,10 +18,10 @@ import { Table } from '../ui/Table.jsx';
 import { Pagination } from '../ui/Pagination.jsx';
 import { Alert } from '../ui/Alert.jsx';
 import { EmptyState } from '../ui/EmptyState.jsx';
-import { formatDateString } from '../../utils/formatDate.js';
+import { formatDateString, formatDateTime } from '../../utils/formatDate.js';
 import { formatStatus, statusBadgeClass, prioriteBadgeClass } from '../../utils/formatStatus.js';
 import { STATUTS, STATUT_LABELS, TYPES_DOSSIERS } from '../../config/constants.js';
-import { TRIS_DOSSIERS, grouperParStatut } from '../../config/triage.js';
+import { TRIS_DOSSIERS, grouperParStatut, grouperParNiveau } from '../../config/triage.js';
 
 const STATUT_FILTERS = [
   { value: '', label: 'Tous les statuts' },
@@ -106,20 +107,23 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
      période ou un agent précis. */
   const [division, setDivision] = useState('');
   const [agent, setAgent] = useState('');
+  const [niveau, setNiveau] = useState('');
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
   const [filtresOuverts, setFiltresOuverts] = useState(false);
   const [divisions, setDivisions] = useState([]);
   const [agents, setAgents] = useState([]);
+  const [priorites, setPriorites] = useState([]);
   /* Tri de la file de travail. « prioritaire » place en tête ce qui doit être
      traité aujourd'hui — urgence, échéance, ancienneté. Un agent qui arrive le
      matin voit ainsi d'abord ce qui l'attend, au lieu du plus récemment reçu. */
   const [tri, setTri] = useState(agentPersonnel ? 'echeance' : 'prioritaire');
-  /* Regroupement par statut : la liste est alors découpée en sections, une
-     par statut du circuit, avec l'effectif de chacune. C'est la vue qui
-     répond à « où en est le service ? » ; la liste plate répond à « quel
-     dossier dois-je traiter ? ». */
-  const [regrouper, setRegrouper] = useState(false);
+  /* Regroupement de la liste : aucune section, une section par statut du
+     circuit, ou une section par niveau de priorité. Les deux modes sont
+     exclusifs : deux découpages superposés seraient illisibles.
+     Le regroupement par niveau répond à « qu'est-ce qui est urgent ? » ; le
+     regroupement par statut à « où en est le service ? ». */
+  const [regroupement, setRegroupement] = useState('');
   /* Un groupe trop long est replié : on montre les premiers dossiers et on
      laisse le reste à la demande. Sans cela, un statut à deux cents dossiers
      écrase tous les autres. */
@@ -135,6 +139,12 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
     agentService
       .list()
       .then((a) => setAgents(Array.isArray(a) ? a : []))
+      .catch(() => {});
+    /* Les niveaux de priorité viennent du référentiel : le SRSP peut renommer
+       « URGENTE » ou changer son rang sans qu'on redéploie le frontend. */
+    referentielService
+      .get()
+      .then((r) => setPriorites(Array.isArray(r?.priorites) ? r.priorites : []))
       .catch(() => {});
   }, []);
 
@@ -161,6 +171,7 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
         ...(lockedType ? {} : { type: typeFilter || undefined }),
         division_id: division || undefined,
         agent_id: agent || undefined,
+        niveau: niveau || undefined,
         date_debut: dateDebut || undefined,
         date_fin: dateFin || undefined,
         tri: tri || undefined,
@@ -172,7 +183,7 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
     } finally {
       if (!silencieux) setLoading(false);
     }
-  }, [filterKey, debouncedSearch, statut, typeFilter, division, agent, dateDebut, dateFin, tri]);
+  }, [filterKey, debouncedSearch, statut, typeFilter, division, agent, niveau, dateDebut, dateFin, tri]);
 
   // load est stable (dépendances primitives : filterKey, debouncedSearch, statut, typeFilter)
   // → l'effet se déclenche au montage ET à chaque vrai changement de filtre, sans boucle.
@@ -190,9 +201,12 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
   }, [abonner, load]);
 
   const pagination = usePagination(data, 10);
-  /* Les sections de la vue par statut : une par statut du circuit, dans
-     l'ordre du circuit. */
-  const groupes = useMemo(() => grouperParStatut(data), [data]);
+  /* Les sections de la vue groupée : une par statut du circuit, ou une par
+     niveau de priorité selon le mode choisi. */
+  const groupes = useMemo(
+    () => (regroupement === 'niveau' ? grouperParNiveau(data) : grouperParStatut(data)),
+    [data, regroupement]
+  );
   const canCreate = hasPermission('create_dossier');
 
   const columns = [
@@ -230,12 +244,17 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
       render: (r) => (r.agent_nom ? `${r.agent_nom} ${r.agent_prenom || ''}`.trim() : '—'),
     },
     {
-      key: 'priorite_libelle',
-      label: 'Priorité',
+      key: 'priorite_niveau',
+      label: 'Niveau',
       render: (r) => (
-        <Badge className={prioriteBadgeClass(r.priorite_libelle)}>
-          {r.priorite_libelle || '—'}
-        </Badge>
+        <div className="flex flex-col items-start gap-0.5">
+          <Badge className={prioriteBadgeClass(r.priorite_libelle)}>
+            {r.priorite_libelle || '—'}
+          </Badge>
+          <span className="text-[10px] uppercase tracking-wide text-slate-400">
+            niveau {r.priorite_niveau ?? '—'}
+          </span>
+        </div>
       ),
     },
     {
@@ -261,6 +280,26 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
           {formatStatus(r.statut_code)}
         </Badge>
       ),
+    },
+    {
+      /* Le dernier acte dit où le dossier circule aujourd'hui. Il vient de
+         l'historique, pas d'une colonne recopiée : c'est la même source que
+         l'onglet Historique de la fiche. */
+      key: 'dernier_mouvement',
+      label: 'Dernier mouvement',
+      render: (r) =>
+        r.dernier_mouvement ? (
+          <div className="max-w-[12rem]">
+            <p className="truncate text-xs font-medium text-slate-600">
+              {r.derniere_action_libelle || 'Action'}
+            </p>
+            <p className="text-[11px] text-slate-400">
+              {formatDateTime(r.dernier_mouvement)}
+            </p>
+          </div>
+        ) : (
+          <span className="text-slate-400">—</span>
+        ),
     },
   ];
 
@@ -300,7 +339,7 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
         </p>
       )}
       {/* Filtres */}
-      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-end">
+      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-end">
         <div className="flex-1">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-9 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -342,18 +381,30 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
             ))}
           </Select>
         </div>
-        {/* Regroupement par statut : la liste est découpée en sections, une par
-            statut du circuit, avec l'effectif de chacune. */}
-        <div className="w-full sm:w-auto">
+        {/* Regroupement : la liste est découpée en sections, soit par statut
+            du circuit, soit par niveau de priorité. Les deux modes sont
+            exclusifs ; un second clic sur le mode actif revient à la liste
+            plate. */}
+        <div className="flex w-full gap-2 sm:w-auto">
           <Button
-            variant={regrouper ? 'primary' : 'outline'}
-            onClick={() => setRegrouper((v) => !v)}
+            variant={regroupement === 'statut' ? 'primary' : 'outline'}
+            onClick={() => setRegroupement((v) => (v === 'statut' ? '' : 'statut'))}
             title="Afficher les dossiers section par statut"
-            aria-pressed={regrouper}
-            className="w-full sm:w-auto"
+            aria-pressed={regroupement === 'statut'}
+            className="flex-1 sm:flex-none"
           >
             <Layers className="h-4 w-4" />
             Grouper par statut
+          </Button>
+          <Button
+            variant={regroupement === 'niveau' ? 'primary' : 'outline'}
+            onClick={() => setRegroupement((v) => (v === 'niveau' ? '' : 'niveau'))}
+            title="Afficher les dossiers section par niveau de priorité"
+            aria-pressed={regroupement === 'niveau'}
+            className="flex-1 sm:flex-none"
+          >
+            <Layers className="h-4 w-4" />
+            Grouper par niveau
           </Button>
         </div>
         {showTypeFilter ? (
@@ -401,7 +452,7 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
         >
           <Filter className="h-4 w-4 text-slate-400" />
           Filtres avancés
-          {(division || agent || dateDebut || dateFin) && (
+          {(division || agent || niveau || dateDebut || dateFin) && (
             <span className="rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-semibold text-primary-700">
               actifs
             </span>
@@ -409,7 +460,7 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
         </button>
 
         {filtresOuverts && (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <Select
               label="Division"
               value={division}
@@ -431,6 +482,22 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
                   {a.nom} {a.prenom}
                 </option>
               ))}
+            </Select>
+            {/* Niveau de priorité : 4 = URGENTE, 1 = BASSE. Les niveaux
+                viennent du référentiel, pas d'une liste figée ici. */}
+            <Select
+              label="Niveau de priorité"
+              value={niveau}
+              onChange={(e) => setNiveau(e.target.value)}
+            >
+              <option value="">Tous les niveaux</option>
+              {[...priorites]
+                .sort((a, b) => Number(b.niveau) - Number(a.niveau))
+                .map((p) => (
+                  <option key={p.id} value={p.niveau}>
+                    {p.libelle} — niveau {p.niveau}
+                  </option>
+                ))}
             </Select>
             <div>
               <label
@@ -464,14 +531,15 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
                 className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
               />
             </div>
-            {(division || agent || dateDebut || dateFin) && (
-              <div className="sm:col-span-2 lg:col-span-4">
+            {(division || agent || niveau || dateDebut || dateFin) && (
+              <div className="sm:col-span-2 lg:col-span-5">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setDivision('');
                     setAgent('');
+                    setNiveau('');
                     setDateDebut('');
                     setDateFin('');
                   }}
@@ -500,19 +568,24 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
           {baseFilters.statut || baseFilters.brouillon || baseFilters.incomplets
             ? ' dans cette sélection'
             : ''}
-          {regrouper && groupes.length > 0 && (
+          {regroupement === 'statut' && groupes.length > 0 && (
             <>
               , répartis sur {groupes.length} statut{groupes.length > 1 ? 's' : ''}
+            </>
+          )}
+          {regroupement === 'niveau' && groupes.length > 0 && (
+            <>
+              , répartis sur {groupes.length} niveau{groupes.length > 1 ? 'x' : ''} de priorité
             </>
           )}
           .
         </p>
       )}
 
-      {regrouper ? (
-        /* Vue par statut : une section par statut du circuit, dans l'ordre du
-           circuit. Chaque section porte son effectif — c'est ce qui permet de
-           repérer la surcharge d'un statut. */
+      {regroupement ? (
+        /* Vue groupée : une section par statut du circuit, ou une section par
+           niveau de priorité. Chaque section porte son effectif — c'est ce qui
+           permet de repérer la surcharge d'un statut ou le poids des urgents. */
         <div className="space-y-5">
           {groupes.map((groupe) => {
             const deploye = Boolean(groupesDeployes[groupe.code]);
@@ -520,8 +593,17 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
             const reste = groupe.dossiers.length - visibles.length;
             return (
               <section key={groupe.code} aria-label={`Dossiers ${groupe.label}`}>
-                <div className="mb-2 flex items-center gap-2">
-                  <Badge className={statusBadgeClass(groupe.code)}>{groupe.label}</Badge>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  {regroupement === 'statut' ? (
+                    <Badge className={statusBadgeClass(groupe.code)}>{groupe.label}</Badge>
+                  ) : (
+                    <>
+                      <Badge className={prioriteBadgeClass(groupe.label)}>{groupe.label}</Badge>
+                      <span className="text-xs text-slate-400">
+                        niveau {groupe.niveau}
+                      </span>
+                    </>
+                  )}
                   <span className="text-sm text-slate-500">
                     {groupe.total} dossier{groupe.total > 1 ? 's' : ''}
                   </span>

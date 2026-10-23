@@ -304,6 +304,8 @@ const TRIS_BOITE = {
   echeance:
     '(CASE WHEN d.date_limite IS NULL THEN 1 ELSE 0 END) ASC, d.date_limite ASC, d.id ASC',
   priorite: 'p.niveau DESC, s.ordre ASC, d.date_reception ASC, d.id ASC',
+  niveau: 'p.niveau DESC, d.date_reception ASC, d.id ASC',
+  niveau_asc: 'p.niveau ASC, d.date_reception ASC, d.id ASC',
   ancien: 'd.date_reception ASC, d.id ASC',
   recent: 'd.date_reception DESC, d.id DESC',
   numero: 'd.numero ASC',

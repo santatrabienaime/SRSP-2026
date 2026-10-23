@@ -37,6 +37,28 @@ function section(titre) {
   console.log(`\n=== ${titre} ===`);
 }
 
+/**
+ * Nettoyage des pièces de test.
+ *
+ * L'API ne supprime jamais une pièce : elle la désactive, et c'est la règle du
+ * référentiel (une pièce citée par un dépouillement doit rester lisible). Une
+ * campagne laisserait donc une ligne `PIECE_TEST_*` par exécution. Le test
+ * retire les siennes en fin de course — et celles des exécutions précédentes,
+ * pour réparer les bases déjà polluées.
+ */
+async function nettoyerPiecesTest() {
+  try {
+    const { default: db } = await import('../src/config/db.js');
+    const r = await db.query("DELETE FROM types_pieces WHERE code LIKE 'PIECE_TEST_%'");
+    if (r.affectedRows) {
+      console.log(`  (nettoyage : ${r.affectedRows} pièce(s) de test supprimée(s))`);
+    }
+    await db.pool.end();
+  } catch (e) {
+    console.warn(`  (nettoyage des pièces de test impossible : ${e.message})`);
+  }
+}
+
 /** Connexion : renvoie le jeton et le profil. */
 async function login(identifiant, password = 'Demo123!') {
   const r = await fetch(`${BASE}/auth/login`, {
@@ -597,14 +619,16 @@ async function main() {
     permsAdmin.includes('configurer_pieces'), 'configurer_pieces présent');
 
   /* ------------------------------------------------------------------ */
+  await nettoyerPiecesTest();
   console.log(`\n${'='.repeat(60)}`);
   console.log(`Résultat : ${reussis} test(s) réussi(s), ${echecs} échec(s).`);
   console.log(`${'='.repeat(60)}\n`);
   process.exit(echecs === 0 ? 0 : 1);
 }
 
-main().catch((e) => {
+main().catch(async (e) => {
   console.error('\nÉCHEC FATAL :', e.message);
   console.error(e.stack);
+  await nettoyerPiecesTest();
   process.exit(1);
 });

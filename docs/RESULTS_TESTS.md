@@ -1,6 +1,6 @@
 # Résultats des tests — SRSP Fitovinany
 
-Date de la campagne : **22 octobre 2026**
+Date de la campagne : **23 octobre 2026**
 Environnement : Windows, Node.js 24, PostgreSQL 18 local (`srsp_db`),
 API sur `http://localhost:5000`.
 
@@ -25,16 +25,17 @@ API sur `http://localhost:5000`.
 | Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **14 / 14** — 0 échec |
 | Noms d'onglets des exports Excel | `node Backend/scripts/test-e2e-exports-excel.mjs` | **15 / 15** — 0 échec |
 | **Balayage de toute l'API, avec tous les profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur serveur** |
-| **Triage des dossiers : tris et regroupement par statut** | `node Backend/scripts/test-e2e-tri-dossiers.mjs` | **24 / 24** — 0 échec |
+| **Triage des dossiers : tris et regroupement par statut et par niveau** | `node Backend/scripts/test-e2e-tri-dossiers.mjs` | **35 / 35** — 0 échec |
+| **Audit des doublons de codes et des résidus de campagne** | `node Backend/scripts/audit-doublons.mjs` | **0 anomalie** — 0 doublon, 0 résidu |
 | **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **222 routes — 0 orpheline, 0 appel cassé** |
-| Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **131 / 131** — 16 fichiers, 0 échec |
+| Tests unitaires et de rendu du frontend | `npm test` (Frontend) | **141 / 141** — 16 fichiers, 0 échec |
 | Construction de production du frontend | `npm run build` (Frontend) | **OK** — `dist/` généré |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** — 0 erreur |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 353 fichiers, 0 défaut |
-| **Restauration PostgreSQL** | import de `database/srsp_db.sql` dans une base `srsp_test` | **OK** — 61 tables, 1 474 lignes |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 354 fichiers, 0 défaut |
+| **Restauration PostgreSQL** | import de `database/srsp_db.sql` dans une base `srsp_test` | **OK** — 61 tables, 1 442 lignes |
 
-**Total backend : 491 contrôles, 491 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
-**Total frontend : 131 tests, 131 réussis, 0 échec.**
+**Total backend : 502 contrôles, 502 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
+**Total frontend : 141 tests, 141 réussis, 0 échec.**
 
 ---
 
@@ -42,7 +43,10 @@ API sur `http://localhost:5000`.
 
 Le test s'exécute contre une **API réelle** et une **base réelle** : il ne
 simule rien. Il crée ses propres dossiers, avec des matricules uniques, et
-les supprime ou les archive à la fin.
+supprime ceux que la règle métier autorise à supprimer. Les campagnes
+s'exécutent sur une copie (`srsp_test`) — ou la base est restaurée ensuite
+depuis `database/srsp_db.sql` — et le test retire lui-même les pièces
+`PIECE_TEST_%` qu'il a créées.
 
 ```bash
 cd Backend
@@ -385,7 +389,7 @@ nomme la difficulté, il ne remplace pas le circuit.
 
 ---
 
-## 3 bis. Le triage des dossiers — tris et regroupement par statut
+## 3 bis. Le triage des dossiers — tris et regroupement par statut et par niveau
 
 ```bash
 cd Backend
@@ -400,18 +404,36 @@ dossiers dans l'ordre annoncé — et qu'aucun tri ne fait perdre de dossier.
 | Section | Points de contrôle | Résultat |
 |---|---|---|
 | 1. Référence | La liste de référence répond, elle n'est pas vide | 2 / 2 |
-| 2. Statut | `tri=statut` suit l'ordre du circuit, `tri=statut_desc` l'ordre inverse, aucun dossier perdu | 6 / 6 |
+| 2. Statut | `tri=statut` suit l'ordre du circuit, `tri=statut_desc` l'ordre inverse, aucun dossier perdu | 5 / 5 |
 | 3. Priorité, type, demandeur, ancienneté | Les priorités décroissent, les types et les noms sont classés, les réceptions croissent | 8 / 8 |
-| 4. Signalements | `tri=signalement` place les dossiers signalés non traités en tête | 2 / 2 |
-| 5. Robustesse | Un tri inconnu ne casse rien : repli sur le tri par défaut | 2 / 2 |
-| 6. Boîte de travail | La boîte accepte le même tri, les files sont ordonnées, les compteurs restent présents | 4 / 4 |
+| 4. **Niveau** | `tri=niveau` place les urgents en tête, `tri=niveau_asc` les faibles d'abord, le filtre `niveau=` isole un niveau sans perdre de dossier, le dernier mouvement est exposé et traduit | 10 / 10 |
+| 5. Signalements | `tri=signalement` place les dossiers signalés non traités en tête | 2 / 2 |
+| 6. Robustesse | Un tri inconnu ne casse rien : repli sur le tri par défaut | 2 / 2 |
+| 7. Boîte de travail | La boîte accepte le même tri, les files sont ordonnées (statut et niveau), les compteurs restent présents | 6 / 6 |
 
-**Résultat : 24 vérifications, 24 réussies, 0 échec.**
+**Résultat : 35 vérifications, 35 réussies, 0 échec.**
 
 > Sur la base de référence — qui ne comporte aucun signalement ouvert — le
 > contrôle « les dossiers signalés viennent d'abord » n'a pas d'objet : il est
-> annoncé comme tel, et non compté comme une réussite. Il a été vérifié à
-> 24 / 24 sur une base de test où un signalement ouvert existait.
+> annoncé comme tel, et non compté comme une réussite. Les deux contrôles
+> exécutés vérifient que le tri répond et ne perd aucun dossier ; la mise en
+> tête a été vérifiée lors d'une campagne antérieure, sur une base où un
+> signalement ouvert existait.
+
+**Doublons et résidus** — le même contrôle est doublé d'un audit de la base :
+
+```bash
+node Backend/scripts/audit-doublons.mjs            # lecture seule
+node Backend/scripts/audit-doublons.mjs --corriger # supprime résidus et doublons
+```
+
+L'audit vérifie les codes (toutes casses et espaces ignorés), les codes par
+type (`sous_types_dossiers`), les libellés dupliqués dans un même périmètre,
+les emails, identifiants, matricules, numéros de dossier et références. Il
+signale les pièces `PIECE_TEST_%` laissées par une campagne et les supprime
+en mode correction — jamais une ligne encore citée par un dépouillement. La
+base livrée est à **0 anomalie**. Le test VISA nettoie désormais ses propres
+pièces de test en fin de course.
 
 ---
 
@@ -436,12 +458,12 @@ npm test
 | `tempsReel.test.jsx` | Contexte temps réel, connexion et événements |
 | `reinitialisation.test.jsx` | Réinitialisation de mot de passe |
 | `useInputControl.test.jsx` | Contrôle de saisie et règles de validation |
-| `triage.test.js` | Tris proposés, ordre du circuit, regroupement par statut |
-| `DossierList.test.jsx` | Sections par statut, section repliée, tri transmis au serveur |
+| `triage.test.js` | Tris proposés, ordre du circuit, regroupement par statut **et par niveau** |
+| `DossierList.test.jsx` | Sections par statut et par niveau, section repliée, tri et filtre de niveau transmis au serveur |
 | `DossierListPage.test.jsx` | Onglets par type du secrétariat, raccourcis, onglets d'avancement des autres profils |
 | `DossierForm.test.jsx` | Création VISA : le type d'acte est proposé, aucun bouton ne bloque sans explication, la fiche incomplète est listée |
 
-**Résultat : 16 fichiers, 131 tests, 131 réussis, 0 échec.**
+**Résultat : 16 fichiers, 141 tests, 141 réussis, 0 échec.**
 
 ---
 
@@ -454,7 +476,7 @@ vérification.
 | Élément | Résultat |
 |---|---|
 | Tables | **61** |
-| Lignes copiées | **1 474** |
+| Lignes copiées | **1 442** |
 | Index | **165** |
 | Clés étrangères | **102** |
 | Triggers `updated_at` | **19** |

@@ -535,12 +535,12 @@ est annoncé au-dessus du tableau.
 > *Soldes*, *Pensions*, *Secours* — et non l'avancement du traitement. Voir
 > § 7.2.
 
-### 7.1 Le triage : trier et regrouper par statut
+### 7.1 Le triage : trier et regrouper par statut ou par niveau
 
 Le triage sert à retrouver vite le dossier à traiter, et à voir d'un coup d'œil
-où en est le service. Il est **ouvert à tous les profils** : chaque agent
-triage sa file, chaque chef de division triage sa division, chaque chef de
-service triage le service.
+où en est le service. Il est **ouvert à tous les profils** : chaque agent trie
+sa file, chaque chef de division trie sa division, chaque chef de service trie
+le service.
 
 **Trier par** — un sélecteur au-dessus de la liste. Le tri ne change ni le
 contenu de la liste, ni les droits, ni l'état d'un dossier : c'est un ordre
@@ -549,10 +549,12 @@ de lecture.
 | Tri | Ce qu'il met en tête |
 |---|---|
 | À traiter en premier | L'urgence, puis l'échéance, puis l'ancienneté |
+| **Niveau de priorité (urgent d'abord)** | Les dossiers du niveau le plus haut au plus bas : URGENTE (niveau 4) → HAUTE (3) → NORMALE (2) → BASSE (1) |
+| **Niveau de priorité (faible d'abord)** | L'ordre inverse, pour relire une file du moins prioritaire au plus urgent |
 | **Statut du circuit** | Les dossiers selon l'ordre du workflow : reçu → enregistré → orienté → affecté → en traitement → en attente de complément → soumis à vérification → correction demandée → validé → signé → clôturé → archivé |
 | Statut du circuit (inverse) | Le même ordre, en remontant le circuit |
 | Échéance la plus proche | Les dossiers dont la date limite approche |
-| Priorité | Les plus urgents d'abord |
+| Priorité | Les plus urgents d'abord, statut du circuit en second |
 | Plus anciens / plus récents d'abord | L'ancienneté de la réception |
 | Numéro de dossier | L'ordre des numéros |
 | Type de dossier | Par nature de demande (Visa, Solde, Pension, Secours) |
@@ -561,16 +563,39 @@ de lecture.
 | Demandeur | Par ordre alphabétique du nom |
 | **Dossiers signalés** | Les dossiers bloqués qui attendent une décision de la hiérarchie |
 
+**Le niveau de priorité** est celui du référentiel : le SRSP peut renommer une
+priorité ou changer son rang sans modifier l'application. La colonne *Niveau*
+affiche le libellé et le rang (par exemple « URGENTE — niveau 4 »). Le filtre
+**Niveau de priorité**, dans *Filtres avancés*, isole un niveau précis — utile
+pour traiter d'abord les urgents d'une division.
+
 **Grouper par statut** — un bouton à côté du tri. La liste est alors
 découpée en **sections, une par statut du circuit**, et chaque section affiche
 son effectif : c'est la vue qui répond à « où en est le service ? ». Une
 section de plus de dix dossiers est repliée ; un clic la déploie.
 
-Les deux se combinent : on peut grouper par statut et, à l'intérieur de
-chaque section, trier par échéance ou par priorité.
+**Grouper par niveau** — le second bouton. La liste est découpée en sections
+par niveau de priorité, **du plus urgent au moins urgent** : URGENTE, puis
+HAUTE, puis NORMALE, puis BASSE. Chaque section affiche son rang et son
+effectif. Les dossiers dont la priorité n'est pas connue forment une dernière
+section, jamais escamotée. Les deux regroupements sont exclusifs : un clic sur
+l'un remplace l'autre, un second clic revient à la liste plate.
+
+Les deux se combinent avec le tri : on peut grouper par niveau et, à
+l'intérieur de chaque section, trier par échéance ou par statut.
+
+**Le dernier mouvement** — la liste porte une colonne *Dernier mouvement* :
+le dernier acte enregistré (création, affectation, traitement, validation,
+archivage…) et sa date. C'est la circulation récente du dossier, visible sans
+ouvrir la fiche ; l'onglet *Historique* en donne le détail complet.
 
 Le même tri est proposé dans la **boîte de travail** (il ordonne les quatre
 files) et dans la liste des **dossiers prêts à être archivés**.
+
+> **Chercher une circulation** — le journal (*Historique*) se cherche par
+> numéro de dossier, référence visa, **demandeur**, **matricule**, agent,
+> action ou détail. Un lecteur qui connaît la personne mais pas le numéro de
+> son dossier retrouve donc tous ses passages.
 
 ### 7.2 Les onglets du secrétariat : par type de dossier
 

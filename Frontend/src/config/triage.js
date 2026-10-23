@@ -36,6 +36,8 @@ export const ORDRE_CIRCUIT = [
 /** Tris de la liste des dossiers. */
 export const TRIS_DOSSIERS = [
   { value: 'prioritaire', label: 'À traiter en premier' },
+  { value: 'niveau', label: 'Niveau de priorité (urgent d’abord)' },
+  { value: 'niveau_asc', label: 'Niveau de priorité (faible d’abord)' },
   { value: 'statut', label: 'Statut du circuit' },
   { value: 'statut_desc', label: 'Statut du circuit (inverse)' },
   { value: 'echeance', label: 'Échéance la plus proche' },
@@ -59,6 +61,8 @@ export const TRIS_DOSSIERS = [
  */
 export const TRIS_BOITE = [
   { value: 'prioritaire', label: 'À traiter en premier' },
+  { value: 'niveau', label: 'Niveau de priorité (urgent d’abord)' },
+  { value: 'niveau_asc', label: 'Niveau de priorité (faible d’abord)' },
   { value: 'statut', label: 'Statut du circuit' },
   { value: 'echeance', label: 'Échéance la plus proche' },
   { value: 'priorite', label: 'Priorité' },
@@ -98,5 +102,40 @@ export function grouperParStatut(dossiers = []) {
       label: STATUT_LABELS[code] || code,
       dossiers: liste,
       total: liste.length,
+    }));
+}
+
+/**
+ * Regroupe des dossiers par niveau de priorité.
+ *
+ * Le niveau vient du référentiel : URGENTE = 4, HAUTE = 3, NORMALE = 2,
+ * BASSE = 1. Un tri décroissant place donc les urgents en tête, comme la
+ * liste triée par « niveau ». Le libellé du groupe est celui de la priorité
+ * (« URGENTE »), le niveau chiffré reste disponible pour l'en-tête.
+ *
+ * Les dossiers sans priorité connue sont regroupés sous le niveau 0, en
+ * dernier : ils ne doivent ni disparaître, ni se mêler aux urgents.
+ */
+export function grouperParNiveau(dossiers = []) {
+  const groupes = new Map();
+  for (const dossier of dossiers) {
+    const niveau = Number(dossier.priorite_niveau) || 0;
+    if (!groupes.has(niveau)) {
+      groupes.set(niveau, {
+        niveau,
+        label: dossier.priorite_libelle || 'Priorité non renseignée',
+        dossiers: [],
+      });
+    }
+    groupes.get(niveau).dossiers.push(dossier);
+  }
+  return [...groupes.values()]
+    .sort((a, b) => b.niveau - a.niveau)
+    .map((g) => ({
+      code: `NIVEAU_${g.niveau}`,
+      niveau: g.niveau,
+      label: g.label,
+      dossiers: g.dossiers,
+      total: g.dossiers.length,
     }));
 }

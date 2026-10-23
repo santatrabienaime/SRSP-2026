@@ -431,6 +431,7 @@ un agent ne voit que ses dossiers, un chef de division que ceux de sa division.
 | `statut` | string | Code de statut, ou groupe : `NOUVEAUX`, `A_AFFECTER`, `EN_COURS`, `EN_ATTENTE_COMPLEMENT`, `TERMINES` |
 | `type` | string | Code de type (ex. `VISA`) |
 | `statut_id` / `type_id` / `priorite_id` | int | Filtre par identifiant |
+| `niveau` | int | Filtre par **niveau de priorité** (référentiel : `URGENTE` = 4, `HAUTE` = 3, `NORMALE` = 2, `BASSE` = 1) |
 | `sous_type_id` | int | Type d'acte |
 | `division_id` | int | Filtre par division |
 | `agent_id` | int | Filtre par agent responsable |
@@ -442,7 +443,7 @@ un agent ne voit que ses dossiers, un chef de division que ceux de sa division.
 | `echeance` | string | `depassee` pour les échéances dépassées |
 | `incomplets` | 1 | Dossiers dont une pièce obligatoire de dépouillement n'est pas « présente » |
 | `priorite_haute` | 1 | Priorité haute ou urgente |
-| `tri` | string | Ordre d'affichage : `prioritaire`, `statut`, `statut_desc`, `echeance`, `priorite`, `ancien`, `recent`, `numero`, `numero_desc`, `type`, `division`, `agent`, `demandeur`, `signalement`. Valeur inconnue : repli sur `prioritaire`. |
+| `tri` | string | Ordre d'affichage : `prioritaire`, `niveau`, `niveau_asc`, `statut`, `statut_desc`, `echeance`, `priorite`, `ancien`, `recent`, `numero`, `numero_desc`, `type`, `division`, `agent`, `demandeur`, `signalement`. Valeur inconnue : repli sur `prioritaire`. |
 
 > **`tri` et le triage.** Un tri ne change ni le contenu de la liste, ni les
 > droits, ni l'état d'un dossier : c'est un ordre de lecture. `statut` et
@@ -454,17 +455,27 @@ un agent ne voit que ses dossiers, un chef de division que ceux de sa division.
 > dossiers porteurs d'un signalement **non traité** (`OUVERT`, `EN_COURS`) :
 > ils attendent une décision et n'avancent pas seuls.
 >
-> Le regroupement par statut, lui, est fait par l'interface : la liste
-> complète est découpée en sections, une par statut du circuit, avec
-> l'effectif de chacune.
+> `niveau` classe du niveau le plus haut au plus bas — `URGENTE` (4) d'abord,
+> `BASSE` (1) ensuite — puis par ancienneté ; `niveau_asc` fait l'inverse. Le
+> paramètre `niveau` isole un niveau précis. Le référentiel peut renommer les
+> priorités ou changer leur rang sans redéploiement.
+>
+> Le regroupement (par statut ou par niveau) est fait par l'interface : la
+> liste complète est découpée en sections, avec l'effectif de chacune.
 
 Chaque dossier : `{ id, numero, reference_visa, type_id, type_code, type_libelle, sous_type_id,
 sous_type_libelle, type_acte, annee_reference, verificateur_id, verificateur_nom, date_heure_reception,
 origine_presentateur, comptable_presentateur, beneficiaire, organisme, statut_id, statut_code,
 statut_libelle, division_id, division_nom, agent_responsable_id, agent_nom, agent_prenom,
-priorite_id, priorite_libelle, objet, demandeur, matricule, date_reception, date_limite,
-age_jours, observation, date_cloture, date_archivage, date_signature, signataire_username,
+priorite_id, priorite_libelle, priorite_niveau, objet, demandeur, matricule, date_reception, date_limite,
+age_jours, dernier_mouvement, derniere_action, derniere_action_libelle,
+observation, date_cloture, date_archivage, date_signature, signataire_username,
 reference_signature, exception_validation, date_exception, motif_complement, … }`
+
+> `dernier_mouvement` / `derniere_action` / `derniere_action_libelle` donnent
+> le dernier acte du dossier : sa circulation récente, sans ouvrir la fiche.
+> Un dossier sans historique n'a pas de mouvement — le champ est `null`, pas
+> une date inventée.
 
 ### `GET /dossiers/:id`
 Détail d'un dossier.
@@ -782,7 +793,13 @@ Notifications de l'utilisateur connecté (auth requise).
 ## 8. Historique — `/historique`
 
 ### `GET /historique`
-Traçabilité complète. Query params : `dossier_id`, `user_id`, `action`, `search`.
+Traçabilité complète. Query params : `dossier_id`, `user_id`, `action`, `agent_id`,
+`division_id`, `date_debut`, `date_fin`, `search`, `limit`.
+
+`search` porte sur le **numéro de dossier**, la **référence visa**, le
+**demandeur**, le **matricule**, le nom et prénom de l'agent, l'identifiant de
+connexion, le détail et le code d'action. Un lecteur qui connaît la personne
+mais pas le numéro de son dossier retrouve donc sa circulation complète.
 
 Chaque entrée : `{ id, user_id, user_nom, action, dossier_id, details, created_at }`.
 
@@ -821,7 +838,7 @@ La boîte de travail :
 
 | Query param | Type | Description |
 |---|---|---|
-| `tri` | string | Ordre des dossiers **dans chaque file** : `prioritaire`, `statut`, `echeance`, `priorite`, `ancien`, `recent`, `numero`, `type`, `division`, `agent`, `demandeur`. Valeur inconnue : repli sur `prioritaire`. |
+| `tri` | string | Ordre des dossiers **dans chaque file** : `prioritaire`, `niveau`, `niveau_asc`, `statut`, `echeance`, `priorite`, `ancien`, `recent`, `numero`, `type`, `division`, `agent`, `demandeur`. Valeur inconnue : repli sur `prioritaire`. |
 
 ```json
 {

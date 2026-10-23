@@ -21,6 +21,20 @@ export const ACTIONS_SANS_AUTEUR = {
     "Échec d'identification : aucun compte ne s'est identifié, l'événement est donc sans auteur",
 };
 
+/**
+ * Recherche du journal.
+ *
+ * On cherche la circulation d'un dossier, pas seulement un événement : le
+ * lecteur peut connaître le demandeur ou son matricule sans savoir le numéro
+ * de dossier. La recherche porte donc aussi sur l'identité du dossier.
+ * Neuf marqueurs, dans cet ordre — la clause est partagée par la page et le
+ * compteur pour qu'un total ne diverge jamais de la liste.
+ */
+const CONDITION_RECHERCHE = `(d.numero LIKE ? OR d.reference_visa LIKE ?
+  OR d.demandeur LIKE ? OR d.matricule LIKE ?
+  OR a.nom LIKE ? OR a.prenom LIKE ? OR u.username LIKE ?
+  OR h.details LIKE ? OR h.action LIKE ?)`;
+
 export async function log({ user_id, action, dossier_id, ancienne_valeur, nouvelle_valeur, details, ip_address }) {
   await db.query(
     `INSERT INTO historique_actions (user_id, action, dossier_id, ancienne_valeur, nouvelle_valeur, details, ip_address)
@@ -78,9 +92,8 @@ export async function findAll(filters = {}) {
   if (filters.user_id) { query += ' AND h.user_id = ?'; params.push(Number(filters.user_id)); }
   if (filters.search) {
     const motif = `%${String(filters.search).trim()}%`;
-    query += ` AND (d.numero LIKE ? OR a.nom LIKE ? OR a.prenom LIKE ?
-                    OR u.username LIKE ? OR h.details LIKE ? OR h.action LIKE ?)`;
-    params.push(motif, motif, motif, motif, motif, motif);
+    query += ` AND ${CONDITION_RECHERCHE}`;
+    params.push(motif, motif, motif, motif, motif, motif, motif, motif, motif);
   }
 
   // Un journal d'audit se parcourt du plus récent au plus ancien, et on veut
@@ -114,9 +127,8 @@ export async function findAll(filters = {}) {
   if (filters.user_id) { countQuery += ' AND h.user_id = ?'; countParams.push(Number(filters.user_id)); }
   if (filters.search) {
     const motif = `%${String(filters.search).trim()}%`;
-    countQuery += ` AND (d.numero LIKE ? OR a.nom LIKE ? OR a.prenom LIKE ?
-                          OR u.username LIKE ? OR h.details LIKE ? OR h.action LIKE ?)`;
-    countParams.push(motif, motif, motif, motif, motif, motif);
+    countQuery += ` AND ${CONDITION_RECHERCHE}`;
+    countParams.push(motif, motif, motif, motif, motif, motif, motif, motif, motif);
   }
   const [compte] = await db.query(countQuery, countParams);
 

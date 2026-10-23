@@ -105,9 +105,13 @@ numérotation automatique, historique complet, notifications et rapports.
 - **Rapports par division** : opérations d'une division, opérations par type, suivi des dossiers
   Secours — en PDF et Excel, paramétrés par division et période.
 - **Triage des dossiers, ouvert à tous les profils** : un tri complet — par statut du circuit,
-  priorité, type, demandeur, échéance, ancienneté, dossiers signalés — et un **regroupement par
-  statut** qui découpe la liste en sections avec leur effectif. Chaque agent trie sa file, chaque
-  chef de division trie sa division, chaque chef de service trie le service.
+  **niveau de priorité**, priorité, type, demandeur, échéance, ancienneté, dossiers signalés — et
+  deux **regroupements** qui découpent la liste en sections avec leur effectif : par statut, ou par
+  **niveau de priorité** (urgent d'abord). Chaque agent trie sa file, chaque chef de division trie
+  sa division, chaque chef de service trie le service.
+- **Circulation visible et cherchable** : la liste porte le **dernier mouvement** de chaque dossier
+  (dernier acte et sa date) ; le journal se cherche par numéro, référence visa, **demandeur** ou
+  **matricule** — la circulation d'une personne se retrouve sans connaître son numéro de dossier.
 - **Onglets par type pour le secrétariat** : l'écran *Dossiers* du secrétariat est découpé en
   **Visas, Soldes, Pensions, Secours** — et non par avancement du traitement. Chaque onglet porte
   son effectif, calculé par le serveur, et se cumule avec les filtres rapides (nouveaux, urgents,
@@ -238,16 +242,17 @@ SRSP-2026/
 | Cohérence des chiffres du tableau de bord (contre le SQL) | `node Backend/scripts/test-e2e-coherence-tableau-bord.mjs` | **14 / 14** — 0 échec |
 | Noms d'onglets des exports Excel | `node Backend/scripts/test-e2e-exports-excel.mjs` | **15 / 15** — 0 échec |
 | **Balayage de toute l'API, tous profils** | `node Backend/scripts/test-e2e-balayage-api.mjs` | **1 560 appels — 0 erreur** |
-| **Triage des dossiers : tris et regroupement par statut** | `node Backend/scripts/test-e2e-tri-dossiers.mjs` | **24 / 24** — 0 échec |
+| **Triage des dossiers : tris et regroupement par statut et par niveau** | `node Backend/scripts/test-e2e-tri-dossiers.mjs` | **35 / 35** — 0 échec |
+| **Audit des doublons de codes et des résidus** | `node Backend/scripts/audit-doublons.mjs` | **0 anomalie** — 0 doublon, 0 résidu |
 | **Couverture de l'API** — chaque route a son écran, chaque écran sa route | `node Backend/scripts/audit-api-frontend.mjs` | **222 routes — 0 orpheline, 0 appel cassé** |
-| Tests du frontend | `cd Frontend && npm test` | **131 / 131** — 16 fichiers, 0 échec |
+| Tests du frontend | `cd Frontend && npm test` | **141 / 141** — 16 fichiers, 0 échec |
 | Construction de production | `cd Frontend && npm run build` | **OK** |
 | Contrôle syntaxique du backend | `node --check` sur tous les fichiers | **OK** |
-| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 353 fichiers, 0 défaut |
-| Restauration PostgreSQL | import de `database/srsp_db.sql` dans une base de test | **OK** — 61 tables, 1 474 lignes |
+| Contrôle d'encodage des sources et de la documentation | `node Backend/scripts/verifier-encodage.mjs` | **OK** — 354 fichiers, 0 défaut |
+| Restauration PostgreSQL | import de `database/srsp_db.sql` dans une base de test | **OK** — 61 tables, 1 442 lignes |
 
-**Total backend : 491 contrôles, 491 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
-**Total frontend : 131 tests, 131 réussis, 0 échec.**
+**Total backend : 502 contrôles, 502 réussis, 0 échec — plus 1 560 appels de balayage, tous sans erreur.**
+**Total frontend : 141 tests, 141 réussis, 0 échec.**
 
 Le détail des contrôles, les anomalies corrigées et les limites de la campagne
 figurent dans [docs/RESULTS_TESTS.md](docs/RESULTS_TESTS.md).

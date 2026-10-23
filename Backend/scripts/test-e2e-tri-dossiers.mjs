@@ -100,6 +100,36 @@ check('tri=priorite : les priorités décroissent',
   monotoneNombre((parPriorite.data || []).map((d) => NIVEAU.get(d.priorite_libelle) ?? 0), 'desc'),
   (parPriorite.data || []).map((d) => d.priorite_libelle).join(' → '));
 
+/* — Tri par niveau de priorité — */
+const parNiveau = await get('/dossiers?tri=niveau', token);
+check('tri=niveau : 200', parNiveau.status === 200);
+check('tri=niveau : aucun dossier perdu', (parNiveau.data || []).length === dossiers.length);
+check('tri=niveau : les niveaux décroissent (urgent d’abord)',
+  monotoneNombre((parNiveau.data || []).map((d) => Number(d.priorite_niveau) || 0), 'desc'),
+  (parNiveau.data || []).map((d) => `${d.priorite_libelle}(${d.priorite_niveau})`).join(' → '));
+
+const parNiveauAsc = await get('/dossiers?tri=niveau_asc', token);
+check('tri=niveau_asc : 200', parNiveauAsc.status === 200);
+check('tri=niveau_asc : les niveaux croissent (faible d’abord)',
+  monotoneNombre((parNiveauAsc.data || []).map((d) => Number(d.priorite_niveau) || 0), 'asc'));
+
+/* — Filtre par niveau de priorité — */
+const niveauxConnus = [...new Set([...NIVEAU.values()])].sort((a, b) => b - a);
+const niveauTeste = niveauxConnus[0];
+const filtreNiveau = await get(`/dossiers?niveau=${niveauTeste}`, token);
+check('filtre niveau : 200', filtreNiveau.status === 200);
+check('filtre niveau : tous les dossiers portent le niveau demandé',
+  (filtreNiveau.data || []).every((d) => Number(d.priorite_niveau) === Number(niveauTeste)),
+  `${(filtreNiveau.data || []).length} dossier(s) au niveau ${niveauTeste}`);
+check('filtre niveau : le filtre ne perd pas de dossier du niveau',
+  (filtreNiveau.data || []).length === dossiers.filter((d) => Number(d.priorite_niveau) === Number(niveauTeste)).length);
+
+/* — Dernier mouvement : la circulation est lisible dans la liste — */
+check('dernier mouvement : le champ est exposé pour chaque dossier',
+  dossiers.every((d) => 'dernier_mouvement' in d && 'derniere_action_libelle' in d));
+check('dernier mouvement : les actes sont traduits en libellés',
+  dossiers.filter((d) => d.dernier_mouvement).every((d) => typeof d.derniere_action_libelle === 'string' && d.derniere_action_libelle.length > 0));
+
 /* — Tri par type de dossier — */
 const parType = await get('/dossiers?tri=type', token);
 check('tri=type : 200', parType.status === 200);
@@ -164,6 +194,15 @@ check('boîte de travail : les compteurs restent présents',
 
 const boiteParDefaut = await get('/dashboard/boite-travail', token);
 check('boîte de travail : 200 sans tri', boiteParDefaut.status === 200);
+
+/* — La boîte de travail trie aussi par niveau — */
+const boiteNiveau = await get('/dashboard/boite-travail?tri=niveau', token);
+check('boîte de travail : 200 avec tri=niveau', boiteNiveau.status === 200);
+check('boîte de travail : les files suivent le niveau décroissant',
+  files.every((cle) => {
+    const liste = boiteNiveau.data?.[cle]?.dossiers || [];
+    return monotoneNombre(liste.map((d) => Number(d.priorite_niveau) || 0), 'desc');
+  }));
 
 console.log(`\nRésultat : ${ok} vérification(s) réussie(s), ${ko} échec(s).`);
 process.exit(ko === 0 ? 0 : 1);

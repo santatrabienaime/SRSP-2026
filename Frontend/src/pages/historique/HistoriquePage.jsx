@@ -311,7 +311,7 @@ export function HistoriquePage() {
                 onChange={set('search')}
                 clearable
                 hint="Numéro de dossier, agent, action, détail ou adresse IP."
-                placeholder="N° dossier, agent, action, détail, IP…"
+                placeholder="N° dossier, référence visa, demandeur, matricule, agent…"
               />
             </div>
             <Button type="submit" className="w-full sm:w-auto">

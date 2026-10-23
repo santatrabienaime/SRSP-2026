@@ -34,6 +34,20 @@ vi.mock('../../services/agentService.js', () => ({
   default: {},
 }));
 
+vi.mock('../../services/referentielService.js', () => ({
+  referentielService: {
+    get: vi.fn().mockResolvedValue({
+      priorites: [
+        { id: 1, libelle: 'URGENTE', niveau: 4 },
+        { id: 2, libelle: 'HAUTE', niveau: 3 },
+        { id: 3, libelle: 'NORMALE', niveau: 2 },
+        { id: 4, libelle: 'BASSE', niveau: 1 },
+      ],
+    }),
+  },
+  default: {},
+}));
+
 vi.mock('../../hooks/useAuth.js', () => ({
   useAuth: () => ({
     hasPermission: (permission) => mocks.permissions.includes(permission),
@@ -47,7 +61,12 @@ vi.mock('../../hooks/useTempsReel.js', () => ({
 import { DossierList } from './DossierList.jsx';
 
 /** Un dossier minimal, suffisant pour la liste. */
-const dossier = (id, statut_code, numero) => ({
+const dossier = (
+  id,
+  statut_code,
+  numero,
+  priorite = { libelle: 'NORMALE', niveau: 2 }
+) => ({
   id,
   numero,
   statut_code,
@@ -56,6 +75,8 @@ const dossier = (id, statut_code, numero) => ({
   date_reception: '2026-10-01',
   type_libelle: 'Visa',
   division_nom: 'Division Visas',
+  priorite_libelle: priorite.libelle,
+  priorite_niveau: priorite.niveau,
 });
 
 const rendre = () =>
@@ -141,6 +162,76 @@ describe('Liste des dossiers — regroupement par statut', () => {
   });
 });
 
+describe('Liste des dossiers — regroupement par niveau', () => {
+  it('affiche une section par niveau, du plus urgent au moins urgent', async () => {
+    mocks.list.mockResolvedValue([
+      dossier(1, 'RECU', 'VISA-2026-000001', { libelle: 'NORMALE', niveau: 2 }),
+      dossier(2, 'RECU', 'VISA-2026-000002', { libelle: 'URGENTE', niveau: 4 }),
+      dossier(3, 'RECU', 'VISA-2026-000003', { libelle: 'URGENTE', niveau: 4 }),
+    ]);
+
+    rendre();
+    await waitFor(() => expect(screen.getByText('VISA-2026-000001')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /Grouper par niveau/i }));
+
+    const urgente = screen.getByLabelText('Dossiers URGENTE');
+    const normale = screen.getByLabelText('Dossiers NORMALE');
+    expect(urgente).toBeTruthy();
+    expect(normale).toBeTruthy();
+
+    /* L'urgence d'abord : le niveau 4 précède le niveau 2 dans le DOM. */
+    expect(
+      urgente.compareDocumentPosition(normale) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('ne crée aucune section pour un niveau absent', async () => {
+    mocks.list.mockResolvedValue([
+      dossier(1, 'RECU', 'VISA-2026-000001', { libelle: 'BASSE', niveau: 1 }),
+    ]);
+
+    rendre();
+    await waitFor(() => expect(screen.getByText('VISA-2026-000001')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /Grouper par niveau/i }));
+
+    expect(screen.getByLabelText('Dossiers BASSE')).toBeTruthy();
+    expect(screen.queryByLabelText('Dossiers URGENTE')).toBeNull();
+  });
+
+  it('bascule d’un regroupement à l’autre sans superposer les sections', async () => {
+    mocks.list.mockResolvedValue([
+      dossier(1, 'RECU', 'VISA-2026-000001', { libelle: 'URGENTE', niveau: 4 }),
+    ]);
+
+    rendre();
+    await waitFor(() => expect(screen.getByText('VISA-2026-000001')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /Grouper par niveau/i }));
+    expect(screen.getByLabelText('Dossiers URGENTE')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /Grouper par statut/i }));
+    expect(screen.getByLabelText('Dossiers Reçu')).toBeTruthy();
+    expect(screen.queryByLabelText('Dossiers URGENTE')).toBeNull();
+  });
+
+  it('filtre la liste sur le niveau de priorité choisi', async () => {
+    rendre();
+    await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: /Filtres avancés/i }));
+    fireEvent.change(screen.getByLabelText('Niveau de priorité'), {
+      target: { value: '4' },
+    });
+
+    await waitFor(() => {
+      const dernier = mocks.list.mock.calls[mocks.list.mock.calls.length - 1][0];
+      expect(dernier.niveau).toBe('4');
+    });
+  });
+});
+
 describe('Liste des dossiers — tri', () => {
   it('propose un tri par statut du circuit', async () => {
     rendre();
@@ -148,6 +239,7 @@ describe('Liste des dossiers — tri', () => {
 
     const select = screen.getByLabelText('Trier par');
     const valeurs = Array.from(select.options).map((o) => o.value);
+    expect(valeurs).toContain('niveau');
     expect(valeurs).toContain('statut');
     expect(valeurs).toContain('priorite');
     expect(valeurs).toContain('demandeur');

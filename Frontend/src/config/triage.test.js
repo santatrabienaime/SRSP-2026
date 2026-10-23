@@ -5,6 +5,7 @@ import {
   TRIS_BOITE,
   rangStatut,
   grouperParStatut,
+  grouperParNiveau,
 } from './triage.js';
 
 /**
@@ -80,9 +81,69 @@ describe('Triage — regroupement par statut', () => {
   });
 });
 
+describe('Triage — regroupement par niveau de priorité', () => {
+  /** Dossier minimal porteur d'un niveau de priorité. */
+  const dossierNiveau = (id, libelle, niveau) => ({
+    id,
+    priorite_libelle: libelle,
+    priorite_niveau: niveau,
+  });
+
+  it('regroupe les dossiers par niveau', () => {
+    const groupes = grouperParNiveau([
+      dossierNiveau(1, 'URGENTE', 4),
+      dossierNiveau(2, 'NORMALE', 2),
+      dossierNiveau(3, 'URGENTE', 4),
+    ]);
+    expect(groupes).toHaveLength(2);
+    const urgente = groupes.find((g) => g.niveau === 4);
+    expect(urgente.total).toBe(2);
+    expect(urgente.dossiers.map((d) => d.id)).toEqual([1, 3]);
+    expect(urgente.label).toBe('URGENTE');
+  });
+
+  it('place les urgents en tête, du niveau le plus haut au plus bas', () => {
+    const groupes = grouperParNiveau([
+      dossierNiveau(1, 'BASSE', 1),
+      dossierNiveau(2, 'URGENTE', 4),
+      dossierNiveau(3, 'NORMALE', 2),
+    ]);
+    expect(groupes.map((g) => g.niveau)).toEqual([4, 2, 1]);
+  });
+
+  it('range les dossiers sans niveau en dernier, sans les perdre', () => {
+    const groupes = grouperParNiveau([
+      { id: 1 },
+      dossierNiveau(2, 'HAUTE', 3),
+    ]);
+    expect(groupes.map((g) => g.niveau)).toEqual([3, 0]);
+    expect(groupes[1].label).toBe('Priorité non renseignée');
+    expect(groupes.reduce((somme, g) => somme + g.total, 0)).toBe(2);
+  });
+
+  it('ne produit aucune section vide', () => {
+    const groupes = grouperParNiveau([dossierNiveau(1, 'NORMALE', 2)]);
+    expect(groupes).toHaveLength(1);
+    expect(groupes.every((g) => g.total > 0)).toBe(true);
+  });
+
+  it('renvoie une liste vide quand il n’y a aucun dossier', () => {
+    expect(grouperParNiveau([])).toEqual([]);
+  });
+});
+
 describe('Triage — tris proposés', () => {
   it('propose un tri par statut du circuit', () => {
     expect(TRIS_DOSSIERS.some((t) => t.value === 'statut')).toBe(true);
+  });
+
+  it('propose un tri par niveau de priorité, dans les deux sens', () => {
+    const valeurs = TRIS_DOSSIERS.map((t) => t.value);
+    expect(valeurs).toContain('niveau');
+    expect(valeurs).toContain('niveau_asc');
+    const boite = TRIS_BOITE.map((t) => t.value);
+    expect(boite).toContain('niveau');
+    expect(boite).toContain('niveau_asc');
   });
 
   it('propose un tri par priorité, par type et par demandeur', () => {
