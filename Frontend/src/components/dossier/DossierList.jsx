@@ -340,7 +340,7 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
       )}
       {/* Filtres */}
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-end">
-        <div className="flex-1">
+        <div className="w-full sm:min-w-[20rem] sm:flex-1">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-9 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <AutoCompleteInput
@@ -582,7 +582,7 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
         </p>
       )}
 
-      {regroupement ? (
+      {(loading || data.length > 0) && (regroupement ? (
         /* Vue groupée : une section par statut du circuit, ou une section par
            niveau de priorité. Chaque section porte son effectif — c'est ce qui
            permet de repérer la surcharge d'un statut ou le poids des urgents. */
@@ -631,7 +631,7 @@ export function DossierList({ baseFilters = {}, showCreate = true, agentPersonne
           <Table columns={columns} data={pagination.currentItems} loading={loading} />
           <Pagination pagination={pagination} className="justify-end" />
         </>
-      )}
+      ))}
 
       {!loading && data.length === 0 && (
         <EmptyState

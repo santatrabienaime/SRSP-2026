@@ -257,12 +257,14 @@ export function PersonnelList() {
         </Button>
       </div>
 
-      <Table
-        columns={colonnes}
-        data={pagination.currentItems}
-        loading={loading}
-        emptyLabel="Aucune personne"
-      />
+      {(loading || personnel.length > 0) && (
+        <Table
+          columns={colonnes}
+          data={pagination.currentItems}
+          loading={loading}
+          emptyLabel="Aucune personne"
+        />
+      )}
 
       {!loading && personnel.length === 0 && (
         <EmptyState

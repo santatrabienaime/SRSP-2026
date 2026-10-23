@@ -283,7 +283,7 @@ export function HistoriquePage() {
   ];
 
   return (
-    <AnimatedCard title="Journal des actions" subtitle="Qui a fait quoi, quand, et sur quel dossier." delay={0}>
+    <AnimatedCard delay={0}>
       <div className="space-y-5">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-bold text-slate-800">

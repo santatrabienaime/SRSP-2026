@@ -186,7 +186,9 @@ export function CourrierList({ baseFilters = {}, showCreate = true }) {
       </div>
 
       {error && <p className="text-sm text-red-600">{error.message}</p>}
-      <Table columns={columns} data={pagination.currentItems} loading={loading} />
+      {(loading || data.length > 0) && (
+        <Table columns={columns} data={pagination.currentItems} loading={loading} />
+      )}
       {!loading && data.length === 0 && (
         <EmptyState title="Aucun courrier" message="Aucun courrier ne correspond aux critères." />
       )}

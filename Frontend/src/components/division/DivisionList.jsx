@@ -133,7 +133,9 @@ export function DivisionList() {
           <Plus className="h-4 w-4" /> Nouvelle division
         </Button>
       </div>
-      <Table columns={columns} data={pagination.currentItems} loading={loading} />
+      {(loading || divisions.length > 0) && (
+        <Table columns={columns} data={pagination.currentItems} loading={loading} />
+      )}
       {!loading && divisions.length === 0 && (
         <EmptyState title="Aucune division" message="Créez la première division." />
       )}

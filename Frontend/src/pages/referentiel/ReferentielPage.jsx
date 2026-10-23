@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   FolderKanban, FileText, Mail, Building2, Layers, SlidersHorizontal,
 } from 'lucide-react';
-import { Button } from '../../components/ui/Button.jsx';
 import { TypesDossiersPage } from './TypesDossiersPage.jsx';
 import { SousTypesPage } from './SousTypesPage.jsx';
 import { SchemasOperationsPage } from './SchemasOperationsPage.jsx';
@@ -38,9 +37,11 @@ export function ReferentielPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap gap-2">
         {ONGLETS.map(({ cle, label, Icone }) => (
-          <Button
+          <button
             key={cle}
+            type="button"
             onClick={() => setOnglet(cle)}
+            aria-pressed={onglet === cle}
             className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
               onglet === cle
                 ? 'border-primary-600 bg-primary-50 text-primary-700'
@@ -49,7 +50,7 @@ export function ReferentielPage() {
           >
             <Icone className="h-4 w-4" />
             {label}
-          </Button>
+          </button>
         ))}
       </div>
 

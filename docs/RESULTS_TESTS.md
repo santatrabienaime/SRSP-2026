@@ -763,6 +763,38 @@ La campagne est **ré-exécutable sans état particulier** : elle crée ses
 propres dossiers, avec des matricules uniques, et ne dépend d'aucune donnée
 préexistante.
 
-> La campagne temps réel désactive puis réactive le compte du secrétariat.
-> Si elle est interrompue, `node Backend/scripts/reparer-comptes-demo.mjs`
-> rétablit l'état nominal des comptes de démonstration.
+## 9. Correction des défauts d'affichage du frontend
+
+Un audit visuel complet du frontend a été rejoué sur le serveur de
+développement (`http://localhost:5173`) après redémarrage de Vite, pour
+13 profils et environ 390 visites de routes. Les défauts suivants ont été
+identifiés et corrigés :
+
+| Défaut | Fichiers | Correction |
+|---|---|---|
+| Onglets inactifs du référentiel rendus en blanc sur blanc | `ReferentielPage.jsx` | Les onglets sont désormais des `<button>` simples : plus de conflit entre la classe `text-white` du composant `Button` et la classe `text-slate-600` des onglets inactifs. |
+| Ligne décorative sous chaque titre `h1`/`h2` qui barrait le sous-titre | `animations-modernes.css` | Le trait est ramené dans le retrait intérieur du titre (`padding-bottom: 0.5rem`, trait en `bottom: 0`), au lieu de déborder de 6 px sur le sous-titre. |
+| Champ de recherche écrasé (~80 px) et double état vide (tableau + carte) | `DossierList.jsx` | Le champ de recherche reçoit `min-w-[20rem]` ; le tableau et les sections ne s'affichent que si `loading || data.length > 0`. |
+| Double état vide dans les listes | `CourrierList.jsx`, `PersonnelList.jsx`, `DivisionList.jsx` | Le tableau est conditionné à `loading || data.length > 0`. |
+| Sous-titres des cartes KPI dupliqués (en-tête + corps) | `DashboardPage.jsx`, `AnimatedCard.jsx` | Le sous-titre est retiré de l'en-tête des cartes KPI ; l'en-tête de `AnimatedCard` place désormais le sous-titre **sous** le titre, au lieu de l'aligner sur la même ligne. |
+| Titre de page doublé sur le journal | `HistoriquePage.jsx` | L'en-tête redondant de l'`AnimatedCard` (« Journal des actions ») est retiré ; le titre de page « Historique » reste seul. |
+
+Vérifications après correction :
+
+- `npm test` : **141 / 141** réussis (16 fichiers), exit 0.
+- `npm run build` : **OK**, `dist/` généré.
+- `npm run lint` : **0 erreur** (avertissements préexistants uniquement).
+- Audit visuel (13 profils, ~390 routes) : **0 plantage de page**, **0 erreur HTTP 5xx** ; les seules réponses 403 restantes sont les accès directs à un dossier hors de la division d'un utilisateur de division — comportement attendu et déjà documenté.
+
+Le serveur Vite ne détectant pas toujours les modifications sous Windows, il a été
+redémarré après chaque lot d'éditions avant la vérification visuelle.
+
+---
+
+## 10. Ce qui reste à la charge de l'utilisateur
+
+- La séance d'acceptation **T18** avec des agents non techniques.
+- La validation par le SRSP des schémas d'opération, des pièces obligatoires et
+  de l'exception de dérogation.
+- Le nettoyage éventuel des quatre dossiers de démonstration (identifiants
+  54 à 57) dont les libellés de test sont visibles sur le tableau de bord.

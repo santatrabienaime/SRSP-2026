@@ -310,7 +310,6 @@ export function DashboardPage() {
             delay={idx * 80}
             type="slide-in-up"
             title={k.label}
-            subtitle={k.sub}
             Icon={k.icon}
           >
             <div className="flex items-center justify-between">

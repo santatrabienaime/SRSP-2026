@@ -30,13 +30,15 @@ export function AnimatedCard({
       className={`glass-card-modern p-6 ${className} ${animationClass}`}
     >
       {title && (
-        <div className="flex items-center gap-2 mb-4">
-          {Icon && <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-            {title}
-          </h3>
+        <div className="mb-4">
+          <div className="flex items-center gap-2">
+            {Icon && <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              {title}
+            </h3>
+          </div>
           {subtitle && (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
               {subtitle}
             </p>
           )}
