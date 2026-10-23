@@ -341,8 +341,8 @@ export function RapportsPage() {
                         />
                         <BoutonExport
                           format="xlsx"
-                          loading={loading === `${rapport.id}-xlsx`}
-                          onClick={() => handleGenerate(rapport, 'xlsx')}
+                          loading={loading === `${rapport.id}-excel`}
+                          onClick={() => handleGenerate(rapport, 'excel')}
                         />
                       </div>
                     </div>
