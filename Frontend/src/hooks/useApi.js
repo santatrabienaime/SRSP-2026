@@ -40,7 +40,9 @@ export function useApi(fetcher, deps = []) {
     if (nouvelleRessource) setLoading(true);
     setError(null);
 
-    Promise.resolve(fetcher())
+    /* fetcher() sorti de Promise.resolve : une exception synchrone
+       (validation, JSON.parse) doit passer par .catch, pas par un crash. */
+    Promise.resolve().then(() => fetcher())
       .then((res) => {
         if (active) setData(res);
       })

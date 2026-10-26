@@ -296,7 +296,7 @@ export function PersonnelList() {
 
       <Modal
         open={reset !== null}
-        onClose={() => !saving && setReset(null)}
+        onClose={() => { if (saving) return; setReset(null); setNouveauMdp(''); }}
         title={`Réinitialiser le mot de passe — ${reset?.username || ''}`}
         size="sm"
         footer={

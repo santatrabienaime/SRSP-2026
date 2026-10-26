@@ -30,6 +30,7 @@ export function estCheminInterne(chemin) {
   if (typeof chemin !== 'string' || !chemin) return false;
   if (!chemin.startsWith('/')) return false;      // http://, mailto:, javascript:
   if (chemin.startsWith('//')) return false;      // protocole-relative
+  if (chemin.startsWith('/\\')) return false;      // contournement par anti-slash
   return true;
 }
 

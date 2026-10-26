@@ -102,7 +102,13 @@ export function UIProvider({ children }) {
       estSombre: theme === 'sombre',
       basculerTheme,
       // Utile pour l'écran de connexion, dont le fond est toujours sombre.
-      setTheme,
+      setTheme: (valeur) => {
+        if (valeur !== 'sombre' && valeur !== 'clair') {
+          console.warn('[UI] setTheme ignore :', valeur);
+          return;
+        }
+        setTheme(valeur);
+      },
       barreRepliee,
       basculerBarre,
     }),

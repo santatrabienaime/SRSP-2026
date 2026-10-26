@@ -18,7 +18,8 @@ export function landingPathFor(user, demande = null) {
   if (!demande) return parDefaut;
 
   // Rejet des URL externes, des protocolesRelative et des chemins absolus.
-  if (!demande.startsWith('/') || demande.startsWith('//')) return parDefaut;
+  /* Les navigateurs traitent \ comme / : /\evil.com = //evil.com. */
+  if (!demande.startsWith('/') || demande.startsWith('//') || demande.startsWith('/\\')) return parDefaut;
   // /login, /connexion et leurs équivalents ne sont pas une destination.
   const chemin = demande.split('?')[0].split('#')[0].replace(/\/+$/, '') || '/';
   const interdits = ['/login', '/connexion', '/mot-de-passe-oublie', '/reinitialiser-mot-de-passe'];

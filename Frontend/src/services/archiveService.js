@@ -48,7 +48,7 @@ export const archiveService = {
     lien.click();
     lien.remove();
     // Sans révocation, l'objet reste en mémoire jusqu'au rechargement.
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
     return nom;
   },
 };

@@ -27,6 +27,10 @@ export function IdleSessionGuard() {
   const [avertir, setAvertir] = useState(false);
   const [reste, setReste] = useState(0);
 
+  /* Ref miroir : surActivite ne doit pas capturer un avertir perime. */
+  const avertirRef = useRef(false);
+  useEffect(() => { avertirRef.current = avertir; }, [avertir]);
+
   const timerAvertissement = useRef(null);
   const timerDeconnexion = useRef(null);
   const tick = useRef(null);
@@ -68,7 +72,10 @@ export function IdleSessionGuard() {
     if (!token) return undefined;
 
     const activite = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel'];
-    const surActivite = () => replanifier();
+    const surActivite = () => {
+      if (avertirRef.current) return;
+      replanifier();
+    };
     const visibilite = () => {
       if (document.visibilityState === 'visible') replanifier();
     };

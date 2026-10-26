@@ -99,7 +99,7 @@ export function TempsReelProvider({ children }) {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 10000,
-      reconnectionAttempts: Infinity,
+      reconnectionAttempts: 5,
       timeout: 10000,
     });
     socketRef.current = socket;

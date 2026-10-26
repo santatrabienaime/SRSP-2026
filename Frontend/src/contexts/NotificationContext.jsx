@@ -31,6 +31,11 @@ export function NotificationProvider({ children }) {
   const { statut, abonner } = useTempsReel();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const timersRef = useRef(new Set());
+  useEffect(() => () => {
+    for (const id of timersRef.current) clearTimeout(id);
+    timersRef.current.clear();
+  }, []);
   const [toasts, setToasts] = useState([]);
   const lastFetch = useRef(0);
   // Chaque utilisateur a SES notifications : le changement de compte doit
