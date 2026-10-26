@@ -75,6 +75,12 @@ vi.mock('../../hooks/useNotification.js', () => ({
   useNotification: () => ({ toastSuccess: vi.fn(), toastError: vi.fn() }),
 }));
 
+vi.mock('../../hooks/useAuth.js', () => ({
+  useAuth: () => ({
+    user: { username: 'secretaire', agent_nom: 'Secretaire', agent_prenom: 'SRSP' },
+  }),
+}));
+
 import { DossierForm } from './DossierForm.jsx';
 
 const rendre = () => render(<DossierForm />);
@@ -156,6 +162,6 @@ describe("Création d'un dossier VISA — première étape", () => {
     const creer = screen.getByRole('button', { name: /Créer le dossier/ });
     expect(creer.disabled).toBe(false);
     fireEvent.click(creer);
-    expect(screen.getByRole('alert').textContent).toMatch(/origine \/ le présentateur/i);
+    expect(screen.getByRole('alert').textContent).toMatch(/le vérificateur/i);
   });
 });

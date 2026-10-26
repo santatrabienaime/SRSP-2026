@@ -26,6 +26,7 @@ import {
 } from '../../utils/formatDate.js';
 import { validerDossier, validerTout, matriculePlausible, compacterMatricule } from '../../utils/validationDossier.js';
 import { useNotification } from '../../hooks/useNotification.js';
+import { useAuth } from '../../hooks/useAuth.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { CheckCircle2, Info, Search, ArrowLeft, ArrowRight, Check, Save } from 'lucide-react';
 
@@ -79,6 +80,8 @@ const vide = (initial) => ({
  */
 export function DossierForm({ initial = null, onSaved }) {
   const { toastSuccess, toastError } = useNotification();
+  const { user } = useAuth();
+  const nomUtilisateur = user?.agent_nom ? `${user.agent_prenom || ''} ${user.agent_nom}`.trim() : (user?.username || '');
 
   const [referentiel, setReferentiel] = useState({
     types_dossiers: [], sous_types: [], priorites: [], statuts: [],
@@ -128,6 +131,19 @@ export function DossierForm({ initial = null, onSaved }) {
     [referentiel.types_dossiers, form.type_id]
   );
   const estVisa = typeSelectionne?.code === 'VISA';
+
+  /* Pour un dossier VISA, l'origine et le comptable présentateur sont
+     pré-remplis avec le nom de l'utilisateur connecté (secrétaire) : ils
+     n'ont pas à être ressaisis à chaque création. */
+  useEffect(() => {
+    if (!estVisa || initial) return;
+    if (!nomUtilisateur) return;
+    setForm((f) => ({
+      ...f,
+      origine_presentateur: f.origine_presentateur || nomUtilisateur,
+      comptable_presentateur: f.comptable_presentateur || nomUtilisateur,
+    }));
+  }, [estVisa, nomUtilisateur, initial]);
 
   const sousTypesDisponibles = useMemo(
     () => (referentiel.sous_types || []).filter(

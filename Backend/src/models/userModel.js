@@ -6,7 +6,7 @@ export async function findUserById(id) {
   const rows = await db.query(
     `SELECT u.id, u.username, u.email, u.role_id, r.nom AS role_nom, u.actif,
             u.derniere_connexion, u.mot_de_passe_change_le,
-            a.id AS agent_id, a.division_id,
+            a.id AS agent_id, a.division_id, a.nom AS agent_nom, a.prenom AS agent_prenom,
             dv.code AS division_code, dv.nom AS division_nom,
             td.code AS type_code
      FROM users u
