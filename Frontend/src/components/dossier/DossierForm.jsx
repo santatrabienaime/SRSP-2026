@@ -85,7 +85,7 @@ export function DossierForm({ initial = null, onSaved }) {
   });
   const [divisions, setDivisions] = useState([]);
   const [agents, setAgents] = useState([]);
-  const [pieces, setPieces] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -174,22 +174,7 @@ export function DossierForm({ initial = null, onSaved }) {
         setLoading(false);
       });
 
-    /* Les pièces justificatives ne sont qu'une aide à la saisie : si leur liste
-       est indisponible, le formulaire reste entièrement utilisable. */
-    referentielService
-      .typesPieces()
-      .then((p) => setPieces(Array.isArray(p) ? p : []))
-      .catch(() => { /* liste indisponible : le bloc conditionnel reste vide */ });
   }, []);
-
-  /* Champs conditionnels : les pièces attendues découlent de la division que le
-     type de dossier a fait choisir. Une pièce sans division vaut pour toutes. */
-  const piecesAttendues = useMemo(() => {
-    if (!divisionDuType) return [];
-    return pieces.filter(
-      (p) => !p.division_code || p.division_code === divisionDuType.code
-    );
-  }, [pieces, divisionDuType]);
 
   /* Vérification du matricule pendant la saisie.
      On n'interroge le serveur que si le matricule est plausible, et jamais deux
@@ -991,29 +976,8 @@ export function DossierForm({ initial = null, onSaved }) {
             onChange={setVal('observation')}
           />
 
-          {/* Champ conditionnel : ce bloc n'apparaît que si le type de dossier
-              fait choisir une division qui a des pièces justificatives. */}
-          {piecesAttendues.length > 0 && (
-            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-sky-700">
-                Pièces attendues — {divisionDuType?.nom}
-              </p>
-              <ul className="grid gap-1 text-sm text-sky-900 sm:grid-cols-2">
-                {piecesAttendues.map((p) => (
-                  <li key={p.id} className="flex items-center gap-2">
-                    <span aria-hidden="true" className="text-xs">{p.obligatoire ? '●' : '○'}</span>
-                    <span>{p.libelle}</span>
-                    {Boolean(p.obligatoire) && (
-                      <span className="text-xs text-sky-600">(obligatoire)</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-2 text-xs text-sky-600">
-                Le dépouillement de ces pièces se fait après l'enregistrement, depuis la fiche du dossier.
-              </p>
-            </div>
-          )}
+          {/* Les pièces attendues ne sont plus affichées à la création : le dépouillement
+              se fait après l'enregistrement, depuis la fiche du dossier. */}
 
           {/* Récapitulatif : la secrétaire vérifie avant de valider. */}
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
