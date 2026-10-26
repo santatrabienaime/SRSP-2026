@@ -252,7 +252,7 @@ export async function remove(id) {
   try {
     await agentModel.remove(id);
   } catch (e) {
-    if (e.code === 'ER_ROW_IS_REFERENCED_2' || e.errno === 1451) {
+    if (e.code === '23503') {
       await agentModel.setActif(id, false);
       return { message: 'Personne citée par des dossiers : fiche désactivée plutôt que supprimée.' };
     }

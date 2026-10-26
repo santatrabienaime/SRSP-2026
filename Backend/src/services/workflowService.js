@@ -247,7 +247,11 @@ export async function transition(dossierId, toStatus, userId, details = '') {
     details,
   });
 
-  await notifyForTransition(dossierId, toStatus, details);
+  try {
+    await notifyForTransition(dossierId, toStatus, details);
+  } catch (e) {
+    console.warn('[notifications] transition sans notification :', e.message);
+  }
 
   /* Temps réel : les écrans des personnes concernées se rafraîchissent sans
      qu'elles aient à recharger la page. Le canal ne transporte que l'alerte —

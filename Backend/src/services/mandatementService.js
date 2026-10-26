@@ -76,6 +76,7 @@ function repartirMontants(beneficiaires, montantTotal) {
 }
 
 export async function enregistrerMandatement(dossierId, data, userId) {
+  await model.chargerPiecesReference();
   const montant_total = montant(data.montant_total, 'Le montant total');
   const saisie = Array.isArray(data.beneficiaires) ? data.beneficiaires : [];
 

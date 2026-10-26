@@ -3,7 +3,9 @@ import { httpError } from '../utils/httpError.js';
 
 export async function list(req, res, next) {
   try {
-    const { page = 1, limit = 25, division_id, statut, search } = req.query;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 25));
+    const { division_id, statut, search } = req.query;
     const result = await bordereauService.listBordereaux({
       page: Number(page),
       limit: Number(limit),

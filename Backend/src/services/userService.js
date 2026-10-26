@@ -28,7 +28,7 @@ export async function remove(id) {
     await userModel.deleteUser(id);
     return { message: 'Utilisateur supprimé.' };
   } catch (e) {
-    if (e.code === 'ER_ROW_IS_REFERENCED_2' || e.errno === 1451) {
+    if (e.code === '23503') {
       await userModel.setActif(id, false);
       return { message: 'Utilisateur référencé : compte désactivé plutôt que supprimé.' };
     }

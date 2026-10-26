@@ -296,7 +296,7 @@ export async function volumes({ dateDebut, dateFin, division_id } = {}) {
     `SELECT TO_CHAR(i.created_at, 'YYYY-MM') AS mois, COUNT(*) AS total
      FROM immatriculations i
      ${condition}
-     GROUP BY mois
+     GROUP BY TO_CHAR(i.created_at, 'YYYY-MM')
      ORDER BY mois DESC
      LIMIT 12`,
     params

@@ -268,13 +268,13 @@ export async function statistiques(filtres = {}) {
   const parAnnee = await db.query(
     `SELECT EXTRACT(YEAR FROM a.date_archivage)::int AS annee, COUNT(*) AS total ${FROM}
      WHERE ${where.join(' AND ')}
-     GROUP BY annee ORDER BY annee DESC`,
+     GROUP BY EXTRACT(YEAR FROM a.date_archivage)::int ORDER BY 1 DESC`,
     params
   );
 
   const [global] = await db.query(
     `SELECT COUNT(*) AS total,
-            AVG(DATEDIFF(a.date_archivage, d.date_reception)) AS duree_moyenne
+            AVG(datediff(a.date_archivage, d.date_reception)) AS duree_moyenne
      ${FROM} WHERE ${where.join(' AND ')}`,
     params
   );

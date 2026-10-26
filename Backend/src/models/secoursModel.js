@@ -42,7 +42,7 @@ export async function enregistrerVisa(dossierId, data, userId) {
       `Visa ${data.numero_visa} enregistré (signature : ${data.signe_par || 'non renseignée'}).`);
     return { id: resultat.insertId };
   } catch (e) {
-    if (e.code === 'ER_DUP_ENTRY') {
+    if (e.code === '23505') {
       const e2 = new Error(
         `Le numéro de visa ${data.numero_visa} est déjà utilisé sur un autre dossier, ou ce dossier est déjà visé.`
       );
@@ -302,7 +302,7 @@ export async function enregistrerSignatureOrdonnateur(mandatementId, data, userI
       [mandatementId, data.reference_signature, userId, data.observations || null]
     );
   } catch (e) {
-    if (e.code === 'ER_DUP_ENTRY') {
+    if (e.code === '23505') {
       const e2 = new Error(
         `La référence ${data.reference_signature} est déjà utilisée, ou ce mandat est déjà signé.`
       );

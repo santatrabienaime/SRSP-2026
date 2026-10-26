@@ -67,7 +67,7 @@ export async function etatCompte(userId) {
 
   const rows = await db.query(
     `SELECT u.actif,
-            (EXTRACT(EPOCH FROM (u.mot_de_passe_change_le AT TIME ZONE current_setting('TimeZone'))) * 1000)::bigint AS mdp_change_ms
+            (EXTRACT(EPOCH FROM u.mot_de_passe_change_le) * 1000)::bigint AS mdp_change_ms
      FROM users u
      WHERE u.id = ?
      LIMIT 1`,

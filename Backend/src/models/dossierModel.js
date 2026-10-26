@@ -45,7 +45,7 @@ export async function findDossiers(filters = {}) {
            d.demandeur_email, d.demandeur_adresse,
            d.observation, d.date_limite, d.date_cloture, d.date_archivage, d.created_at,
            d.agent_responsable_id, d.priorite_id, p.niveau AS priorite_niveau,
-           DATEDIFF(CURDATE(), DATE(d.date_reception)) AS age_jours,
+           (CURRENT_DATE - d.date_reception::date) AS age_jours,
            t.libelle AS type_libelle, t.code AS type_code,
            st.libelle AS sous_type_libelle,
            s.libelle AS statut_libelle, s.code AS statut_code,
@@ -295,7 +295,7 @@ export async function findDossierById(id) {
             ar.reference_archivage, ar.emplacement_physique, ar.localisation_numerique,
             ar.date_archivage AS date_archivage_registre, ar.restaure AS archive_restaure,
             au.username AS archive_par_username,
-            DATEDIFF(CURDATE(), DATE(d.date_reception)) AS age_jours
+            (CURRENT_DATE - d.date_reception::date) AS age_jours
      FROM dossiers d
      JOIN types_dossiers t ON d.type_id = t.id
      LEFT JOIN sous_types_dossiers st ON st.id = d.sous_type_id

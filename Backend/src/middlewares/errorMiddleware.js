@@ -2,7 +2,7 @@ import { messageTropGros } from '../config/multer.js';
 
 export function errorMiddleware(err, req, res, next) {
   const isValidation = err.name === 'ValidationError';
-  const isDup = err.code === 'ER_DUP_ENTRY';
+  const isDup = err.code === '23505';
   const isExtension = err.message && /extension/i.test(err.message);
 
   /* Une pièce trop lourde n'est pas une panne du serveur : c'est un refus de la
