@@ -95,7 +95,7 @@ export function Topbar() {
                 {(user?.username || 'U').charAt(0).toUpperCase()}
               </span>
               <span className="hidden text-left sm:block">
-                <span className="block text-sm font-medium leading-tight text-slate-700">
+                <span className="block max-w-[14rem] truncate text-sm font-medium leading-tight text-slate-700">
                   {user?.email}
                 </span>
                 <span className="block text-xs leading-tight text-slate-400">

@@ -65,6 +65,7 @@ export function NotificationProvider({ children }) {
     Promise.resolve().then(() => {
       setNotifications([]);
       setUnreadCount(0);
+      setToasts([]);
     });
   }, [userId]);
 
@@ -128,7 +129,11 @@ export function NotificationProvider({ children }) {
       const t = makeToast(type, title, message);
       setToasts((prev) => [...prev, t]);
       if (timeout > 0) {
-        setTimeout(() => dismiss(t.id), timeout);
+        const tid = setTimeout(() => {
+          dismiss(t.id);
+          timersRef.current.delete(tid);
+        }, timeout);
+        timersRef.current.add(tid);
       }
       return t.id;
     },

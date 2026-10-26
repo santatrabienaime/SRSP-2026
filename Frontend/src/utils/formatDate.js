@@ -7,6 +7,11 @@ const pad = (n) => String(n).padStart(2, '0');
 /** 'YYYY-MM-DD' | Date → 'JJ/MM/AAAA' */
 export function formatDate(value, { time = false } = {}) {
   if (!value) return '—';
+  const texte = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(texte)) {
+    const [a, m, j] = texte.split('-');
+    return time ? (j + '/' + m + '/' + a + ' 00:00') : (j + '/' + m + '/' + a);
+  }
   const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return '—';
   const date = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;

@@ -142,7 +142,7 @@ export function DossierDetail({ id }) {
         window.open(url, '_blank');
       }
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
     } catch (err) {
       console.error('Erreur téléchargement fiche réception:', err);
       alert('Impossible de générer la fiche de réception.');

@@ -1,6 +1,6 @@
 /**
- * useAnimation - dÃ©lai portÃ© par la CSS uniquement.
- * L'ancienne version posait setTimeout + classe CSS (double dÃ©lai).
+ * useAnimation - delai porte par la CSS uniquement.
+ * L'ancienne version posait setTimeout + classe CSS (double delai).
  */
 export function useAnimation({ delay = 0, type = 'slide-in-up' } = {}) {
   return {
