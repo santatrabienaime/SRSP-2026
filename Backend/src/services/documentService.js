@@ -121,6 +121,19 @@ export async function fichier(dossierId, documentId) {
   return { document, absolute };
 }
 
+/** Permissions du compte, pour autoriser la suppression d'une pièce jointe. */
+async function permissionsDe(userId) {
+  const rows = await db.query(
+    `SELECT p.nom
+     FROM permissions p
+     JOIN role_permissions rp ON rp.permission_id = p.id
+     JOIN users u ON u.role_id = rp.role_id
+     WHERE u.id = ?`,
+    [userId]
+  );
+  return new Set(rows.map((r) => r.nom));
+}
+
 export async function supprimer(dossierId, documentId, userId) {
   const document = await documentModel.findPourDossier(documentId, dossierId);
   if (!document) throw httpError(404, 'Document introuvable.');
@@ -130,27 +143,22 @@ export async function supprimer(dossierId, documentId, userId) {
     throw httpError(409, 'Un document d’un dossier archivé ne peut plus être supprimé.');
   }
 
-  /* Une version antérieure ne se supprime pas : elle est la trace de ce qui
-     avait été produit. Le cahier demande de « conserver la trace de la
-     version précédente » ; l'effacer la ferait disparaître. */
-  const derniere = document.piece_code
-    ? await documentModel.derniereVersion(dossierId, document.piece_code)
-    : null;
-  if (derniere && Number(derniere.id) !== Number(documentId)) {
+  /* Suppression d'une pièce jointe erronée, y compris une version
+     intermédiaire ou un doublon. Le chef de division qui contrôle le dossier
+     doit pouvoir la retirer comme le déposant : sinon un scan illisible
+     resterait attaché au dossier et bloquerait la préparation des pièces.
+     La trace de la suppression reste dans l'historique ; le lien « remplace »
+     des versions suivantes est détaché pour ne pas pointer vers une ligne
+     disparue. */
+  const permissions = await permissionsDe(userId);
+  const autorise = Number(document.upload_par) === Number(userId)
+    || ['manage_documents', 'verifier_dossier', 'valider_dossier', 'depouiller_pieces']
+      .some((permission) => permissions.has(permission));
+  if (!autorise) {
     throw httpError(
-      409,
-      `La version ${document.version} est conservée : elle est le trace des versions précédentes. `
-      + 'Supprimez la version la plus récente si le dépôt est erroné.'
+      403,
+      'Seul le déposant, un chef de division ou un administrateur peut supprimer cette pièce.'
     );
-  }
-
-  const [utilisateur] = await db.query(
-    `SELECT r.nom FROM users u JOIN roles r ON r.id = u.role_id WHERE u.id = ?`,
-    [userId]
-  );
-  const admin = utilisateur?.nom === 'ADMIN';
-  if (!admin && Number(document.upload_par) !== Number(userId)) {
-    throw httpError(403, 'Seul le déposant ou l’administrateur peut supprimer cette pièce.');
   }
 
   const absolute = path.resolve(UPLOAD_DIR, document.chemin_stockage);
@@ -162,14 +170,20 @@ export async function supprimer(dossierId, documentId, userId) {
     }
   }
 
+  /* Une version plus récente peut référencer celle-ci par `remplace`. La
+     suppression ne doit pas laisser un identifiant orphelin ; le journal,
+     lui, conserve le nom et la version supprimés. */
+  await db.query('UPDATE documents SET remplace = NULL WHERE remplace = ?', [documentId]);
   await documentModel.remove(documentId);
   await historiqueModel.log({
     user_id: userId,
     action: 'SUPPRESSION_DOCUMENT',
     dossier_id: Number(dossierId),
     ancienne_valeur: document.nom_fichier,
-    details: 'Suppression d’une pièce jointe.',
+    details:
+      `Suppression d’une pièce jointe${document.piece_code ? ` (${document.piece_code})` : ''}, `
+      + `version ${document.version || 1}.`,
   });
 
-  return { message: 'Document supprimé.' };
+  return { message: 'Document supprimé.', version: document.version || 1 };
 }

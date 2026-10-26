@@ -2,6 +2,7 @@ import db from '../config/db.js';
 import { generateDossierNumber } from '../utils/generateDossierNumber.js';
 import { normaliserMatricule } from '../validators/dossierValidators.js';
 import { LIBELLES_ACTIONS } from '../utils/libellesActions.js';
+import { ETATS_PIECE_VALIDES_SQL } from '../utils/constants.js';
 
 /**
  * Dossiers d'une personne, identifiés par son matricule compacté.
@@ -165,12 +166,14 @@ export async function findDossiers(filters = {}) {
     query += ` AND EXISTS (
       SELECT 1 FROM types_pieces tp
       WHERE tp.obligatoire = 1
+        AND tp.actif = 1
         AND tp.phase = 'DEPOUILLEMENT'
         AND (tp.type_dossier_id IS NULL OR tp.type_dossier_id = d.type_id)
         AND (tp.sous_type_id IS NULL OR tp.sous_type_id = d.sous_type_id)
         AND NOT EXISTS (
           SELECT 1 FROM depouillements dp
-          WHERE dp.dossier_id = d.id AND dp.piece = tp.code AND dp.etat = 'PRESENTE'
+          WHERE dp.dossier_id = d.id AND dp.piece = tp.code
+            AND dp.etat IN (${ETATS_PIECE_VALIDES_SQL})
         )
     )`;
   }

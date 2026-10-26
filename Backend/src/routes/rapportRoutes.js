@@ -2,9 +2,21 @@ import express from 'express';
 import * as ctrl from '../controllers/rapportController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { rbacMiddleware } from '../middlewares/rbacMiddleware.js';
+import { getScope } from '../services/scopeService.js';
 
 const router = express.Router();
 router.use(authMiddleware);
+
+/* Le périmètre de l'utilisateur est calculé une fois par requête : les
+   rapports sont accessibles à tout profil qui porte `view_stats` — donc
+   aussi aux chefs de division — et chaque rapport doit rester cloisonné
+   comme le tableau de bord et les performances. */
+router.use(async (req, res, next) => {
+  try {
+    req.scope = await getScope(req.user.id);
+    next();
+  } catch (e) { next(e); }
+});
 
 /* ─── Rapports Secrétaire (view_stats + export_data) ─── */
 

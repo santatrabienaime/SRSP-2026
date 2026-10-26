@@ -659,13 +659,24 @@ async function controlerCompletudeValidation(id, { motifException, userId }) {
   }
 
   const motif = String(motifException || '').trim();
+  const autoriseDerogation = await aPermission(userId, 'deroger_validation');
+
+  /* Un chef de division qui ne peut pas déroger ne doit pas être invité à
+     saisir un motif qu'il n'a pas le droit d'utiliser. Le message lui dit ce
+     qu'il peut faire : renvoyer le dossier pour correction ou complément. */
   if (!motif) {
+    if (!autoriseDerogation) {
+      throw httpError(
+        422,
+        `${messageIncompletude(champs, pieces)} Demandez une correction ou un complément : seul un chef de service autorisé peut passer outre.`
+      );
+    }
     throw httpError(
       422,
-      `${messageIncompletude(champs, pieces)} Renseignez un motif de dérogation si un chef de service autorisé décide de passer outre.`
+      `${messageIncompletude(champs, pieces)} Renseignez un motif de dérogation pour passer outre.`
     );
   }
-  if (!(await aPermission(userId, 'deroger_validation'))) {
+  if (!autoriseDerogation) {
     throw httpError(
       403,
       "Vous ne pouvez pas déroger au contrôle de complétude : seul un chef de service autorisé peut le faire."

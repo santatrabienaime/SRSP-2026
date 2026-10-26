@@ -342,22 +342,22 @@ le **nouveau**, l'**auteur** et le **motif** : le transfert reste lisible.
 Onglet **Opération** (Solde, Pensions), **Secours** ou **VISA**.
 
 Chaque pièce requise par le type de dossier et le type d'opération est
-listée avec cinq états possibles :
+listée avec les gestes de contrôle suivants :
 
 | État | Signification |
 |---|---|
 | **Présente** | La pièce est là, lisible. |
-| **Manquante** | La pièce n'a pas été fournie. |
-| **Illisible** | La pièce est là mais ne peut pas être lue. |
-| **À corriger** | La pièce est lisible mais comporte une erreur. |
+| **Absente** | La pièce n'a pas été fournie (code historique `MANQUANTE`). |
+| **Rejetée** | La pièce est là mais refusée (non conforme, expirée, falsifiée). |
 | **Non applicable** | La pièce n'a pas à être fournie pour ce dossier. |
 
 « Présente » **et** « non applicable » satisfont une pièce obligatoire : une
 pièce qui ne s'applique pas n'avait pas à être là, et la traiter comme
 manquante bloquerait le dossier à tort.
 
-Les trois autres états demandent un **motif**, qui est transmis au
-secrétariat et conservé dans la fiche.
+Les gestes **absente** et **rejetée** demandent un **motif**, qui est
+transmis au secrétariat et conservé dans la fiche. Un motif sans ce geste
+n'est pas accepté.
 
 > **L'historique des contrôles.** Sous la check-list, un lien **Historique
 > des contrôles** ouvre la trace chronologique : quelles pièces ont été
@@ -379,8 +379,10 @@ est visible dans l'onglet *Documents*.
 C'est ce qui permet de montrer ce qui avait été produit, puis ce qui l'a
 remplacé. Le **motif du remplacement** est demandé et conservé.
 
-> Une version antérieure ne peut pas être supprimée : elle est la trace. Si
-> le dépôt le plus récent est erroné, c'est lui qu'on supprime.
+> Une version antérieure peut être supprimée : un doublon ou un scan erroné
+> n'est pas prisonnier parce qu'une version plus récente existe. Seul le
+> dépôt qui est encore actif ou le déposant peuvent la retirer ; la trace
+> de la suppression est conservée dans l'historique du dossier.
 
 ---
 

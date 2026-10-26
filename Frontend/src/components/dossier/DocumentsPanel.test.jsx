@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 /**
- * Pièces jointes — versionnage.
+ * Pièces jointes — versionnage et suppression.
  *
  * Un dépôt ne remplace jamais un fichier : il en devient la version
- * suivante, et la version précédente est conservée. Ce qui est éprouvé ici :
- * les versions sont regroupées par pièce, la version remplacée est nommée, et
- * la suppression n'est proposée que sur la version la plus récente — le
- * serveur refusant (409) de retirer une version antérieure.
+ * suivante. Ce qui est éprouvé ici : les versions sont regroupées par pièce,
+ * la version remplacée est nommée, et toute version peut être supprimée par
+ * le déposant ou par un chef de division qui contrôle le dossier — un doublon
+ * ou un scan erroné ne doit pas rester attaché.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -84,6 +84,7 @@ const DOCUMENTS = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.user = { id: 5 };
   mocks.permissions = ['upload_document', 'manage_documents'];
   mocks.getDocuments.mockResolvedValue(DOCUMENTS);
 });
@@ -100,15 +101,49 @@ describe('Pièces jointes — versions', () => {
     expect(screen.getByText(/remplace : etat-v1.pdf \(v1\)/)).toBeTruthy();
   });
 
-  it('ne propose la suppression que sur la version la plus récente', async () => {
+  it('propose la suppression sur toutes les versions, y compris les doublons', async () => {
     render(<DocumentsPanel dossierId={42} dossierStatut="EN_TRAITEMENT" pieces={PIECES} />);
 
     await waitFor(() => {
       expect(screen.getByText('etat-v2.pdf')).toBeTruthy();
     });
-    // Un seul bouton de suppression : celui de la version 2.
+    // Les deux versions peuvent être retirées : un doublon n'est pas
+    // prisonnier parce qu'une version plus récente existe.
     const boutons = screen.getAllByTitle('Supprimer la pièce');
-    expect(boutons.length).toBe(1);
+    expect(boutons.length).toBe(2);
+  });
+
+  it('permet au chef de division de supprimer une pièce déposée par un autre', async () => {
+    mocks.user = { id: 99 };
+    mocks.permissions = ['verifier_dossier'];
+
+    render(<DocumentsPanel dossierId={42} dossierStatut="SOUMIS_A_VERIFICATION" pieces={PIECES} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('etat-v2.pdf')).toBeTruthy();
+    });
+    expect(screen.getAllByTitle('Supprimer la pièce').length).toBe(2);
+  });
+
+  it('supprime une version antérieure après confirmation', async () => {
+    mocks.permissions = ['verifier_dossier'];
+
+    render(<DocumentsPanel dossierId={42} dossierStatut="SOUMIS_A_VERIFICATION" pieces={PIECES} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('etat-v1.pdf')).toBeTruthy();
+    });
+    // La version 1 est la plus ancienne : elle doit néanmoins être supprimable.
+    fireEvent.click(screen.getAllByTitle('Supprimer la pièce')[1]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Supprimer la pièce jointe')).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
+
+    await waitFor(() => {
+      expect(mocks.deleteDocument).toHaveBeenCalledWith(42, 1);
+    });
   });
 
   it('demande le motif du remplacement quand la pièce a déjà été déposée', async () => {

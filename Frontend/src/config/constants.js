@@ -122,13 +122,20 @@ export const WORKFLOW_ORDER = [
   'VALIDE', 'SIGNE', 'CLOTURE', 'ARCHIVE',
 ];
 
-/* États d'une pièce au dépouillement (CDC VISA).
+/* États d'une pièce au dépouillement.
    « Présente » satisfait une pièce obligatoire ; « non applicable » la
-   satisfait aussi, car elle n'avait pas à être fournie. Les trois autres
-   états restent motivés et visibles. */
+   satisfait aussi, car elle n'avait pas à être fournie. « Absente » et
+   « Rejetée » restent à traiter et doivent être motivées : le motif dit à
+   l'agent ce qu'il doit rapporter ou corriger.
+
+   `MANQUANTE` reste le code historique de l'absence : le libellé affiché est
+   « Absente ». Les états `ILLISIBLE` et `A_CORRIGER` restent lus pour les
+   dossiers déjà contrôlés, mais ne sont plus proposés : les boutons de
+   contrôle sont Présente / Absente / Rejetée / Non applicable. */
 export const ETATS_PIECE = {
   PRESENTE: 'PRESENTE',
   MANQUANTE: 'MANQUANTE',
+  REJETEE: 'REJETEE',
   ILLISIBLE: 'ILLISIBLE',
   A_CORRIGER: 'A_CORRIGER',
   NON_APPLICABLE: 'NON_APPLICABLE',
@@ -136,7 +143,8 @@ export const ETATS_PIECE = {
 
 export const ETATS_PIECE_LABELS = {
   PRESENTE: 'Présente',
-  MANQUANTE: 'Manquante',
+  MANQUANTE: 'Absente',
+  REJETEE: 'Rejetée',
   ILLISIBLE: 'Illisible',
   A_CORRIGER: 'À corriger',
   NON_APPLICABLE: 'Non applicable',
@@ -145,13 +153,14 @@ export const ETATS_PIECE_LABELS = {
 export const ETATS_PIECE_BADGES = {
   PRESENTE: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   MANQUANTE: 'border-red-200 bg-red-50 text-red-700',
+  REJETEE: 'border-rose-300 bg-rose-50 text-rose-700',
   ILLISIBLE: 'border-amber-200 bg-amber-50 text-amber-700',
   A_CORRIGER: 'border-orange-200 bg-orange-50 text-orange-700',
   NON_APPLICABLE: 'border-slate-200 bg-slate-50 text-slate-600',
 };
 
 /* Seuls ces états demandent un motif : ceux qui restent à traiter. */
-export const ETATS_PIECE_A_MOTIVER = ['MANQUANTE', 'ILLISIBLE', 'A_CORRIGER'];
+export const ETATS_PIECE_A_MOTIVER = ['MANQUANTE', 'REJETEE', 'ILLISIBLE', 'A_CORRIGER'];
 
 /* ── Données d'opération ───────────────────────────────────────────────
    Les divisions Solde, Pensions et Secours portent, sur chacun de leurs

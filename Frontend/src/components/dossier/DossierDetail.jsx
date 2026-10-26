@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FolderKanban, Info, History, MessageSquare, FileText, Download, Printer, Paperclip, Stamp, ArrowRightLeft, Calculator, Mail, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, FolderKanban, Info, History, MessageSquare, FileText, Download, Printer, Paperclip, Stamp, ArrowRightLeft, Calculator, Mail, TriangleAlert, ClipboardCheck } from 'lucide-react';
 import { useDossier } from '../../hooks/useDossier.js';
 import { useTempsReel } from '../../hooks/useTempsReel.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -180,13 +180,22 @@ export function DossierDetail({ id }) {
      premières, Pensions et Secours pour les secondes. Le dossier Visa n'en a
      pas, et son onglet ne s'y ouvre pas. Le Secours garde son panneau
      propre : ses cinq étapes du mandat y sont décrites, et une donnée
-     d'opération s'y ajouterait sans rien lui apprendre. */
+     d'opération s'y ajouterait sans rien lui apprendre.
+
+     Solde et Pensions n'ont ni panneau VISA ni panneau Secours : leur
+     contrôle des pièces obligatoires vivait donc nulle part, alors que ces
+     pièces bloquent la validation. L'onglet « Pièces » leur donne l'écran
+     qui manquait. */
   const divisionsAvecOperation = ['SOLDE', 'PENSION'];
   const divisionsAvecCorrespondances = ['PENSION', 'SECOURS'];
+  const divisionsAvecPieces = ['SOLDE', 'PENSION'];
 
   const onglets = [
     { cle: 'infos', label: 'Informations', icon: Info },
     { cle: 'documents', label: 'Documents', icon: Paperclip },
+    ...(divisionsAvecPieces.includes(dossier.type_code)
+      ? [{ cle: 'pieces', label: 'Pièces', icon: ClipboardCheck }]
+      : []),
     { cle: 'transmissions', label: 'Transmissions', icon: ArrowRightLeft },
     ...(divisionsAvecOperation.includes(dossier.type_code)
       ? [{ cle: 'operation', label: 'Opération', icon: Calculator }]
@@ -395,6 +404,18 @@ export function DossierDetail({ id }) {
           dossierStatut={dossier.statut_code}
           pieces={piecesDossier}
         />
+      )}
+
+      {/* Onglet Pièces : le dépouillement des pièces obligatoires des
+          dossiers Solde et Pensions. Sans cet écran, le chef de division ne
+          pourrait jamais constater les pièces qui bloquent la validation. */}
+      {onglet === 'pieces' && (
+        <Card
+          title="Contrôle des pièces"
+          subtitle="Présente, absente, rejetée ou non applicable, avec motif"
+        >
+          <DepouillementChecklist dossierId={dossier.id} />
+        </Card>
       )}
 
       {/* Onglet Transmissions : l'historique des passages d'un service à

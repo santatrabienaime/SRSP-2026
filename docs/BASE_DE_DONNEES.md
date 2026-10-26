@@ -392,7 +392,7 @@ Trace durable des suppressions : motif, auteur, date et instantané du journal. 
 
 ### `depouillements`
 
-Contrôle des pièces : un enregistrement par (dossier, pièce), avec l'un des quatre états et son motif.
+Contrôle des pièces : un enregistrement par (dossier, pièce), avec un des états de dépouillement et son motif. Un enregistrement satisfait l'obligation quand son état est satisfaisant (`PRESENTE` ou `NON_APPLICABLE`) ; l'absence (`MANQUANTE`) et la rejetée (`REJETEE`) n'en satisfont pas.
 
 *1 ligne(s) en base.*
 
@@ -403,9 +403,9 @@ Contrôle des pièces : un enregistrement par (dossier, pièce), avec l'un des q
 | `agent_id` | entier | oui | — | — |
 | `piece` | texte | non | — | — |
 | `presente` | entier | non | 0 | — |
-| `etat` | texte | non | 'MANQUANTE' | — |
+| `etat` | texte | non | 'MANQUANTE' | `PRESENTE`, `MANQUANTE` (historique d'absence, libellé « Absente »), `REJETEE`, `ILLISIBLE`, `A_CORRIGER`, `NON_APPLICABLE` |
 | `observation` | texte | oui | — | — |
-| `motif` | texte | oui | NULL | — |
+| `motif` | texte | oui | NULL | Obligatoire pour `MANQUANTE`, `REJETEE`, `ILLISIBLE`, `A_CORRIGER` |
 | `date_controle` | horodatage | non | CURRENT_TIMESTAMP | — |
 
 **Clés étrangères**

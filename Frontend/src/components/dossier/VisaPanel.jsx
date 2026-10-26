@@ -168,11 +168,11 @@ export function VisaPanel({ dossier }) {
         </Card>
       )}
 
-      {/* Dépouillement : les quatre états des pièces. Le composant gère
-          lui-même son chargement et ses erreurs. */}
+      {/* Dépouillement : les états des pièces. Le composant gère lui-même
+          son chargement et ses erreurs. */}
       <Card
         title="Contrôle des pièces"
-        subtitle="Présente, manquante, illisible ou à corriger"
+        subtitle="Présente, absente, rejetée ou non applicable"
       >
         <DepouillementChecklist dossierId={dossier.id} />
       </Card>

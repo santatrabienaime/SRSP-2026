@@ -27,9 +27,18 @@ router.get(
   ctrl.download
 );
 
+/* Le chef de division qui contrôle ou valide le dossier peut retirer une
+   pièce jointe erronée ou un doublon, même s'il n'est pas le déposant. Le
+   service vérifie ensuite le déposant ou l'une de ces permissions. */
 router.delete(
   '/:id/documents/:documentId',
-  rbacMiddleware(['upload_document', 'manage_documents']),
+  rbacMiddleware([
+    'upload_document',
+    'manage_documents',
+    'verifier_dossier',
+    'valider_dossier',
+    'depouiller_pieces',
+  ]),
   assertDossierAccessMiddleware,
   ctrl.remove
 );

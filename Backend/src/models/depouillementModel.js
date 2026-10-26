@@ -8,13 +8,13 @@ import { ETATS_PIECE, ETATS_PIECE_LIST, ETATS_PIECE_VALIDES } from '../utils/con
  * de dossier et, le cas échéant, par sous-type (type d'acte). Un dossier VISA
  * n'a donc pas à cocher les pièces du Secours, et inversement.
  *
- * Une pièce connaît cinq états : présente, manquante, illisible, à corriger,
- * et non applicable. « Présente » satisfait une pièce obligatoire ; « non
- * applicable » la satisfait aussi, parce que la pièce n'avait pas à être
- * fournie — la traiter comme manquante bloquerait un dossier à tort. Les
- * trois autres états restent visibles et motivés : confondre une pièce
- * illisible avec une pièce reçue reviendrait à valider un dossier
- * incomplet.
+ * Une pièce connaît six états : présente, absente (code historique
+ * `MANQUANTE`), rejetée, illisible, à corriger, et non applicable.
+ * « Présente » satisfait une pièce obligatoire ; « non applicable » la
+ * satisfait aussi, parce que la pièce n'avait pas à être fournie — la traiter
+ * comme absente bloquerait un dossier à tort. Les autres états restent
+ * visibles et motivés : confondre une pièce absente ou rejetée avec une pièce
+ * reçue reviendrait à valider un dossier incomplet.
  */
 
 function normaliserEtat(etat, presente) {

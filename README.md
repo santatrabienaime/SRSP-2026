@@ -33,8 +33,9 @@ numérotation automatique, historique complet, notifications et rapports.
   réception, origine et présentateur, comptable, année de référence, vérificateur, bénéficiaire et
   organisme. Circuit **Signé → À archiver → Archivé**, signature réservée au Chef de Service,
   archivage conditionné à la signature et aux pièces d'archivage.
-- **Pièces à quatre états** : présente, manquante, illisible, à corriger. Seule « présente »
-  satisfait une pièce obligatoire ; les trois autres exigent un motif, conservé dans la fiche.
+- **Pièces à quatre gestes de contrôle** : présente, absente, rejetée et non applicable. Seule
+  « présente » (ou « non applicable », quand la pièce n'avait pas à être fournie) satisfait une
+  pièce obligatoire ; l'**absente** et la **rejetée** exigent un motif, conservé dans la fiche.
 - **Validation bloquée sur dossier incomplet**, avec exception **motivée et tracée** réservée au
   Chef de Service.
 - **RBAC sur 13 postes** : administrateur, chef de service, chef BAAF, coordinatrice, secrétaire,
@@ -81,7 +82,8 @@ numérotation automatique, historique complet, notifications et rapports.
 - **Correspondances suivies** : prescription, demande de dossier mère, opposition, derniers
   arrérages — avec référence, pièce liée, état de réponse et transmission centrale.
 - **Versionnage des pièces** : un dépôt ne remplace pas le fichier, il crée la version suivante ; la
-  précédente est conservée et ne peut plus être supprimée.
+  précédente est conservée et traçée. Toute version — y compris une version antérieure ou un doublon —
+  peut être retirée par le déposant ou par un chef de division qui contrôle le dossier.
 - **État « non applicable »** pour une pièce qui ne s'applique pas au dossier : elle ne bloque pas
   la validation et ne demande pas de motif.
 - **Formulaires d'opération pilotés par la configuration** : chaque type d'opération (avance de

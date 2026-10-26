@@ -90,20 +90,23 @@ export const STATUT_BROUILLON = 'BROUILLON';
 /**
  * États d'une pièce au dépouillement.
  *
- * « Présente » n'est pas le seul état utile : une pièce illisible ou à corriger
- * reste à traiter, et la confondre avec une pièce présente ferait valider un
- * dossier incomplet. « Manquante » est l'état par défaut : une pièce non
- * contrôlée n'est pas une pièce reçue.
+ * « Présente » n'est pas le seul état utile : une pièce absente, illisible,
+ * rejetée ou à corriger reste à traiter, et la confondre avec une pièce
+ * présente ferait valider un dossier incomplet. « Absente » est l'état par
+ * défaut : une pièce non contrôlée n'est pas une pièce reçue. Le code
+ * historique de cet état reste `MANQUANTE` pour ne pas casser les dossiers
+ * déjà contrôlés ; seul le libellé affiché est « Absente ».
  */
 export const ETATS_PIECE = {
   PRESENTE: 'PRESENTE',
   MANQUANTE: 'MANQUANTE',
+  REJETEE: 'REJETEE',
   ILLISIBLE: 'ILLISIBLE',
   A_CORRIGER: 'A_CORRIGER',
   /* Une pièce qui ne s'applique pas à ce dossier — un acte de mariage pour
-     un dossier de décès de décès, par exemple. Elle n'a pas été demandée :
-     elle ne doit donc pas être traitée comme une pièce manquante, ni
-     bloquer la validation. */
+     un dossier de décès, par exemple. Elle n'a pas été demandée : elle ne
+     doit donc pas être traitée comme une pièce manquante, ni bloquer la
+     validation. */
   NON_APPLICABLE: 'NON_APPLICABLE',
 };
 
@@ -111,7 +114,8 @@ export const ETATS_PIECE_LIST = Object.values(ETATS_PIECE);
 
 export const ETATS_PIECE_LABELS = {
   PRESENTE: 'Présente',
-  MANQUANTE: 'Manquante',
+  MANQUANTE: 'Absente',
+  REJETEE: 'Rejetée',
   ILLISIBLE: 'Illisible',
   A_CORRIGER: 'À corriger',
   NON_APPLICABLE: 'Non applicable',
@@ -126,5 +130,19 @@ export const ETATS_PIECE_LABELS = {
  */
 export const ETATS_PIECE_VALIDES = [ETATS_PIECE.PRESENTE, ETATS_PIECE.NON_APPLICABLE];
 
+/**
+ * Liste SQL des états satisfaisants, pour que le tableau de bord, la liste des
+ * dossiers et les rapports répondent tous à la même définition de
+ * « dossier incomplet ».
+ */
+export const ETATS_PIECE_VALIDES_SQL = ETATS_PIECE_VALIDES
+  .map((etat) => `'${etat}'`)
+  .join(', ');
+
 /** États qui demandent un motif : ceux qui restent à traiter. */
-export const ETATS_PIECE_A_MOTIVER = [ETATS_PIECE.MANQUANTE, ETATS_PIECE.ILLISIBLE, ETATS_PIECE.A_CORRIGER];
+export const ETATS_PIECE_A_MOTIVER = [
+  ETATS_PIECE.MANQUANTE,
+  ETATS_PIECE.REJETEE,
+  ETATS_PIECE.ILLISIBLE,
+  ETATS_PIECE.A_CORRIGER,
+];

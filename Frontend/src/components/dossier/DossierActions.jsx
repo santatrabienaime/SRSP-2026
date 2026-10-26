@@ -89,20 +89,38 @@ export function DossierActions({ dossier, onDone, onDeleted, actionDemandee, onA
   }, []);
 
   /* Résumé du dépouillement : il permet d'afficher, avant la validation, ce
-     qui manque. Un chef de service ne doit découvrir l'incomplétude qu'après
-     avoir cliqué sur « Valider ». */
+     qui manque. Un chef de division ne doit pas découvrir l'incomplétude
+     seulement après avoir cliqué sur « Valider » : le résumé est donc chargé
+     pour tout profil qui peut décider, pas seulement pour le chef de service
+     titulaire de la dérogation. */
   const peutDeroger = hasPermission('deroger_validation');
+  const peutDecider = hasAnyPermission(['verifier_dossier', 'valider_dossier', 'deroger_validation']);
+  const dossierId = dossier?.id;
+  const [resumeChargement, setResumeChargement] = useState(false);
+  const [resumeErreur, setResumeErreur] = useState(null);
   const chargerResume = useCallback(async () => {
-    if (!dossier?.id || !peutDeroger) return;
+    if (!dossierId || !peutDecider) return;
+    setResumeChargement(true);
+    setResumeErreur(null);
     try {
-      const data = await dossierService.getDepouillement(dossier.id);
+      const data = await dossierService.getDepouillement(dossierId);
       setResume(data?.resume || null);
-    } catch {
+    } catch (e) {
       setResume(null);
+      setResumeErreur(e);
+    } finally {
+      setResumeChargement(false);
     }
-  }, [dossier?.id, peutDeroger]);
+  }, [dossierId, peutDecider]);
 
   useEffect(() => { Promise.resolve().then(chargerResume); }, [chargerResume]);
+
+  /* Les pièces ont pu être contrôlées dans l'onglet voisin depuis le premier
+     chargement : à l'ouverture de la décision, on relit le résumé pour ne pas
+     afficher un état périmé. */
+  useEffect(() => {
+    if (action === 'valider') Promise.resolve().then(chargerResume);
+  }, [action, chargerResume]);
 
   if (!dossier) return null;
 
@@ -422,39 +440,84 @@ export function DossierActions({ dossier, onDone, onDeleted, actionDemandee, onA
               </p>
             )}
 
-            {/* Dérogation à la validation : réservée au Chef de Service,
-                motivée et tracée. Elle n'est offered que si le dossier est
-                réellement incomplet — remplir un motif sur un dossier complet
-                n'aurait aucun effet et brouillerait la trace. */}
-            {payload.decision === 'VALIDE' && peutDeroger && (
-              <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
-                <p className="flex items-center gap-1.5 text-sm font-medium text-amber-800">
-                  <ShieldAlert className="h-4 w-4" /> Validation malgré un dossier incomplet
+            {/* Contrôle de complétude avant décision. Le chef de division
+                doit voir ce qui manque avant de cliquer : la validation est
+                bloquée par les pièces obligatoires et, pour un VISA, par les
+                champs de réception. Seul le chef de service peut déroger ;
+                pour les autres, l'écran explique la voie de sortie
+                (demander une correction) au lieu d'un refus serveur sec. */}
+            {payload.decision === 'VALIDE' && (
+              <div
+                className={`space-y-2 rounded-lg border p-3 ${
+                  dossierIncomplet
+                    ? 'border-amber-200 bg-amber-50/60'
+                    : 'border-emerald-200 bg-emerald-50/60'
+                }`}
+              >
+                <p
+                  className={`flex items-center gap-1.5 text-sm font-medium ${
+                    dossierIncomplet ? 'text-amber-800' : 'text-emerald-800'
+                  }`}
+                >
+                  {dossierIncomplet
+                    ? <ShieldAlert className="h-4 w-4" />
+                    : <CheckCircle2 className="h-4 w-4" />}
+                  {dossierIncomplet ? 'Le dossier est incomplet' : 'Le dossier est complet'}
                 </p>
-                {dossierIncomplet ? (
+
+                {resumeChargement ? (
+                  <p className="text-xs text-amber-800">
+                    Vérification des pièces obligatoires en cours…
+                  </p>
+                ) : resumeErreur ? (
+                  <p className="rounded-md bg-white/70 px-3 py-2 text-xs text-red-700">
+                    Le contrôle de complétude n'a pas pu être chargé
+                    {resumeErreur.message ? ` (${resumeErreur.message})` : ''}. Le serveur
+                    effectuera le contrôle au moment de l'enregistrement.
+                  </p>
+                ) : dossierIncomplet ? (
                   <>
-                    <p className="text-xs text-amber-800">
-                      Éléments manquants :
-                      {champsVisaManquants.length > 0 && ` ${champsVisaManquants.join(', ')}.`}
-                      {piecesManquantes.length > 0 && ` Pièces non satisfaites : ${piecesManquantes.join(', ')}.`}
-                    </p>
-                    <TextAreaInput
-                      label="Motif de la dérogation"
-                      required
-                      rows={3}
-                      value={payload.motif_exception || ''}
-                      onChange={(v) => setPayload((p) => ({ ...p, motif_exception: v }))}
-                      maxLength={500}
-                      placeholder="Ex. pièce justificative à réclamer au guichet, délaianji urgent…"
-                    />
-                    <p className="text-[11px] text-amber-700">
-                      La dérogation est enregistrée sur le dossier et dans l'historique :
-                      elle reste visible et attribuée.
-                    </p>
+                    <p className="text-xs text-amber-800">Il reste à satisfaire :</p>
+                    <ul className="list-disc space-y-0.5 pl-5 text-xs text-amber-800">
+                      {champsVisaManquants.map((champ) => (
+                        <li key={champ}>Champ VISA : {champ}</li>
+                      ))}
+                      {piecesManquantes.map((piece) => (
+                        <li key={piece}>Pièce obligatoire : {piece}</li>
+                      ))}
+                    </ul>
+                    {peutDeroger ? (
+                      <>
+                        <p className="text-xs text-amber-800">
+                          En tant que chef de service, vous pouvez valider malgré ces
+                          manques en motivant la dérogation ci-dessous.
+                        </p>
+                        <TextAreaInput
+                          label="Motif de la dérogation"
+                          required
+                          rows={3}
+                          value={payload.motif_exception || ''}
+                          onChange={(v) => setPayload((p) => ({ ...p, motif_exception: v }))}
+                          maxLength={500}
+                          placeholder="Ex. pièce justificative à réclamer au guichet, délai urgent…"
+                        />
+                        <p className="text-[11px] text-amber-700">
+                          La dérogation est enregistrée sur le dossier et dans l'historique :
+                          elle reste visible et attribuée.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="rounded-md bg-white/70 px-3 py-2 text-xs text-amber-800">
+                        Votre profil ne peut pas déroger à ce contrôle. Choisissez
+                        « Demander une correction » pour que l'agent complète le dossier ;
+                        les pièces se contrôlent dans l'onglet « Pièces » de ce dossier.
+                      </p>
+                    )}
                   </>
                 ) : (
-                  <p className="text-xs text-amber-800">
-                    Le dossier est complet : aucune dérogation n'est nécessaire.
+                  <p className="text-xs text-emerald-800">
+                    Toutes les pièces obligatoires de dépouillement et tous les champs
+                    requis sont renseignés.
                   </p>
                 )}
               </div>
@@ -669,7 +732,11 @@ export function DossierActions({ dossier, onDone, onDeleted, actionDemandee, onA
       case 'valider':
         if (!payload.decision) return true;
         if (payload.decision === 'CORRECTION') return !String(payload.commentaire || '').trim();
-        if (peutDeroger && dossierIncomplet) return !String(payload.motif_exception || '').trim();
+        /* Un dossier incomplet ne se valide pas sans dérogation. Le bloc
+           affiché au-dessus explique le manque et la voie de sortie : le
+           bouton désactivé n'est jamais la seule information. */
+        if (dossierIncomplet && !peutDeroger) return true;
+        if (dossierIncomplet && peutDeroger) return !String(payload.motif_exception || '').trim();
         return false;
       case 'signer':
         return false;

@@ -869,7 +869,7 @@ CREATE TABLE public.depouillements (
     observation text COLLATE public.ci,
     motif character varying(500) DEFAULT NULL::character varying COLLATE public.ci,
     date_controle timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT chk_depouillements_etat CHECK (((etat)::text = ANY (ARRAY[('PRESENTE'::character varying)::text, ('MANQUANTE'::character varying)::text, ('ILLISIBLE'::character varying)::text, ('A_CORRIGER'::character varying)::text, ('NON_APPLICABLE'::character varying)::text])))
+    CONSTRAINT chk_depouillements_etat CHECK (((etat)::text = ANY (ARRAY[('PRESENTE'::character varying)::text, ('MANQUANTE'::character varying)::text, ('REJETEE'::character varying)::text, ('ILLISIBLE'::character varying)::text, ('A_CORRIGER'::character varying)::text, ('NON_APPLICABLE'::character varying)::text])))
 );
 
 

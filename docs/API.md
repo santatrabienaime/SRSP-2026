@@ -252,13 +252,14 @@ Types : `BLOCAGE`, `INTERLOCUTION`, `ARBITRAGE`. Priorités : `NORMALE`,
 
 ## 4. Pièces — états
 
-| État | Satisfait l'obligation | Motif exigé |
-|---|---|---|
-| `PRESENTE` | oui | non |
-| `NON_APPLICABLE` | oui — la pièce n'avait pas à être fournie | non |
-| `MANQUANTE` | non | **oui** |
-| `ILLISIBLE` | non | **oui** |
-| `A_CORRIGER` | non | **oui** |
+| État | Satisfait l'obligation | Motif exigé | Affichage |
+|---|---|---|---|
+| `PRESENTE` | oui | non | Présente |
+| `NON_APPLICABLE` | oui — la pièce n'avait pas à être fournie | non | Non applicable |
+| `MANQUANTE` | non | **oui** | **Absente** (code historique de l'absence) |
+| `REJETEE` | non | **oui** | Rejetée |
+| `ILLISIBLE` | non | **oui** | Lisible mais non exploitable (état historique) |
+| `A_CORRIGER` | non | **oui** | Lisible mais erronée (état historique) |
 
 ---
 
@@ -564,7 +565,7 @@ Contraintes du workflow (applies côté serveur) :
 
 | Règle | Comportement |
 |---|---|
-| Validation | Bloquée (**422**) si un champ obligatoire manque (référence VISA, date et heure de réception, origine, comptable, objet, type d'acte, année de référence, vérificateur) ou si une pièce obligatoire de dépouillement n'est pas « présente ». Le message énumère les éléments manquants. |
+| Validation | Bloquée (**422**) si un champ obligatoire manque (référence VISA, date et heure de réception, origine, comptable, objet, type d'acte, année de référence, vérificateur) ou si une pièce obligatoire de dépouillement n'est pas satisfaite (état `PRESENTE` ou `NON_APPLICABLE`). Le message énumère les éléments manquants. |
 | Dérogation | `motif_exception` (5 caractères minimum) + permission `deroger_validation` (**Chef de Service seul**). Enregistrée sur le dossier (`exception_validation`, `date_exception`) et dans l'historique. |
 | Signature | Contrôlée **de nouveau dans le service** sur le rôle exact `CHEF_SERVICE` : un rôle technique obtient **403**, même s'il passe par une route mal configurée. |
 | Archivage | Exige une signature enregistrée (`date_signature` + `signataire_id`) **et** les pièces d'archivage obligatoires satisfaites. Réservé au `VERIFICATEUR_VISA` et au `CHEF_SERVICE` (**403** sinon). |
@@ -574,12 +575,24 @@ Contraintes du workflow (applies côté serveur) :
 
 | Endpoint | Permission | Description |
 |----------|-----------|-------------|
-| `GET /dossiers/:id/depouillement` | `depouiller_pieces` | Pièces applicables au dossier, avec leur état, et un résumé par phase |
-| `POST /dossiers/:id/depouillement` | `depouiller_pieces` | `{ "piece": "DEMANDE_VISA", "presente": true, "etat": "PRESENTE", "motif": "…" }` |
+| `GET /dossiers/:id/depouillement` | `depouiller_pieces` \| `verifier_dossier` \| `valider_dossier` | Pièces applicables au dossier, avec leur état, et un résumé par phase |
+| `POST /dossiers/:id/depouillement` | `depouiller_pieces` \| `verifier_dossier` \| `valider_dossier` | `{ "piece": "DEMANDE_VISA", "presente": true, "etat": "PRESENTE", "motif": "…" }` |
 
-Les quatre états sont `PRESENTE`, `MANQUANTE`, `ILLISIBLE`, `A_CORRIGER`. Seul
-`PRESENTE` satisfait une pièce obligatoire. Tout autre état **exige un
-motif** (**422** sinon).
+Les gestes de contrôle sont quatre, tous disponibles au profil qui peut
+décider — l'agent de traitement (`depouiller_pieces`) et le chef de division
+qui vérifie ou valide le dossier (`verifier_dossier` / `valider_dossier`) :
+
+| Geste | État | Satisfait l'obligation | Motif |
+|---|---|---|---|
+| Présente | `PRESENTE` | oui | non |
+| Absente | `MANQUANTE` | non | **oui** |
+| Rejetée | `REJETEE` | non | **oui** |
+| Non applicable | `NON_APPLICABLE` | oui (la pièce n'avait pas à être fournie) | non |
+
+Seul `PRESENTE` et `NON_APPLICABLE` satisfont une pièce obligatoire ; les
+deux autres **exigent un motif** (**422** sinon). La saisie de l'état reste
+libre côté API (`etat` accepté), mais le bouton « Absente » enregistre le code
+historique `MANQUANTE` : seule l'étiquette affichée change.
 
 ### Pièces jointes — `/dossiers/:id/documents`
 
@@ -588,7 +601,7 @@ motif** (**422** sinon).
 | `GET /dossiers/:id/documents` | — | Liste des pièces jointes du dossier |
 | `POST /dossiers/:id/documents` | `upload_document` \| `manage_documents` | `multipart/form-data`, champ **`fichier`** ; `piece_code` et `description` optionnels |
 | `GET /dossiers/:id/documents/:documentId/fichier` | — | Télécharge le fichier (nom d'origine) |
-| `DELETE /dossiers/:id/documents/:documentId` | `upload_document` \| `manage_documents` | Supprime (le déposant ou l'administrateur) |
+| `DELETE /dossiers/:id/documents/:documentId` | `upload_document` \| `manage_documents` \| `depouiller_pieces` \| `verifier_dossier` \| `valider_dossier` | Supprime une pièce (le déposant, ou un profil qui contrôle/valide le dossier) |
 
 Formats acceptés : `.pdf`, `.jpg`, `.jpeg`, `.png`, `.docx`, `.xlsx`. Taille
 maximale : **5 Mo**. Le fichier est stocké sous un nom **UUID** ; le nom

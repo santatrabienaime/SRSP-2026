@@ -87,17 +87,6 @@ export function DocumentsPanel({ dossierId, dossierStatut, pieces = [] }) {
     return [...map.entries()];
   }, [documents]);
 
-  /* Seule la version la plus récente d'une pièce peut être supprimée : les
-     anciennes sont la trace des versions précédentes, et le serveur les
-     refuse (409). Le bouton n'a donc pas à y être proposé. */
-  const versionsSupprimables = useMemo(() => {
-    const ids = new Set();
-    for (const [, versions] of groupes) {
-      if (versions.length) ids.add(versions[0].id);
-    }
-    return ids;
-  }, [groupes]);
-
   /* La pièce choisie a-t-elle déjà été déposée ? Si oui, le prochain dépôt en
      sera une nouvelle version, et le motif du remplacement doit être dit. */
   const pieceDejaDeposee = useMemo(
@@ -206,13 +195,17 @@ export function DocumentsPanel({ dossierId, dossierStatut, pieces = [] }) {
     }
   };
 
-  /* Le serveur n'autorise la suppression qu'au déposant et à l'administrateur.
-     On ne propose donc le bouton qu'à ceux-là : un bouton qui aboutirait
-     toujours à un 403 est pire que pas de bouton. La version, elle, est
-     traitée plus haut : seules les versions les plus récentes sont
-     supprimables. */
+  /* Le serveur autorise le déposant, l'administrateur/gestionnaire des
+     documents et les profils qui contrôlent ou valident le dossier. Le chef
+     de division doit pouvoir retirer un scan erroné ou un doublon ; le bouton
+     est donc proposé à ces profils, sans restriction de version. */
   const peutSupprimer = (doc) =>
-    hasAnyPermission(['manage_documents']) ||
+    hasAnyPermission([
+      'manage_documents',
+      'verifier_dossier',
+      'valider_dossier',
+      'depouiller_pieces',
+    ]) ||
     (user?.id && Number(doc.upload_par) === Number(user.id));
 
   return (
@@ -397,11 +390,11 @@ export function DocumentsPanel({ dossierId, dossierStatut, pieces = [] }) {
                       >
                         <Download className="h-3.5 w-3.5" />
                       </Button>
-                      {/* Les versions anciennes sont conservées : seul le
-                          serveur décide ce qu'il accepte de supprimer, et il
-                          refuse (409) de retirer une version qui n'est pas la
-                          plus récente. */}
-                      {peutSupprimer(doc) && !archive && versionsSupprimables.has(doc.id) && (
+                      {/* Toutes les versions sont supprimables : un doublon
+                          ou un scan erroné doit pouvoir être retiré, même
+                          s'il est plus ancien que la version courante. Le
+                          journal du dossier conserve la trace. */}
+                      {peutSupprimer(doc) && !archive && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -428,7 +421,7 @@ export function DocumentsPanel({ dossierId, dossierStatut, pieces = [] }) {
         loading={suppressionEnCours}
         danger
         title="Supprimer la pièce jointe"
-        message={`Supprimer « ${aSupprimer?.nom_fichier || ''} » (version ${aSupprimer?.version ?? 1}) ? Le fichier est retiré du serveur. L'opération est tracée dans l'historique du dossier.`}
+        message={`Supprimer « ${aSupprimer?.nom_fichier || ''} » (version ${aSupprimer?.version ?? 1}) ? Le fichier est retiré du serveur, y compris s'il s'agit d'un doublon ou d'une version antérieure. L'opération est tracée dans l'historique du dossier.`}
         confirmLabel="Supprimer"
       />
     </Card>

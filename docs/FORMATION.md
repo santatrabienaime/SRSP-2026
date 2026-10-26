@@ -91,23 +91,23 @@ demander un complément.
 
 **Point central de la séance.**
 
-Quatre états, et non deux :
+Quatre gestes de contrôle, et non deux :
 
-| État | Quand l'utiliser |
-|---|---|
-| **Présente** | La pièce est là et lisible. |
-| **Manquante** | La pièce n'a pas été fournie. |
-| **Illisible** | La pièce est là mais ne peut pas être lue. |
-| **À corriger** | La pièce est lisible mais comporte une erreur. |
+| Geste | État enregistré | Quand l'utiliser |
+|---|---|---|
+| **Présente** | `PRESENTE` | La pièce est là et lisible. |
+| **Absente** | `MANQUANTE` (code historique, étiquette « Absente ») | La pièce n'a pas été fournie. |
+| **Rejetée** | `REJETEE` | La pièce est là mais refusée : non conforme, expirée, falsifiée. |
+| **Non applicable** | `NON_APPLICABLE` | La pièce n'a pas à être fournie pour ce dossier. |
 
-**Exercice** : marquer une pièce « manquante » **sans motif** → le serveur
+**Exercice** : marquer une pièce « absente » **sans motif** → le serveur
 refuse. La marquer **avec un motif** → c'est accepté, et le motif est
 conservé.
 
-**À retenir** : seule « présente » satisfait une pièce obligatoire. Un dossier
-dont une pièce obligatoire est « illisible » ne peut pas être validé — c'est
-voulu : confondre une pièce illisible avec une pièce reçue reviendrait à
-valider un dossier incomplet.
+**À retenir** : seule « présente » et « non applicable » satisfont une pièce
+obligatoire. Un dossier dont une pièce obligatoire est « absente » ou « rejetée »
+ne peut pas être validé — c'est voulu : ne pas fournir, ou fournir un document
+qu'on refuse, laisse le dossier incomplet.
 
 ### 4. Transmettre ou demander un complément (15 min)
 
@@ -287,8 +287,8 @@ sauvegarde et retrouve une suppression dans le journal.
 
 1. Qui peut signer un dossier VISA ? *Le Chef de Service, et lui seul.*
 2. La validation par le Chef de Division vaut-elle signature ? *Non.*
-3. Une pièce « illisible » satisfait-elle une pièce obligatoire ? *Non : seule
-   « présente » satisfait.*
+3. Une pièce « absente » ou « rejetée » satisfait-elle une pièce obligatoire ? *Non : seule
+   « présente » (ou « non applicable ») satisfait.*
 4. Quel motif est obligatoire ? *Complément, correction, réaffectation,
    suppression.*
 5. Que se passe-t-il si un dossier VISA est validé sans ses pièces ? *La

@@ -2,10 +2,29 @@ import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import db from '../config/db.js';
 import { httpError } from '../utils/httpError.js';
+import { ETATS_PIECE_VALIDES_SQL } from '../utils/constants.js';
+import { perimetrePour } from './scopeService.js';
 
 /* ════════════════════════════════════════════════════════════════════
    CONSTANTES ET UTILITAIRES PDF/EXCEL (partagés)
    ════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Périmètre des rapports.
+ *
+ * Les rapports sont accessibles à tout profil qui porte `view_stats` —
+ * donc aux chefs de division aussi bien qu'au secrétariat. Sans périmètre,
+ * un chef de division générerait les chiffres de toutes les divisions : le
+ * cloisonnement appliqué au tableau de bord et aux performances se doit de
+ * l'être aussi ici. `perimetrePour` renvoie une clause sur `dossiers d` ;
+ * les rapports qui ne portent pas sur les dossiers (bordereaux, courriers)
+ * filtrent sur leur propre division.
+ */
+async function clausePerimetre(scope) {
+  if (!scope) return { condition: null, params: [] };
+  const { where, params } = await perimetrePour(scope);
+  return { condition: where ? where.replace(/^\s*AND\s*/i, '') : null, params };
+}
 
 const PDF_MARGIN = 40;
 const PDF_TITLE_FONT_SIZE = 16;
@@ -66,14 +85,17 @@ function excelSheet(worksheet, colonnes, lignes) {
 /**
  * Génère un PDF générique (existant - 100 derniers dossiers).
  */
-export async function generatePDF(res, filters = {}) {
+export async function generatePDF(res, filters = {}, scope = null) {
+  const perimetre = await clausePerimetre(scope);
   const rows = await db.query(
     `SELECT d.numero, d.objet, d.demandeur, d.date_reception,
             s.libelle AS statut, dv.nom AS division
      FROM dossiers d
      JOIN statuts_dossiers s ON d.statut_id = s.id
      JOIN divisions dv ON d.division_id = dv.id
-     ORDER BY d.date_reception DESC LIMIT 100`
+     WHERE 1=1${perimetre.condition ? ` AND ${perimetre.condition}` : ''}
+     ORDER BY d.date_reception DESC LIMIT 100`,
+    perimetre.params
   );
 
   const doc = new PDFDocument({ margin: 40 });
@@ -98,14 +120,17 @@ export async function generatePDF(res, filters = {}) {
 /**
  * Génère un Excel générique (existant).
  */
-export async function generateExcel(res) {
+export async function generateExcel(res, scope = null) {
+  const perimetre = await clausePerimetre(scope);
   const rows = await db.query(
     `SELECT d.numero, d.objet, d.demandeur, d.date_reception,
             s.libelle AS statut, dv.nom AS division
      FROM dossiers d
      JOIN statuts_dossiers s ON d.statut_id = s.id
      JOIN divisions dv ON d.division_id = dv.id
-     ORDER BY d.date_reception DESC`
+     WHERE 1=1${perimetre.condition ? ` AND ${perimetre.condition}` : ''}
+     ORDER BY d.date_reception DESC`,
+    perimetre.params
   );
 
   const workbook = new ExcelJS.Workbook();
@@ -135,7 +160,8 @@ export async function generateExcel(res) {
 
 /* ── 1. Rapport journalier des dossiers reçus ───────────────────────── */
 
-export async function rapportJournalierRecus(filtres = {}) {
+export async function rapportJournalierRecus(filtres = {}, scope = null) {
+  const perimetre = await clausePerimetre(scope);
   const rows = await db.query(
     `SELECT d.numero, d.objet, d.demandeur, d.matricule, d.date_reception,
             t.libelle AS type_dossier, dv.nom AS division
@@ -143,19 +169,21 @@ export async function rapportJournalierRecus(filtres = {}) {
      JOIN types_dossiers t ON d.type_id = t.id
      JOIN divisions dv ON d.division_id = dv.id
      JOIN statuts_dossiers s ON d.statut_id = s.id
-     WHERE s.code = 'RECU' AND DATE(d.date_reception) = ?
+     WHERE s.code = 'RECU' AND DATE(d.date_reception) = ?${perimetre.condition ? ` AND ${perimetre.condition}` : ''}
      ORDER BY d.date_reception DESC`,
-    [filtres.date || new Date().toISOString().slice(0, 10)]
+    [filtres.date || new Date().toISOString().slice(0, 10), ...perimetre.params]
   );
   return { titre: `Rapport journalier des dossiers reçus — ${filtres.date || new Date().toISOString().slice(0, 10)}`, lignes: rows };
 }
 
 /* ── 2. Liste des dossiers enregistrés par période ─────────────────── */
 
-export async function rapportDossiersPeriode(filtres = {}) {
+export async function rapportDossiersPeriode(filtres = {}, scope = null) {
+  const perimetre = await clausePerimetre(scope);
   const where = ['1=1'];
   if (filtres.date_debut) where.push('DATE(d.date_reception) >= ?');
   if (filtres.date_fin) where.push('DATE(d.date_reception) <= ?');
+  if (perimetre.condition) { where.push(perimetre.condition); }
   const whereSQL = where.join(' AND ');
 
   const rows = await db.query(
@@ -167,47 +195,63 @@ export async function rapportDossiersPeriode(filtres = {}) {
      JOIN statuts_dossiers s ON d.statut_id = s.id
      WHERE ${whereSQL}
      ORDER BY d.date_reception DESC`,
-    [filtres.date_debut, filtres.date_fin].filter(Boolean)
+    [filtres.date_debut, filtres.date_fin].filter(Boolean).concat(perimetre.params)
   );
   return { titre: `Dossiers enregistrés du ${filtres.date_debut || 'début'} au ${filtres.date_fin || 'fin'}`, lignes: rows };
 }
 
 /* ── 3. Liste des dossiers en attente de transmission ──────────────── */
 
-export async function rapportAttenteTransmission() {
+export async function rapportAttenteTransmission(_filtres = {}, scope = null) {
+  const perimetre = await clausePerimetre(scope);
   const rows = await db.query(
     `SELECT d.numero, d.objet, d.demandeur, d.date_reception,
             dv.nom AS division
      FROM dossiers d
      JOIN divisions dv ON d.division_id = dv.id
      JOIN statuts_dossiers s ON d.statut_id = s.id
-     WHERE s.code = 'ORIENTE'
-     ORDER BY d.date_reception ASC`
+     WHERE s.code = 'ORIENTE'${perimetre.condition ? ` AND ${perimetre.condition}` : ''}
+     ORDER BY d.date_reception ASC`,
+    perimetre.params
   );
   return { titre: 'Dossiers en attente de transmission (orientés)', lignes: rows };
 }
 
 /* ── 4. Liste des dossiers incomplets ──────────────────────────────── */
 
-export async function rapportIncomplets() {
+export async function rapportIncomplets(_filtres = {}, scope = null) {
+  const perimetre = await clausePerimetre(scope);
+  /* Même définition de « dossier incomplet » que le tableau de bord et la
+     liste des dossiers : une pièce obligatoire de dépouillement est
+     satisfaite par « présente » ou « non applicable » — tout autre état
+     (absente, rejetée, illisible, à corriger, ou jamais contrôlée) laisse
+     le dossier incomplet. */
   const rows = await db.query(
     `SELECT d.numero, d.objet, d.demandeur, d.date_reception,
             dv.nom AS division,
             STRING_AGG(tp.libelle, ', ') AS pieces_manquantes
      FROM dossiers d
      JOIN divisions dv ON d.division_id = dv.id
-     JOIN depouillements dp ON dp.dossier_id = d.id
-     JOIN types_pieces tp ON tp.code = dp.piece
-     WHERE dp.presente = 0 AND tp.obligatoire = 1
+     JOIN types_pieces tp ON tp.obligatoire = 1 AND tp.actif = 1
+       AND tp.phase = 'DEPOUILLEMENT'
+       AND (tp.type_dossier_id IS NULL OR tp.type_dossier_id = d.type_id)
+       AND (tp.sous_type_id IS NULL OR tp.sous_type_id = d.sous_type_id)
+     WHERE NOT EXISTS (
+       SELECT 1 FROM depouillements dp
+       WHERE dp.dossier_id = d.id AND dp.piece = tp.code
+         AND dp.etat IN (${ETATS_PIECE_VALIDES_SQL})
+     )${perimetre.condition ? ` AND ${perimetre.condition}` : ''}
      GROUP BY d.id, dv.nom
-     ORDER BY d.date_reception ASC`
+     ORDER BY d.date_reception ASC`,
+    perimetre.params
   );
-  return { titre: 'Dossiers incomplets (pièces obligatoires manquantes)', lignes: rows };
+  return { titre: 'Dossiers incomplets (pièces obligatoires non satisfaites)', lignes: rows };
 }
 
 /* ── 5. Liste des dossiers retournés ───────────────────────────────── */
 
-export async function rapportRetournes() {
+export async function rapportRetournes(_filtres = {}, scope = null) {
+  const perimetre = await clausePerimetre(scope);
   const rows = await db.query(
     `SELECT d.numero, d.objet, d.demandeur, d.date_reception,
             dv.nom AS division, ag.nom AS agent_nom, ag.prenom AS agent_prenom
@@ -215,19 +259,26 @@ export async function rapportRetournes() {
      JOIN divisions dv ON d.division_id = dv.id
      JOIN statuts_dossiers s ON d.statut_id = s.id
      LEFT JOIN agents ag ON ag.id = d.agent_responsable_id
-     WHERE s.code = 'CORRECTION_DEMANDEE'
-     ORDER BY d.date_reception DESC`
+     WHERE s.code = 'CORRECTION_DEMANDEE'${perimetre.condition ? ` AND ${perimetre.condition}` : ''}
+     ORDER BY d.date_reception DESC`,
+    perimetre.params
   );
   return { titre: 'Dossiers retournés (correction demandée)', lignes: rows };
 }
 
 /* ── 6. Rapport des transmissions par division ─────────────────────── */
 
-export async function rapportTransmissionsDivision(filtres = {}) {
+export async function rapportTransmissionsDivision(filtres = {}, scope = null) {
   const where = ['b.statut IN (\'EMIS\',\'RECU_PAR_DIVISION\',\'ARCHIVE\')'];
   const params = [];
   if (filtres.date_debut) { where.push('DATE(b.date_transmission) >= ?'); params.push(filtres.date_debut); }
   if (filtres.date_fin) { where.push('DATE(b.date_transmission) <= ?'); params.push(filtres.date_fin); }
+  /* Les bordereaux ne portent pas de `dossiers d` : le périmètre filtre
+     directement sur la division destinataire. */
+  if (scope?.divisionScoped && scope.divisionId) {
+    where.push('b.division_id = ?');
+    params.push(scope.divisionId);
+  }
   const whereSQL = where.join(' AND ');
 
   const rows = await db.query(
@@ -248,12 +299,18 @@ export async function rapportTransmissionsDivision(filtres = {}) {
 
 /* ── 7. Registre des courriers entrants et sortants ────────────────── */
 
-export async function registreCourriers(filtres = {}) {
+export async function registreCourriers(filtres = {}, scope = null) {
   const where = ['1=1'];
   const params = [];
   if (filtres.date_debut) { where.push('DATE(c.created_at) >= ?'); params.push(filtres.date_debut); }
   if (filtres.date_fin) { where.push('DATE(c.created_at) <= ?'); params.push(filtres.date_fin); }
   if (filtres.sens) { where.push('c.sens = ?'); params.push(filtres.sens); }
+  /* Les courriers ne portent pas de `dossiers d` : le périmètre filtre
+     directement sur la division du courrier. */
+  if (scope?.divisionScoped && scope.divisionId) {
+    where.push('c.division_id = ?');
+    params.push(scope.divisionId);
+  }
   const whereSQL = where.join(' AND ');
 
   const rows = await db.query(
@@ -272,10 +329,12 @@ export async function registreCourriers(filtres = {}) {
 
 /* ── 8. Liste des dossiers clôturés ───────────────────────────────── */
 
-export async function rapportClotures(filtres = {}) {
+export async function rapportClotures(filtres = {}, scope = null) {
+  const perimetre = await clausePerimetre(scope);
   const where = ["s.code = 'CLOTURE'"];
   if (filtres.date_debut) where.push('DATE(d.date_cloture) >= ?');
   if (filtres.date_fin) where.push('DATE(d.date_cloture) <= ?');
+  if (perimetre.condition) { where.push(perimetre.condition); }
   const whereSQL = where.join(' AND ');
 
   const rows = await db.query(
@@ -285,20 +344,22 @@ export async function rapportClotures(filtres = {}) {
      JOIN divisions dv ON d.division_id = dv.id
      JOIN statuts_dossiers s ON d.statut_id = s.id
      LEFT JOIN agents ag ON ag.id = d.agent_responsable_id
-     WHERE ${where.join(' AND ')}
+     WHERE ${whereSQL}
      ORDER BY d.date_cloture DESC`,
-    [filtres.date_debut, filtres.date_fin].filter(Boolean)
+    [filtres.date_debut, filtres.date_fin].filter(Boolean).concat(perimetre.params)
   );
   return { titre: `Dossiers clôturés${filtres.date_debut || filtres.date_fin ? ` (${filtres.date_debut || ''} - ${filtres.date_fin || ''})` : ''}`, lignes: rows };
 }
 
 /* ── 9. Liste des dossiers archivés ────────────────────────────────── */
 
-export async function rapportArchives(filtres = {}) {
+export async function rapportArchives(filtres = {}, scope = null) {
+  const perimetre = await clausePerimetre(scope);
   const where = ['a.restaure = 0'];
   const params = [];
   if (filtres.date_debut) { where.push('DATE(a.date_archivage) >= ?'); params.push(filtres.date_debut); }
   if (filtres.date_fin) { where.push('DATE(a.date_archivage) <= ?'); params.push(filtres.date_fin); }
+  if (perimetre.condition) { where.push(perimetre.condition); params.push(...perimetre.params); }
   const whereSQL = where.join(' AND ');
 
   const rows = await db.query(
@@ -317,18 +378,20 @@ export async function rapportArchives(filtres = {}) {
 
 /* ── 10. Statistiques par type de dossier, période et division ─────── */
 
-export async function statsParTypePeriodeDivision(filtres = {}) {
+export async function statsParTypePeriodeDivision(filtres = {}, scope = null) {
+  const perimetre = await clausePerimetre(scope);
   const where = ['1=1'];
   if (filtres.date_debut) where.push('DATE(d.date_reception) >= ?');
   if (filtres.date_fin) where.push('DATE(d.date_reception) <= ?');
+  if (perimetre.condition) { where.push(perimetre.condition); }
   const whereSQL = where.join(' AND ');
-  const params = [filtres.date_debut, filtres.date_fin].filter(Boolean);
+  const params = [filtres.date_debut, filtres.date_fin].filter(Boolean).concat(perimetre.params);
 
   const parType = await db.query(
     `SELECT t.libelle AS type_dossier, COUNT(*) AS total
      FROM dossiers d
      JOIN types_dossiers t ON d.type_id = t.id
-     WHERE ${where.join(' AND ')}
+     WHERE ${whereSQL}
      GROUP BY t.id, t.libelle ORDER BY total DESC`,
     params
   );
@@ -337,7 +400,7 @@ export async function statsParTypePeriodeDivision(filtres = {}) {
     `SELECT dv.nom AS division, COUNT(*) AS total
      FROM dossiers d
      JOIN divisions dv ON d.division_id = dv.id
-     WHERE ${where.join(' AND ')}
+     WHERE ${whereSQL}
      GROUP BY dv.id, dv.nom ORDER BY total DESC`,
     params
   );
@@ -345,7 +408,7 @@ export async function statsParTypePeriodeDivision(filtres = {}) {
   const parMois = await db.query(
     `SELECT TO_CHAR(d.date_reception, 'YYYY-MM') AS mois, COUNT(*) AS total
      FROM dossiers d
-     WHERE ${where.join(' AND ')}
+     WHERE ${whereSQL}
      GROUP BY mois ORDER BY mois ASC`,
     params
   );
@@ -415,7 +478,7 @@ export function periodeVisa(filtres = {}) {
   };
 }
 
-function conditionsVisa(filtres = {}) {
+async function conditionsVisa(filtres = {}, scope = null) {
   const periode = periodeVisa(filtres);
   const where = [
     "t.code = 'VISA'",
@@ -431,7 +494,14 @@ function conditionsVisa(filtres = {}) {
     where.push('s.code = ?');
     params.push(String(filtres.statut).toUpperCase());
   }
-
+  if (filtres.division_id) {
+    where.push('d.division_id = ?');
+    params.push(Number(filtres.division_id));
+  }
+  /* Le périmètre s'applique toujours, même si le filtre en dit autrement :
+     un chef de division ne génère les rapports VISA que pour sa division. */
+  const perimetre = await clausePerimetre(scope);
+  if (perimetre.condition) { where.push(perimetre.condition); params.push(...perimetre.params); }
   return { where, params, periode };
 }
 
@@ -444,8 +514,8 @@ const FROM_VISA = `
   LEFT JOIN users u ON u.id = d.signataire_id
 `;
 
-export async function rapportVisa(filtres = {}) {
-  const { where, params, periode } = conditionsVisa(filtres);
+export async function rapportVisa(filtres = {}, scope = null) {
+  const { where, params, periode } = await conditionsVisa(filtres, scope);
   const rows = await db.query(
     `SELECT d.reference_visa, d.numero, d.date_reception,
             d.origine_presentateur, d.comptable_presentateur,
@@ -467,8 +537,8 @@ export async function rapportVisa(filtres = {}) {
   };
 }
 
-export async function rapportVisaParVerificateur(filtres = {}) {
-  const { where, params, periode } = conditionsVisa(filtres);
+export async function rapportVisaParVerificateur(filtres = {}, scope = null) {
+  const { where, params, periode } = await conditionsVisa(filtres, scope);
   const rows = await db.query(
     `SELECT TRIM(CONCAT(COALESCE(ag.prenom, ''), ' ', COALESCE(ag.nom, ''))) AS verificateur,
             COUNT(*) AS total,
@@ -507,7 +577,7 @@ const DIVISIONS_OPERATION = {
  * La période suit la même normalisation que le rapport VISA — mensuel,
  * trimestriel, annuel — pour que les deux se lisent de la même façon.
  */
-function conditionsOperation(filtres = {}) {
+async function conditionsOperation(filtres = {}, scope = null) {
   const periode = periodeVisa(filtres);
   const where = ['DATE(d.date_reception) BETWEEN ? AND ?'];
   const params = [periode.debut, periode.fin];
@@ -540,6 +610,12 @@ function conditionsOperation(filtres = {}) {
     params.push(Number(filtres.agent_id));
   }
 
+  /* Le périmètre s'applique toujours : un chef de division ne génère les
+     rapports d'opérations que pour sa division, quelle que soit la
+     division demandée. */
+  const perimetre = await clausePerimetre(scope);
+  if (perimetre.condition) { where.push(perimetre.condition); params.push(...perimetre.params); }
+
   return { where, params, periode, type };
 }
 
@@ -550,8 +626,8 @@ function conditionsOperation(filtres = {}) {
  * le montant **saisi**, sa source, et qui l'a **validé** ou **contrôlé** —
  * ainsi que l'agent responsable.
  */
-export async function rapportOperation(filtres = {}) {
-  const { where, params, periode, type } = conditionsOperation(filtres);
+export async function rapportOperation(filtres = {}, scope = null) {
+  const { where, params, periode, type } = await conditionsOperation(filtres, scope);
   const rows = await db.query(
     `SELECT d.numero, d.objet, d.demandeur, d.matricule, d.date_reception,
             COALESCE(st.libelle, '—') AS operation,
@@ -590,8 +666,8 @@ export async function rapportOperation(filtres = {}) {
  * C'est la lecture de pilotage d'une division : elle dit d'un coup d'œil ce
  * qui a été instruit, ce qui a été contrôlé et ce qui ne l'a pas été.
  */
-export async function rapportOperationParType(filtres = {}) {
-  const { where, params, periode, type } = conditionsOperation(filtres);
+export async function rapportOperationParType(filtres = {}, scope = null) {
+  const { where, params, periode, type } = await conditionsOperation(filtres, scope);
   const rows = await db.query(
     `SELECT COALESCE(st.libelle, '—') AS operation,
             st.code AS operation_code,
@@ -626,8 +702,8 @@ export async function rapportOperationParType(filtres = {}) {
  * financier, mandatement préparé, pièces produites, émargement, signatures en
  * attente et dossiers archivés ». C'est ce que raconte ce rapport.
  */
-export async function rapportSecours(filtres = {}) {
-  const { where, params, periode } = conditionsOperation({ ...filtres, type: 'SECOURS' });
+export async function rapportSecours(filtres = {}, scope = null) {
+  const { where, params, periode } = await conditionsOperation({ ...filtres, type: 'SECOURS' }, scope);
   const rows = await db.query(
     `SELECT d.numero, d.objet, d.demandeur, d.date_reception,
             s.libelle AS statut,
@@ -1005,9 +1081,9 @@ const rapportsConfig = {
 /* ── Générateurs PDF/Excel génériques ──────────────────────────────── */
 
 function makePdfGenerator(cfg, filtresParDefaut = {}) {
-  return async function(res, filtresAppel = {}) {
+  return async function(res, filtresAppel = {}, scope = null) {
     const filtres = { ...filtresParDefaut, ...filtresAppel };
-    const { lignes } = await cfg.getLignes(filtres);
+    const { lignes } = await cfg.getLignes(filtres, scope);
     const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape' });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${cfg.titre.toLowerCase().replace(/\s+/g,'-')}.pdf"`);
@@ -1053,9 +1129,9 @@ function nomFeuille(titre, pris = []) {
 }
 
 function makeExcelGenerator(cfg, filtresParDefaut = {}) {
-  return async function(res, filtresAppel = {}) {
+  return async function(res, filtresAppel = {}, scope = null) {
     const filtres = { ...filtresParDefaut, ...filtresAppel };
-    const { lignes } = await cfg.getLignes(filtres);
+    const { lignes } = await cfg.getLignes(filtres, scope);
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(
       nomFeuille(cfg.titre, workbook.worksheets.map((w) => w.name))
@@ -1127,7 +1203,7 @@ export const pdfSecours = makePdfGenerator(rapportsConfig.secours);
 export const excelSecours = makeExcelGenerator(rapportsConfig.secours);
 
 // 10. Stats par type/période/division (structure spéciale)
-export async function pdfStatsParTypePeriodeDivision(res, filtres = {}) {  const data = await statsParTypePeriodeDivision(filtres);
+export async function pdfStatsParTypePeriodeDivision(res, filtres = {}, scope = null) {  const data = await statsParTypePeriodeDivision(filtres, scope);
   const doc = new PDFDocument({ margin: 40, layout: 'landscape' });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="stats-type-periode-division.pdf"`);
@@ -1163,8 +1239,8 @@ export async function pdfStatsParTypePeriodeDivision(res, filtres = {}) {  const
   doc.end();
 }
 
-export async function excelStatsParTypePeriodeDivision(res, filtres = {}) {
-  const data = await statsParTypePeriodeDivision(filtres);
+export async function excelStatsParTypePeriodeDivision(res, filtres = {}, scope = null) {
+  const data = await statsParTypePeriodeDivision(filtres, scope);
   const workbook = new ExcelJS.Workbook();
   
   const ws1 = workbook.addWorksheet('Par type');

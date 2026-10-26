@@ -139,10 +139,10 @@ Trois mentions sont employées :
 | Exigence | État | Commentaire |
 |---|---|---|
 | Checklist par type | **En place** | Par type de dossier **et** par type d'opération. |
-| État de chaque pièce | **En place** | Présente, manquante, illisible, à corriger, **non applicable**. *Une pièce non applicable satisfait l'obligation — elle n'avait pas à être fournie — et ne demande pas de motif.* |
+| État de chaque pièce | **En place** | Présente, absente (`MANQUANTE`), rejetée, non applicable. *Une pièce non applicable satisfait l'obligation — elle n'avait pas à être fournie — et ne demande pas de motif.* |
 | Métadonnées | **En place** | Libellé, code, date de contrôle, agent. |
 | Fichier numérique | **En place** | Nom, format, taille, date d'ajout, stockage privé, accès soumis aux permissions. |
-| **Remplacement — conserver la trace de la version précédente** | **En place** | Un dépôt crée une **version suivante** ; la précédente est conservée et liée. Une version antérieure ne peut pas être supprimée : elle est la trace. Le motif du remplacement est conservé. |
+| **Remplacement — conserver la trace de la version précédente** | **En place** | Un dépôt crée une **version suivante** ; la précédente est conservée et liée. Toute version peut être supprimée (le déposant ou un contrôleur autorisé), un doublon n'est pas prisonnier ; le journal conserve la trace. Le motif du remplacement est conservé. |
 | Jamais de lien public non protégé | **En place** | Le téléchargement passe par une route authentifiée et cloisonnée. |
 
 ### 5.3 Transmission

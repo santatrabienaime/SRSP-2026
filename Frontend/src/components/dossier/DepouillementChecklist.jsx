@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CircleCheck, CircleX, Loader2, EyeOff, PencilLine, MinusCircle, History } from 'lucide-react';
+import { CircleCheck, CircleX, Loader2, Ban, MinusCircle, History } from 'lucide-react';
 import { dossierService } from '../../services/dossierService.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useNotification } from '../../hooks/useNotification.js';
@@ -16,16 +16,18 @@ import { ETATS_PIECE, ETATS_PIECE_LABELS, ETATS_PIECE_BADGES, ETATS_PIECE_A_MOTI
 /**
  * Dépouillement des pièces d'un dossier.
  *
- * Quatre états, et non deux : une pièce peut être reçue mais illisible, ou
- * présente mais à corriger. Seule « présente » satisfait une obligation ; les
- * trois autres états doivent être motivés, parce que c'est le motif qui dit à
- * l'agent ce qu'il doit rapporter.
+ * Les boutons de contrôle sont volontairement limités à quatre gestes
+ * explicites : Présente, Absente, Rejetée et Non applicable. « Absente » et
+ * « Rejetée » exigent un motif, parce que c'est le motif qui dit à l'agent ce
+ * qu'il doit rapporter ou faire corriger. Les anciens états « illisible » et
+ * « à corriger » restent lus et affichés pour les dossiers déjà contrôlés,
+ * mais ne sont plus proposés : ils recouvraient deux situations que le
+ * guichet distingue mal.
  */
 const ACTIONS = [
   { etat: ETATS_PIECE.PRESENTE, label: 'Présente', Icone: CircleCheck, actif: 'border-emerald-600 bg-emerald-600 text-white', repos: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
-  { etat: ETATS_PIECE.MANQUANTE, label: 'Manquante', Icone: CircleX, actif: 'border-red-600 bg-red-600 text-white', repos: 'border-red-300 text-red-700 hover:bg-red-50' },
-  { etat: ETATS_PIECE.ILLISIBLE, label: 'Illisible', Icone: EyeOff, actif: 'border-amber-600 bg-amber-600 text-white', repos: 'border-amber-300 text-amber-700 hover:bg-amber-50' },
-  { etat: ETATS_PIECE.A_CORRIGER, label: 'À corriger', Icone: PencilLine, actif: 'border-orange-600 bg-orange-600 text-white', repos: 'border-orange-300 text-orange-700 hover:bg-orange-50' },
+  { etat: ETATS_PIECE.MANQUANTE, label: 'Absente', Icone: CircleX, actif: 'border-red-600 bg-red-600 text-white', repos: 'border-red-300 text-red-700 hover:bg-red-50' },
+  { etat: ETATS_PIECE.REJETEE, label: 'Rejetée', Icone: Ban, actif: 'border-rose-600 bg-rose-600 text-white', repos: 'border-rose-300 text-rose-700 hover:bg-rose-50' },
   /* Une pièce qui ne s'applique pas à ce dossier n'a pas à être fournie :
      elle ne bloque pas la validation et ne demande pas de motif. */
   { etat: ETATS_PIECE.NON_APPLICABLE, label: 'Non applicable', Icone: MinusCircle, actif: 'border-slate-600 bg-slate-600 text-white', repos: 'border-slate-300 text-slate-700 hover:bg-slate-50' },
@@ -34,7 +36,16 @@ const ACTIONS = [
 export function DepouillementChecklist({ dossierId }) {
   const { hasAnyPermission } = useAuth();
   const { toastSuccess } = useNotification();
-  const canControl = hasAnyPermission(['depouiller_pieces', 'gerer_ordonnancement', 'preparer_mandatement']);
+  /* Les chefs de division qui vérifient ou valident doivent pouvoir contrôler
+     les pièces, même s'ils ne portent pas les permissions métier de l'agent
+     (c'est le cas du chef de division Pension). */
+  const canControl = hasAnyPermission([
+    'depouiller_pieces',
+    'gerer_ordonnancement',
+    'preparer_mandatement',
+    'verifier_dossier',
+    'valider_dossier',
+  ]);
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -149,6 +160,13 @@ export function DepouillementChecklist({ dossierId }) {
       {actionError && (
         <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {actionError.message}
+        </p>
+      )}
+
+      {!canControl && (
+        <p className="mb-3 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          Le contrôle des pièces est réservé aux agents de traitement et aux chefs
+          de division. Vous pouvez consulter l'état de chaque pièce.
         </p>
       )}
 
@@ -306,7 +324,7 @@ export function DepouillementChecklist({ dossierId }) {
               Annuler
             </Button>
             <Button
-              onClick={() => enregistrer(pieceAMotiver.piece, pieceAMotiver.etat, motif)}
+              onClick={() => pieceAMotiver && enregistrer(pieceAMotiver.piece, pieceAMotiver.etat, motif)}
               loading={saving !== null}
               disabled={!motif.trim()}
             >
@@ -316,8 +334,9 @@ export function DepouillementChecklist({ dossierId }) {
         }
       >
         <p className="mb-3 text-sm text-slate-600">
-          Une pièce « {ETATS_PIECE_LABELS[pieceAMotiver?.etat]?.toLowerCase()} » doit être
-          motivée : le motif est transmis au secrétariat et conservé dans la fiche.
+          {pieceAMotiver?.etat === ETATS_PIECE.REJETEE
+            ? 'Une pièce rejetée doit être motivée : précisez pourquoi elle ne peut pas être acceptée (non conforme, expirée, falsifiée, incomplète…).'
+            : 'Une pièce absente doit être motivée : précisez ce qui manque, pour que l’agent sache exactement quoi rapporter.'}
         </p>
         <TextAreaInput
           label="Motif"
@@ -326,8 +345,16 @@ export function DepouillementChecklist({ dossierId }) {
           value={motif}
           onChange={setMotif}
           maxLength={500}
-          placeholder="Ex. copie illisible, acte à faire rectifier par la mairie…"
+          placeholder={
+            pieceAMotiver?.etat === ETATS_PIECE.REJETEE
+              ? 'Ex. acte non conforme, signature absente, document expiré…'
+              : 'Ex. copie de l’acte de naissance non fournie, certificat de résidence manquant…'
+          }
         />
+        <p className="mt-2 text-[11px] text-slate-500">
+          Le motif est obligatoire. Il est conservé dans la fiche du dossier et
+          visible dans l’historique des contrôles.
+        </p>
       </Modal>
     </Card>
   );
