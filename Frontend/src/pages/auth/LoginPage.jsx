@@ -231,7 +231,7 @@ export function LoginPage() {
 
         <p className="mt-5 flex items-center justify-center gap-1.5 text-center text-[10px] text-white/35">
           <ShieldCheck className="h-3 w-3 shrink-0" />
-          Plateforme interne àl" accès réservé au personnel autorisé du SRSP.
+          Plateforme interne — accès réservé au personnel autorisé du SRSP.
         </p>
 
         <footer className="mt-2 w-full text-center text-[10px] text-white/40">
