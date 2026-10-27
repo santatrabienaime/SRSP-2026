@@ -17,12 +17,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(false);
 
-  // Synchronise le jeton avec le client HTTP à chaque changement.
-  useEffect(() => {
-    setAuthToken(token);
-  }, [token]);
-
   const persist = useCallback((t, u) => {
+    // Synchronisation immédiate avec le client HTTP, pour que les appels
+    // suivants (me, permissions) disposent du jeton sans attendre un rendu.
+    setAuthToken(t);
     setToken(t);
     setUser(u);
   }, []);
