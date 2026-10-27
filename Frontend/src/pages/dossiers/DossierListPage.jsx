@@ -46,6 +46,27 @@ const GROUPES = [
       (c.SOUMIS_A_VERIFICATION || 0) + (c.CORRECTION_DEMANDEE || 0),
   },
   {
+    code: 'EN_TRAITEMENT', label: 'En traitement', icon: Clock,
+    actif: 'border-amber-600 bg-amber-600 shadow-[0_0_16px_rgba(217,119,6,0.35)]',
+    hint: 'Affectés ou en cours d exploitation',
+    filters: { statut: 'AFFECTE,EN_TRAITEMENT,EN_ATTENTE_COMPLEMENT' },
+    compte: (c) => (c.AFFECTE || 0) + (c.EN_TRAITEMENT || 0) + (c.EN_ATTENTE_COMPLEMENT || 0),
+  },
+  {
+    code: 'REJETES', label: 'Rejetés', icon: AlertTriangle,
+    actif: 'border-red-600 bg-red-600 shadow-[0_0_16px_rgba(239,68,68,0.35)]',
+    hint: 'Correction demandée',
+    filters: { statut: 'CORRECTION_DEMANDEE' },
+    compte: (c) => c.CORRECTION_DEMANDEE || 0,
+  },
+  {
+    code: 'SIGNES', label: 'Signés', icon: CheckCircle2,
+    actif: 'border-emerald-600 bg-emerald-600 shadow-[0_0_16px_rgba(16,185,129,0.35)]',
+    hint: 'Validés ou signés',
+    filters: { statut: 'VALIDE,SIGNE' },
+    compte: (c) => (c.VALIDE || 0) + (c.SIGNE || 0),
+  },
+  {
     code: 'TERMINES', label: 'Terminés', icon: CheckCircle2,
     actif: 'border-emerald-600 bg-emerald-600 shadow-[0_0_16px_rgba(16,185,129,0.35)]',
     hint: 'Validés, signés, clôturés ou archivés',
@@ -129,6 +150,9 @@ const ONGLETS_TYPES = [
  */
 const RACCOURCIS = [
   { code: 'NOUVEAUX', label: 'Nouveaux', icon: Inbox, filters: { statut: 'RECU,ENREGISTRE' } },
+  { code: 'EN_TRAITEMENT', label: 'En traitement', icon: Clock, filters: { statut: 'AFFECTE,EN_TRAITEMENT,EN_ATTENTE_COMPLEMENT' } },
+  { code: 'REJETES', label: 'Rejetés', icon: AlertTriangle, filters: { statut: 'CORRECTION_DEMANDEE' } },
+  { code: 'SIGNES', label: 'Signés', icon: CheckCircle2, filters: { statut: 'VALIDE,SIGNE' } },
   { code: 'URGENTS', label: 'Urgents', icon: AlertTriangle, filters: { priorite_haute: 1 } },
   { code: 'INCOMPLETS', label: 'Incomplets', icon: AlertTriangle, filters: { incomplets: 1 } },
   { code: 'BROUILLONS', label: 'Mes brouillons', icon: FileEdit, filters: { brouillon: 1 } },

@@ -15,6 +15,7 @@ import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { formatStatus, statusBadgeClass } from '../../utils/formatStatus.js';
 import { STATUT_LABELS } from '../../config/constants.js';
 import { TRIS_BOITE } from '../../config/triage.js';
+import { STATUTS } from '../../config/constants.js';
 
 /**
  * Boîte de travail : l'écran qui répond à la question « qu'est-ce qui m'attend,
@@ -221,6 +222,37 @@ export function BoiteTravailPage() {
           )}
         </Card>
       </div>
+
+      {/* Triage par statut : vue rapide pour tous les profils. Chaque statut
+          est cliquable et mène à la liste des dossiers filtrée par ce statut. */}
+      <Card title="Triage par statut" subtitle="Cliquez sur un statut pour voir les dossiers correspondants.">
+        {(boite?.par_statut || []).length === 0 ? (
+          <p className="rounded-md bg-slate-50 px-3 py-4 text-sm text-slate-500">
+            Aucun dossier.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {boite.par_statut.map((s) => {
+              const code = s.statut_code || s.code;
+              const total = s.total ?? s.nb ?? 0;
+              return (
+                <Link
+                  key={code}
+                  to={`/dossiers?statut=${code}`}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  <Badge className={statusBadgeClass(code)}>
+                    {STATUT_LABELS[code] || s.statut || s.libelle || code}
+                  </Badge>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                    {total}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
       {/* Les quatre files, détaillées. */}
       <div className="grid gap-5 lg:grid-cols-2">
