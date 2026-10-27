@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { LogIn, MapPin, Phone, Mail, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -60,8 +60,8 @@ export function LoginPage() {
     setLoading(true);
     try {
       const profil = await login(id, password.value);
-      toastSuccess('Connexion réussie.');
-      // Redirection vers la page d'atterrissage du rôle, avec fallback sur /
+      toastSuccess('Connexion rÃ©ussie.');
+      // Redirection vers la page d'atterrissage du rÃ´le, avec fallback sur /
       const destination =
         typeof landingPathFor === 'function'
           ? landingPathFor(profil, from)
@@ -76,7 +76,7 @@ export function LoginPage() {
 
   return (
     <div className="palette-nuit relative flex min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-slate-950 px-4 py-6 sm:py-8">
-      {/* Décor : fond dégradé, trame technique et halos */}
+      {/* DÃ©cor : fond dÃ©gradÃ©, trame technique et halos */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_-10%,#1e3a8a_0%,#0b1220_45%,#020617_100%)]" />
         <div className="absolute inset-0 grille-futur" />
@@ -87,10 +87,10 @@ export function LoginPage() {
         />
       </div>
 
-      {/* Bloc centré */}
+      {/* Bloc centrÃ© */}
       <div className="relative flex w-full max-w-md flex-col items-center justify-center">
         <div className="relative w-full min-h-[18rem] sm:min-h-[20rem]">
-          {/* ================= ÉTAPE 1 : accueil ================= */}
+          {/* ================= Ã‰TAPE 1 : accueil ================= */}
           <section
             aria-hidden={etape !== 'accueil'}
             inert={etape !== 'accueil'}
@@ -101,7 +101,7 @@ export function LoginPage() {
             }`}
           >
             <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/50 motion-safe:animate-ligne">
-              République de Madagascar
+              RÃ©publique de Madagascar
             </p>
             <p className="mt-1 text-[11px] italic text-white/40 motion-safe:animate-ligne" style={{ animationDelay: '60ms' }}>
               Fitiavana &mdash; Tanindrazana &mdash; Fandrosoana
@@ -113,22 +113,22 @@ export function LoginPage() {
             </div>
 
             <p className="max-w-xs text-[11px] font-bold uppercase leading-relaxed tracking-wide text-white/85 motion-safe:animate-ligne" style={{ animationDelay: '340ms' }}>
-              Ministère de l&apos;Économie et des Finances
+              MinistÃ¨re de l&apos;Ã‰conomie et des Finances
             </p>
             <h1
               className="mt-1.5 max-w-sm text-[18px] font-semibold leading-tight motion-safe:animate-ligne texte-degrade sm:text-[20px]"
               style={{ animationDelay: '400ms' }}
             >
-              Service Régional de la Solde et des Pensions Fitovinany
+              Service RÃ©gional de la Solde et des Pensions Fitovinany
             </h1>
 
             <p className="mt-3.5 max-w-xs text-[12px] leading-relaxed text-white/45 motion-safe:animate-ligne" style={{ animationDelay: '460ms' }}>
-              Plateforme de gestion des dossiers administratifs : réception,
+              Plateforme de gestion des dossiers administratifs : rÃ©ception,
               orientation, instruction, validation et archivage, avec
-              traçabilité complète des actes.
+              traÃ§abilitÃ© complÃ¨te des actes.
             </p>
 
-            {/* Bouton unique — sans icônes */}
+            {/* Bouton unique â€” sans icÃ´nes */}
             <Button
               ref={boutonAccueil}
               type="button"
@@ -141,7 +141,7 @@ export function LoginPage() {
             </Button>
           </section>
 
-          {/* ================= ÉTAPE 2 : formulaire ================= */}
+          {/* ================= Ã‰TAPE 2 : formulaire ================= */}
           <section
             aria-hidden={etape !== 'formulaire'}
             inert={etape !== 'formulaire'}
@@ -171,7 +171,7 @@ export function LoginPage() {
                 Connexion
               </h2>
               <p className="mt-0.5 text-center text-[10px] text-white/45">
-                Accédez à votre espace de travail
+                AccÃ©dez Ã  votre espace de travail
               </p>
 
               <div role="alert" aria-live="assertive" className="relative z-10 mt-3 empty:mt-0">
@@ -222,7 +222,7 @@ export function LoginPage() {
                   to="/mot-de-passe-oublie"
                   className="text-[11px] font-medium text-white/50 transition-colors hover:text-cyan-300"
                 >
-                  Mot de passe oublié ?
+                  Mot de passe oubliÃ© ?
                 </Link>
               </div>
             </div>
@@ -231,7 +231,7 @@ export function LoginPage() {
 
         <p className="mt-5 flex items-center justify-center gap-1.5 text-center text-[10px] text-white/35">
           <ShieldCheck className="h-3 w-3 shrink-0" />
-          Plateforme interne — accès réservé au personnel autorisé du SRSP.
+          Plateforme interne â€” accÃ¨s rÃ©servÃ© au personnel autorisÃ© du SRSP.
         </p>
 
         <footer className="mt-2 w-full text-center text-[10px] text-white/40">
