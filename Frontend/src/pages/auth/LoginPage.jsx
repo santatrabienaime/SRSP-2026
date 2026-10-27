@@ -30,7 +30,9 @@ export function LoginPage() {
   const premierChamp = useRef(null);
   const boutonAccueil = useRef(null);
 
-  const from = location.state?.from?.pathname || null;
+  // On ignore le chemin d'origine : chaque utilisateur est conduit vers
+  // l'interface qui lui correspond, jamais vers celle d'un autre.
+  const from = null;
 
   useEffect(() => {
     if (etape === 'formulaire') premierChamp.current?.focus();
