@@ -1,5 +1,11 @@
 import * as bordereauService from '../services/bordereauService.js';
+import db from '../config/db.js';
 import { httpError } from '../utils/httpError.js';
+
+async function agentIdOf(userId) {
+  const rows = await db.query('SELECT id FROM agents WHERE user_id = ? LIMIT 1', [userId]);
+  return rows[0]?.id || null;
+}
 
 export async function list(req, res, next) {
   try {
@@ -29,9 +35,10 @@ export async function create(req, res, next) {
     const { division_id, observation, dossiers } = req.body;
     if (!division_id) throw httpError(422, 'Division destinataire obligatoire');
 
+    const agent_id = await agentIdOf(req.user?.id);
     const b = await bordereauService.createBordereau({
       division_id: Number(division_id),
-      agent_id: req.user?.agent_id || null,
+      agent_id,
       observation,
       dossiers: dossiers || [],
     });
@@ -67,14 +74,16 @@ export async function removeDossier(req, res, next) {
 
 export async function emit(req, res, next) {
   try {
-    const b = await bordereauService.emitBordereau(Number(req.params.id), req.user?.agent_id || null);
+    const agent_id = await agentIdOf(req.user?.id);
+    const b = await bordereauService.emitBordereau(Number(req.params.id), agent_id);
     res.json(b);
   } catch (e) { next(e); }
 }
 
 export async function acknowledge(req, res, next) {
   try {
-    const b = await bordereauService.acknowledgeBordereau(Number(req.params.id), req.user?.agent_id || null);
+    const agent_id = await agentIdOf(req.user?.id);
+    const b = await bordereauService.acknowledgeBordereau(Number(req.params.id), agent_id);
     res.json(b);
   } catch (e) { next(e); }
 }

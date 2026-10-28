@@ -35,7 +35,8 @@ export function BordereauForm({ initial = null, onSaved, onCancel = null }) {
     }
   }, [form.division_id]);
 
-  const set = (field) => (value) => setForm((f) => ({ ...f, [field]: value }));
+  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const setVal = (field) => (v) => setForm((f) => ({ ...f, [field]: v }));
 
   const handleDossiersChange = (newDossiers) => setForm((f) => ({ ...f, dossiers: newDossiers }));
 
@@ -85,7 +86,7 @@ export function BordereauForm({ initial = null, onSaved, onCancel = null }) {
           label="Division destinataire"
           required
           value={form.division_id}
-          onChange={(v) => { setForm((f) => ({ ...f, division_id: v, dossiers: [] })); }}
+          onChange={(e) => { setForm((f) => ({ ...f, division_id: e.target.value, dossiers: [] })); }}
         >
           <option value="">Sélectionner une division…</option>
           {divisions.map((d) => (
@@ -103,7 +104,7 @@ export function BordereauForm({ initial = null, onSaved, onCancel = null }) {
       <ObservationInput
         label="Observation administrative"
         value={form.observation}
-        onChange={set('observation')}
+        onChange={setVal('observation')}
         placeholder="Note interne sur ce bordereau…"
       />
 
