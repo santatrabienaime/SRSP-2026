@@ -46,7 +46,7 @@ const vide = (initial) => ({
   matricule: initial?.matricule ?? '',
   date_reception: initial?.date_reception ? pourChampDate(initial.date_reception) : todayISO(),
   division_id: initial?.division_id ?? '',
-  priorite_id: initial?.priorite_id ?? '',
+  priorite_id: initial?.priorite_id ?? 3, // Normale par défaut
   observation: initial?.observation ?? '',
   date_limite: initial?.date_limite ? pourChampDate(initial.date_limite) : '',
   // Données VISA (CDC §VISA). Elles ne sont exigées que pour ce type.
